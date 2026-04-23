@@ -1,1 +1,20 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  background: linear-gradient(160deg, #0a1230 0%, #131f45 40%, #172550 100%);
+  background-attachment: fixed;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #334155;
+  -webkit-font-smoothing: antialiased;
+}
