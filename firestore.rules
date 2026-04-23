@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isOwnerUid(uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
+    function isItAdmin() {
+      return isAuthed() && request.auth.token.it_admin == true;
+    }
+
+    // Offboarding records. Clients read only their own (or admins see all).
+    // All writes go through Cloud Functions for validation + audit.
+    match /offboardings/{offboardingId} {
+      allow read: if isOwnerUid(resource.data.uid) || isItAdmin();
+      allow write: if false;
+
+      match /fileScan/{fileId} {
+        allow read: if isOwnerUid(
+          get(/databases/$(database)/documents/offboardings/$(offboardingId)).data.uid
+        ) || isItAdmin();
+        allow write: if false;
+      }
+
+      match /auditLog/{logId} {
+        allow read: if isOwnerUid(
+          get(/databases/$(database)/documents/offboardings/$(offboardingId)).data.uid
+        ) || isItAdmin();
+        allow write: if false;
+      }
+    }
+
+    // Successor lookup cache — any authed domain user can read.
+    match /successors/{email} {
+      allow read: if isAuthed();
+      allow write: if false;
+    }
+
+    // Default deny.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
