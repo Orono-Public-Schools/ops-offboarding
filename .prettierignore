@@ -1,0 +1,9 @@
+node_modules
+dist
+functions/lib
+functions/node_modules
+.firebase
+*.tsbuildinfo
+package-lock.json
+functions/package-lock.json
+PLAN.md
