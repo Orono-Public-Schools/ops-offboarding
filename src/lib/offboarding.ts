@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
-export type TaskStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped' | 'blocked';
+export type TaskStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped';
+
+export type HelpRequest = {
+  reason: string;
+  requestedAt: Timestamp;
+  resolvedAt: Timestamp | null;
+};
 
 export type TaskKey =
   | 'drivePersonal'
@@ -20,6 +26,7 @@ export type TaskKey =
 export type TaskState = {
   status: TaskStatus;
   completedAt?: Timestamp | null;
+  help?: HelpRequest | null;
   [k: string]: unknown;
 };
 

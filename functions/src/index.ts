@@ -37,7 +37,7 @@ const TASK_KEYS = [
 ] as const;
 
 function initialTasks() {
-  return Object.fromEntries(TASK_KEYS.map((k) => [k, { status: 'not_started' }]));
+  return Object.fromEntries(TASK_KEYS.map((k) => [k, { status: 'not_started', help: null }]));
 }
 
 export const startOffboarding = onCall({ region: REGION }, async (request) => {
