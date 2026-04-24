@@ -33,6 +33,7 @@ export function SignInScreen() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)',
         }}
       >
+        <img src="/orono-offboarding-blue.png" alt="" className="mx-auto mb-3 h-16 w-16" />
         <h1 className="text-center text-2xl font-bold tracking-tight" style={{ color: '#1d2a5d' }}>
           OPS Offboarding
         </h1>
