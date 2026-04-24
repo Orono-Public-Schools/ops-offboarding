@@ -1,14 +1,27 @@
-function App() {
+import { AuthProvider, useAuth } from './lib/auth';
+import { AuthenticatedShell } from './screens/AuthenticatedShell';
+import { SignInScreen } from './screens/SignInScreen';
+
+function LoadingScreen() {
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-3xl font-semibold tracking-tight">OPS Offboarding</h1>
-        <p className="mt-3 text-slate-600">
-          Scaffold deployed. Auth and the guided flow land next.
-        </p>
+    <main className="flex min-h-screen items-center justify-center">
+      <div className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        Loading…
       </div>
     </main>
   );
 }
 
-export default App;
+function AuthGate() {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return user ? <AuthenticatedShell /> : <SignInScreen />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
