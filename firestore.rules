@@ -9,31 +9,29 @@ service cloud.firestore {
         && request.auth.token.email.matches('.*@orono[.]k12[.]mn[.]us');
     }
 
-    function isOwnerUid(uid) {
-      return isAuthed() && request.auth.uid == uid;
+    function isSelf(offboardingId) {
+      return isAuthed() && request.auth.uid == offboardingId;
     }
 
     function isItAdmin() {
       return isAuthed() && request.auth.token.it_admin == true;
     }
 
-    // Offboarding records. Clients read only their own (or admins see all).
+    // Offboarding records. Document ID == user's Firebase UID, so rules
+    // authorize by path — which also lets the client distinguish
+    // "doesn't exist yet" from "denied" for first-time users.
     // All writes go through Cloud Functions for validation + audit.
     match /offboardings/{offboardingId} {
-      allow read: if isOwnerUid(resource.data.uid) || isItAdmin();
+      allow read: if isSelf(offboardingId) || isItAdmin();
       allow write: if false;
 
       match /fileScan/{fileId} {
-        allow read: if isOwnerUid(
-          get(/databases/$(database)/documents/offboardings/$(offboardingId)).data.uid
-        ) || isItAdmin();
+        allow read: if isSelf(offboardingId) || isItAdmin();
         allow write: if false;
       }
 
       match /auditLog/{logId} {
-        allow read: if isOwnerUid(
-          get(/databases/$(database)/documents/offboardings/$(offboardingId)).data.uid
-        ) || isItAdmin();
+        allow read: if isSelf(offboardingId) || isItAdmin();
         allow write: if false;
       }
     }
