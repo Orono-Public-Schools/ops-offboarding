@@ -35,9 +35,32 @@ export const listSharedDrives = httpsCallable<
 >(functions, 'listSharedDrives');
 
 export const moveFileToSharedDrive = httpsCallable<
-  { fileId: string; sharedDriveId: string; googleAccessToken: string },
+  {
+    fileId: string;
+    targetFolderId?: string;
+    sharedDriveId?: string;
+    googleAccessToken: string;
+  },
   { success: boolean }
 >(functions, 'moveFileToSharedDrive');
+
+export const createDriveFolder = httpsCallable<
+  { name: string; parentId: string | null; googleAccessToken: string },
+  { id: string; name: string }
+>(functions, 'createDriveFolder');
+
+export type DriveDestination = {
+  kind: 'sharedDrive' | 'sharedDriveFolder' | 'personalFolder';
+  folderId: string;
+  name: string;
+  sharedDriveId?: string;
+  sharedDriveName?: string;
+};
+
+export const setDriveDestinations = httpsCallable<
+  { destinations: DriveDestination[] },
+  { count: number }
+>(functions, 'setDriveDestinations');
 
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },

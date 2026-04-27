@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { DriveDestinationsSetup } from '../../components/DriveDestinationsSetup';
 import { PersonPicker } from '../../components/PersonPicker';
-import { SharedDrivePicker } from '../../components/SharedDrivePicker';
 import { getGoogleAccessToken, useAuth } from '../../lib/auth';
 import { driveUrl, formatBytes, shortType, useFileScan, type FileScanEntry } from '../../lib/drive';
 import {
@@ -10,6 +10,7 @@ import {
   moveFileToSharedDrive,
   scanDrive,
   transferFileOwnership,
+  type DriveDestination,
 } from '../../lib/functions';
 import type { OutletCtx } from '../../App';
 
@@ -98,24 +99,40 @@ function CategoryCard({
   );
 }
 
+function destinationDescription(d: DriveDestination): string {
+  if (d.kind === 'personalFolder') return 'Personal — download before leaving';
+  if (d.kind === 'sharedDrive') return 'Shared drive';
+  return d.sharedDriveName ? `Folder in ${d.sharedDriveName}` : 'Folder';
+}
+
+function destinationIcon(d: DriveDestination): string {
+  if (d.kind === 'personalFolder') return 'Mine';
+  if (d.kind === 'sharedDrive') return 'Drive';
+  return 'Folder';
+}
+
 function WalkthroughCard({
   entry,
   index,
   total,
-  onMove,
+  destinations,
+  onMoveToDestination,
   onTransfer,
   onPersonal,
   onSkip,
-  pending,
+  pendingDestinationId,
+  pendingAction,
 }: {
   entry: FileScanEntry;
   index: number;
   total: number;
-  onMove: () => void;
+  destinations: DriveDestination[];
+  onMoveToDestination: (d: DriveDestination) => Promise<void>;
   onTransfer: () => void;
   onPersonal: () => Promise<void>;
   onSkip: () => void;
-  pending: 'move' | 'transfer' | 'personal' | null;
+  pendingDestinationId: string | null;
+  pendingAction: 'transfer' | 'personal' | null;
 }) {
   const modified = entry.lastModified
     ? entry.lastModified.toDate().toLocaleDateString('en-US', {
@@ -129,6 +146,7 @@ function WalkthroughCard({
     .map((c) => c.email)
     .join(', ');
   const overflow = entry.collaboratorCount - Math.min(3, entry.collaborators.length);
+  const isPending = pendingDestinationId !== null || pendingAction !== null;
 
   return (
     <div
@@ -184,40 +202,82 @@ function WalkthroughCard({
       </div>
 
       <p className="mb-3 text-sm font-semibold" style={{ color: '#1d2a5d' }}>
-        What should happen to this file?
+        Where should this go?
       </p>
 
       <div className="space-y-2">
-        <button
-          onClick={onMove}
-          disabled={pending !== null}
-          className="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
-          style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
-        >
-          <span>Move to a shared drive</span>
-          {pending === 'move' && (
-            <span className="text-xs font-normal text-slate-400">Working…</span>
-          )}
-        </button>
+        {destinations.map((d) => {
+          const pending = pendingDestinationId === d.folderId;
+          return (
+            <button
+              key={d.folderId}
+              onClick={() => onMoveToDestination(d)}
+              disabled={isPending}
+              className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
+              style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
+            >
+              <span
+                className="flex h-7 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
+                style={{ background: '#eaecf5', color: '#1d2a5d' }}
+              >
+                {destinationIcon(d)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">→ {d.name}</span>
+                <span
+                  className="block truncate text-[11px] font-normal"
+                  style={{ color: '#64748b' }}
+                >
+                  {destinationDescription(d)}
+                </span>
+              </span>
+              {pending && <span className="text-xs font-normal text-slate-400">Working…</span>}
+            </button>
+          );
+        })}
+
         <button
           onClick={onTransfer}
-          disabled={pending !== null}
-          className="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
+          disabled={isPending}
+          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
           style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
         >
-          <span>Transfer to a colleague</span>
-          {pending === 'transfer' && (
+          <span
+            className="flex h-7 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
+            style={{ background: '#eaecf5', color: '#1d2a5d' }}
+          >
+            User
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">Transfer to a colleague</span>
+            <span className="block truncate text-[11px] font-normal" style={{ color: '#64748b' }}>
+              Hand ownership to someone in @orono.k12.mn.us
+            </span>
+          </span>
+          {pendingAction === 'transfer' && (
             <span className="text-xs font-normal text-slate-400">Working…</span>
           )}
         </button>
+
         <button
           onClick={() => onPersonal()}
-          disabled={pending !== null}
-          className="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
+          disabled={isPending}
+          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
           style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
         >
-          <span>It's personal — leave it</span>
-          {pending === 'personal' && (
+          <span
+            className="flex h-7 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
+            style={{ background: '#eaecf5', color: '#1d2a5d' }}
+          >
+            Skip
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">It's personal — leave it</span>
+            <span className="block truncate text-[11px] font-normal" style={{ color: '#64748b' }}>
+              Will be deleted with your account; that's fine
+            </span>
+          </span>
+          {pendingAction === 'personal' && (
             <span className="text-xs font-normal text-slate-400">Working…</span>
           )}
         </button>
@@ -225,7 +285,7 @@ function WalkthroughCard({
 
       <button
         onClick={onSkip}
-        disabled={pending !== null}
+        disabled={isPending}
         className="mt-4 w-full rounded-xl px-4 py-2 text-xs font-semibold transition hover:bg-slate-50 disabled:opacity-50"
         style={{ color: '#64748b' }}
       >
@@ -245,16 +305,22 @@ export function DrivePersonalTask() {
     scanFinishedAt?: { toDate: () => Date } | null;
     truncated?: boolean;
     scanError?: string | null;
+    destinations?: DriveDestination[];
+    destinationsConfigured?: boolean;
   };
   const fileScan = useFileScan(user?.uid ?? null, 5000);
+
+  const destinations = taskState.destinations ?? [];
 
   const [mode, setMode] = useState<Mode>('summary');
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [bulkPersonalBusy, setBulkPersonalBusy] = useState(false);
-  const [actionPending, setActionPending] = useState<'move' | 'transfer' | 'personal' | null>(null);
-  const [pickerOpen, setPickerOpen] = useState<'shared' | 'transfer' | null>(null);
+  const [pendingDestinationId, setPendingDestinationId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<'transfer' | 'personal' | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const entries = !fileScan.loading && 'entries' in fileScan ? fileScan.entries : [];
   const categories = useMemo(() => categorize(entries), [entries]);
@@ -301,13 +367,13 @@ export function DrivePersonalTask() {
 
   const handlePersonalCurrent = async () => {
     if (!current) return;
-    setActionPending('personal');
+    setPendingAction('personal');
     try {
       await markFilePersonal({ fileId: current.fileId });
     } catch (err) {
       console.error(err);
     } finally {
-      setActionPending(null);
+      setPendingAction(null);
     }
   };
 
@@ -320,19 +386,24 @@ export function DrivePersonalTask() {
     });
   };
 
-  const handleConfirmSharedDrive = async (drive: { id: string; name: string }) => {
+  const handleMoveToDestination = async (destination: DriveDestination) => {
     if (!current) return;
     const token = getGoogleAccessToken();
-    if (!token) throw new Error('Session expired. Please sign in again.');
-    setActionPending('move');
+    if (!token) {
+      setScanError('Your Google session expired. Please sign out and sign in again.');
+      return;
+    }
+    setPendingDestinationId(destination.folderId);
     try {
       await moveFileToSharedDrive({
         fileId: current.fileId,
-        sharedDriveId: drive.id,
+        targetFolderId: destination.folderId,
         googleAccessToken: token,
       });
+    } catch (err) {
+      console.error(err);
     } finally {
-      setActionPending(null);
+      setPendingDestinationId(null);
     }
   };
 
@@ -340,7 +411,7 @@ export function DrivePersonalTask() {
     if (!current) return;
     const token = getGoogleAccessToken();
     if (!token) throw new Error('Session expired. Please sign in again.');
-    setActionPending('transfer');
+    setPendingAction('transfer');
     try {
       await transferFileOwnership({
         fileId: current.fileId,
@@ -348,7 +419,15 @@ export function DrivePersonalTask() {
         googleAccessToken: token,
       });
     } finally {
-      setActionPending(null);
+      setPendingAction(null);
+    }
+  };
+
+  const handleStartReview = () => {
+    if (!taskState.destinationsConfigured) {
+      setSetupOpen(true);
+    } else {
+      setMode('walkthrough');
     }
   };
 
@@ -361,7 +440,6 @@ export function DrivePersonalTask() {
       })
     : null;
 
-  // Render
   return (
     <div>
       <Link
@@ -377,7 +455,7 @@ export function DrivePersonalTask() {
           My Drive cleanup
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          We sort your Drive into three buckets so you only have to make decisions on the files that
+          We sort your Drive into a few buckets so you only have to make decisions on the files that
           actually need them.
         </p>
       </div>
@@ -435,15 +513,46 @@ export function DrivePersonalTask() {
                 <span style={{ color: '#fca5a5' }}> · stopped at 50,000-file limit</span>
               )}
             </p>
-            <button
-              onClick={handleScan}
-              disabled={scanning}
-              className="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-50"
-              style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-            >
-              {scanning ? 'Scanning…' : 'Rescan'}
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                onClick={() => setSetupOpen(true)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                style={{ borderColor: 'rgba(255,255,255,0.3)' }}
+              >
+                {taskState.destinationsConfigured ? 'Edit destinations' : 'Set destinations'}
+              </button>
+              <button
+                onClick={handleScan}
+                disabled={scanning}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-50"
+                style={{ borderColor: 'rgba(255,255,255,0.3)' }}
+              >
+                {scanning ? 'Scanning…' : 'Rescan'}
+              </button>
+            </div>
           </div>
+
+          {taskState.destinationsConfigured && destinations.length > 0 && (
+            <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <p
+                className="mb-2 text-[11px] font-semibold tracking-wider uppercase"
+                style={{ color: 'rgba(255,255,255,0.5)' }}
+              >
+                Your destinations
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {destinations.map((d) => (
+                  <span
+                    key={d.folderId}
+                    className="rounded-full px-2.5 py-1 text-xs font-semibold text-white"
+                    style={{ background: 'rgba(255,255,255,0.12)' }}
+                  >
+                    → {d.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <CategoryCard
@@ -453,7 +562,7 @@ export function DrivePersonalTask() {
               variant="urgent"
               action={
                 categories.needsDecision.length > 0
-                  ? { label: 'Start review', onClick: () => setMode('walkthrough') }
+                  ? { label: 'Start review', onClick: handleStartReview }
                   : undefined
               }
             />
@@ -505,16 +614,34 @@ export function DrivePersonalTask() {
             </p>
           </div>
 
+          {destinations.length === 0 && (
+            <div
+              className="rounded-xl px-4 py-3 text-sm"
+              style={{ background: 'rgba(173,33,34,0.12)', color: '#fecaca' }}
+            >
+              No destinations configured. Set some up to use the move buttons.
+              <button
+                onClick={() => setSetupOpen(true)}
+                className="ml-2 underline"
+                style={{ color: '#ffffff' }}
+              >
+                Set destinations
+              </button>
+            </div>
+          )}
+
           {current ? (
             <WalkthroughCard
               entry={current}
               index={reviewedCount}
               total={totalToReview}
-              onMove={() => setPickerOpen('shared')}
-              onTransfer={() => setPickerOpen('transfer')}
+              destinations={destinations}
+              onMoveToDestination={handleMoveToDestination}
+              onTransfer={() => setTransferOpen(true)}
               onPersonal={handlePersonalCurrent}
               onSkip={handleSkipCurrent}
-              pending={actionPending}
+              pendingDestinationId={pendingDestinationId}
+              pendingAction={pendingAction}
             />
           ) : (
             <div
@@ -561,17 +688,23 @@ export function DrivePersonalTask() {
         </div>
       )}
 
-      <SharedDrivePicker
-        open={pickerOpen === 'shared'}
-        onClose={() => setPickerOpen(null)}
-        onConfirm={handleConfirmSharedDrive}
+      <DriveDestinationsSetup
+        open={setupOpen}
+        initialDestinations={destinations}
+        onClose={() => setSetupOpen(false)}
+        onSaved={() => {
+          // After saving, if the user was trying to start review, drop them in.
+          if (mode === 'summary' && categories.needsDecision.length > 0) {
+            setMode('walkthrough');
+          }
+        }}
       />
       <PersonPicker
-        open={pickerOpen === 'transfer'}
+        open={transferOpen}
         title="Transfer to a colleague"
         description="The file's ownership transfers to the person you pick. Both of you have to be in @orono.k12.mn.us. Google will email them to let them know."
         confirmLabel={(s) => (s ? `Transfer to ${s.givenName ?? s.displayName}` : 'Transfer')}
-        onClose={() => setPickerOpen(null)}
+        onClose={() => setTransferOpen(false)}
         onConfirm={(p) => handleConfirmTransfer({ email: p.email, displayName: p.displayName })}
       />
     </div>

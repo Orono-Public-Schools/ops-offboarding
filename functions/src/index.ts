@@ -520,7 +520,10 @@ async function recordFileDecision(params: {
 
 type MoveFilePayload = {
   fileId?: string;
+  // Either sharedDriveId (legacy: drop in root of shared drive) OR targetFolderId
+  // (new: any folder — shared-drive root, shared-drive subfolder, or My Drive folder).
   sharedDriveId?: string;
+  targetFolderId?: string;
   googleAccessToken?: string;
 };
 
@@ -528,14 +531,18 @@ export const moveFileToSharedDrive = onCall<MoveFilePayload>(
   { region: REGION },
   async (request) => {
     const { uid } = requireAuthedDomainUser(request);
-    const { fileId, sharedDriveId, googleAccessToken } = request.data ?? {};
-    if (!fileId || !sharedDriveId || !googleAccessToken) {
-      throw new HttpsError('invalid-argument', 'fileId, sharedDriveId, and token are required.');
+    const { fileId, sharedDriveId, targetFolderId, googleAccessToken } = request.data ?? {};
+    const target = targetFolderId ?? sharedDriveId;
+    if (!fileId || !target || !googleAccessToken) {
+      throw new HttpsError(
+        'invalid-argument',
+        'fileId, googleAccessToken, and a target folder are required.',
+      );
     }
 
     const currentParents = await getDriveFileParents(fileId, googleAccessToken);
     const params = new URLSearchParams({
-      addParents: sharedDriveId,
+      addParents: target,
       removeParents: currentParents.join(',') || 'root',
       supportsAllDrives: 'true',
       fields: 'id,parents,driveId',
@@ -567,12 +574,85 @@ export const moveFileToSharedDrive = onCall<MoveFilePayload>(
       uid,
       fileId,
       decision: 'moveToShared',
-      decisionTarget: sharedDriveId,
+      decisionTarget: target,
       moved: true,
-      action: 'move_to_shared_drive',
+      action: 'move_to_folder',
     });
 
     return { success: true };
+  },
+);
+
+type CreateFolderPayload = {
+  name?: string;
+  parentId?: string | null;
+  googleAccessToken?: string;
+};
+
+export const createDriveFolder = onCall<CreateFolderPayload>(
+  { region: REGION },
+  async (request) => {
+    requireAuthedDomainUser(request);
+    const { name, parentId, googleAccessToken } = request.data ?? {};
+    if (!name || !googleAccessToken) {
+      throw new HttpsError('invalid-argument', 'Folder name and token are required.');
+    }
+
+    const body: Record<string, unknown> = {
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+    };
+    if (parentId) body.parents = [parentId];
+
+    const res = await fetch(
+      'https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,parents,driveId',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    if (!res.ok) {
+      const txt = await res.text();
+      if (res.status === 401 || res.status === 403) {
+        throw new HttpsError(
+          'permission-denied',
+          'Google rejected the folder create. Check that you have access to the parent location.',
+        );
+      }
+      throw new HttpsError('internal', `Drive folder create failed (${res.status}): ${txt}`);
+    }
+    const folder = (await res.json()) as { id: string; name: string };
+    return { id: folder.id, name: folder.name };
+  },
+);
+
+type Destination = {
+  kind: 'sharedDrive' | 'sharedDriveFolder' | 'personalFolder';
+  folderId: string;
+  name: string;
+  sharedDriveId?: string;
+  sharedDriveName?: string;
+};
+
+type SetDestinationsPayload = { destinations?: Destination[] };
+
+export const setDriveDestinations = onCall<SetDestinationsPayload>(
+  { region: REGION },
+  async (request) => {
+    const { uid } = requireAuthedDomainUser(request);
+    const destinations = request.data?.destinations ?? [];
+    const db = getFirestore();
+    const ref = db.collection('offboardings').doc(uid);
+    await ref.update({
+      'tasks.drivePersonal.destinations': destinations,
+      'tasks.drivePersonal.destinationsConfigured': true,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return { count: destinations.length };
   },
 );
 
