@@ -15,33 +15,52 @@ const OAUTH_SCOPES = [
 ];
 const ACCESS_TOKEN_KEY = 'ops-offboarding:googleAccessToken';
 
+type AuthClaims = { it_admin?: boolean };
+
 type AuthState = {
   user: User | null;
+  claims: AuthClaims | null;
   loading: boolean;
 };
 
-const AuthContext = createContext<AuthState>({ user: null, loading: true });
+const AuthContext = createContext<AuthState>({ user: null, claims: null, loading: true });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [claims, setClaims] = useState<AuthClaims | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(auth, async (u) => {
       if (u && !u.email?.endsWith(`@${ALLOWED_DOMAIN}`)) {
         firebaseSignOut(auth);
         return;
+      }
+      if (u) {
+        try {
+          const tokenResult = await u.getIdTokenResult();
+          setClaims(tokenResult.claims as AuthClaims);
+        } catch {
+          setClaims(null);
+        }
+      } else {
+        setClaims(null);
       }
       setUser(u);
       setLoading(false);
     });
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, claims, loading }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+export function useIsAdmin(): boolean {
+  const { claims } = useAuth();
+  return Boolean(claims?.it_admin);
 }
 
 export async function signInWithGoogle() {

@@ -1,6 +1,8 @@
-import { Navigate, Route, Routes } from 'react-router';
-import { AuthProvider, useAuth } from './lib/auth';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { AuthProvider, useAuth, useIsAdmin } from './lib/auth';
 import { useOffboarding, type OffboardingDoc } from './lib/offboarding';
+import { AdminDashboard } from './screens/admin/AdminDashboard';
+import { AdminOffboardingDetail } from './screens/admin/AdminOffboardingDetail';
 import { AuthedShell } from './screens/AuthenticatedShell';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { SignInScreen } from './screens/SignInScreen';
@@ -44,6 +46,12 @@ function AppLayout() {
   return <AuthedShell doc={state.data} />;
 }
 
+function AdminGate() {
+  const isAdmin = useIsAdmin();
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -51,6 +59,10 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardScreen />} />
           <Route path="/tasks/:taskKey" element={<TaskRoute />} />
+          <Route element={<AdminGate />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/offboardings/:uid" element={<AdminOffboardingDetail />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
