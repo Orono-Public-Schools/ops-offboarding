@@ -18,3 +18,9 @@ body {
   color: #334155;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Tailwind v4 preflight removes cursor: pointer from buttons; restore it here. */
+button:not(:disabled),
+a[href] {
+  cursor: pointer;
+}

@@ -8,6 +8,12 @@ import {
 } from 'firebase/auth';
 import { ALLOWED_DOMAIN, auth } from './firebase';
 
+const OAUTH_SCOPES = [
+  'https://www.googleapis.com/auth/directory.readonly',
+  'https://www.googleapis.com/auth/gmail.settings.basic',
+];
+const ACCESS_TOKEN_KEY = 'ops-offboarding:googleAccessToken';
+
 type AuthState = {
   user: User | null;
   loading: boolean;
@@ -22,8 +28,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
       if (u && !u.email?.endsWith(`@${ALLOWED_DOMAIN}`)) {
-        // Belt-and-suspenders: if somehow a non-domain user got through client-side
-        // and the blocking function, sign them out immediately.
         firebaseSignOut(auth);
         return;
       }
@@ -42,9 +46,23 @@ export function useAuth() {
 export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
-  await signInWithPopup(auth, provider);
+  OAUTH_SCOPES.forEach((s) => provider.addScope(s));
+  const result = await signInWithPopup(auth, provider);
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  if (credential?.accessToken) {
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, credential.accessToken);
+  }
 }
 
 export async function signOut() {
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   await firebaseSignOut(auth);
+}
+
+export function getGoogleAccessToken(): string | null {
+  return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function clearGoogleAccessToken() {
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
 }

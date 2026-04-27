@@ -36,6 +36,7 @@ export type OffboardingDoc = {
   displayName: string;
   department: string | null;
   supervisor: string | null;
+  supervisorName?: string | null;
   successorEmail: string | null;
   lastDay: Timestamp | null;
   status: 'in_progress' | 'completed' | 'archived';
@@ -44,6 +45,8 @@ export type OffboardingDoc = {
   completedAt: Timestamp | null;
   tasks: Record<TaskKey, TaskState>;
 };
+
+export const IMPLEMENTED_TASKS = new Set<TaskKey>(['outOfOffice']);
 
 export const TASK_CATALOGUE: ReadonlyArray<{
   key: TaskKey;
