@@ -57,7 +57,7 @@ export const TASK_CATALOGUE: ReadonlyArray<{
     key: 'drivePersonal',
     label: 'My Drive cleanup',
     description:
-      'Review files in your personal Drive and decide what to move, transfer, or delete.',
+      'Set up destinations and move things in Drive so nothing important disappears with your account.',
   },
   {
     key: 'driveTeam',

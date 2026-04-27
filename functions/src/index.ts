@@ -302,6 +302,7 @@ export const scanDrive = onCall<ScanDrivePayload>(
       'tasks.drivePersonal.scanStartedAt': FieldValue.serverTimestamp(),
       'tasks.drivePersonal.scanFinishedAt': null,
       'tasks.drivePersonal.scanCount': 0,
+      'tasks.drivePersonal.scanProgress': 0,
       'tasks.drivePersonal.atRiskCount': 0,
       'tasks.drivePersonal.scanError': null,
       'tasks.drivePersonal.truncated': false,
@@ -381,6 +382,16 @@ export const scanDrive = onCall<ScanDrivePayload>(
 
         totalScanned += files.length;
         pageToken = body.nextPageToken;
+
+        // Live progress so the UI can show "Scanning… N files found".
+        // Fire-and-forget; don't await — keeps the scan loop fast.
+        offboardingRef
+          .update({
+            'tasks.drivePersonal.scanProgress': totalScanned,
+          })
+          .catch(() => {
+            /* progress writes are best-effort */
+          });
 
         if (totalScanned >= MAX_FILES) break;
       } while (pageToken);
@@ -653,6 +664,62 @@ export const setDriveDestinations = onCall<SetDestinationsPayload>(
       updatedAt: FieldValue.serverTimestamp(),
     });
     return { count: destinations.length };
+  },
+);
+
+const TASK_KEY_SET = new Set<string>(TASK_KEYS);
+
+type MarkTaskCompletePayload = {
+  taskKey?: string;
+  status?: 'completed' | 'skipped' | 'in_progress' | 'not_started';
+  notes?: string | null;
+};
+
+export const markTaskComplete = onCall<MarkTaskCompletePayload>(
+  { region: REGION },
+  async (request) => {
+    const { uid } = requireAuthedDomainUser(request);
+    const taskKey = request.data?.taskKey;
+    const status = request.data?.status ?? 'completed';
+    const notes = request.data?.notes ?? null;
+
+    if (!taskKey || !TASK_KEY_SET.has(taskKey)) {
+      throw new HttpsError('invalid-argument', `Unknown taskKey: ${taskKey}`);
+    }
+
+    const db = getFirestore();
+    const ref = db.collection('offboardings').doc(uid);
+    const auditRef = ref.collection('auditLog').doc();
+
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) {
+        throw new HttpsError('failed-precondition', 'Offboarding record not found.');
+      }
+      const before = snap.get(`tasks.${taskKey}.status`) ?? null;
+      const updates: Record<string, unknown> = {
+        [`tasks.${taskKey}.status`]: status,
+        [`tasks.${taskKey}.completedAt`]:
+          status === 'completed' ? FieldValue.serverTimestamp() : null,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      if (notes !== null) {
+        updates[`tasks.${taskKey}.notes`] = notes;
+      }
+      tx.update(ref, updates);
+      tx.set(auditRef, {
+        ts: FieldValue.serverTimestamp(),
+        actor: uid,
+        action: 'mark_task_complete',
+        target: `tasks.${taskKey}`,
+        before,
+        after: { status, notes },
+        success: true,
+        errorMsg: null,
+      });
+    });
+
+    return { taskKey, status };
   },
 );
 

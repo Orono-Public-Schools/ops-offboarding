@@ -1,444 +1,124 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
-import { DriveDestinationsSetup } from '../../components/DriveDestinationsSetup';
-import { PersonPicker } from '../../components/PersonPicker';
+import { StepCard, StepHeader } from '../../components/TaskStep';
 import { getGoogleAccessToken, useAuth } from '../../lib/auth';
-import { driveUrl, formatBytes, shortType, useFileScan, type FileScanEntry } from '../../lib/drive';
 import {
-  markFilePersonal,
-  markFilesPersonalBulk,
-  moveFileToSharedDrive,
-  scanDrive,
-  transferFileOwnership,
+  createDriveFolder,
+  markTaskComplete,
+  setDriveDestinations,
   type DriveDestination,
 } from '../../lib/functions';
 import type { OutletCtx } from '../../App';
 
-type Mode = 'summary' | 'walkthrough';
+const DRIVE_HOME_URL = 'https://drive.google.com/drive/u/0/my-drive';
 
-function categorize(entries: FileScanEntry[]) {
-  const personal: FileScanEntry[] = [];
-  const handedOff: FileScanEntry[] = [];
-  const needsDecision: FileScanEntry[] = [];
-  const decided: FileScanEntry[] = [];
-  for (const e of entries) {
-    if (e.decision !== 'pending') {
-      decided.push(e);
-      continue;
-    }
-    if (!e.inMyDrive) {
-      handedOff.push(e);
-      continue;
-    }
-    if (e.collaboratorCount === 0) {
-      personal.push(e);
-      continue;
-    }
-    needsDecision.push(e);
-  }
-  return { personal, handedOff, needsDecision, decided };
-}
-
-type CategoryVariant = 'urgent' | 'neutral' | 'success';
-
-const CATEGORY_STYLES: Record<CategoryVariant, { cardBg: string; cardGlow: string }> = {
-  urgent: {
-    cardBg: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-    cardGlow: 'rgba(173,33,34,0.3)',
+const TIPS: Array<{ title: string; body: string }> = [
+  {
+    title: 'Things in shared drives are already safe',
+    body: "If a file lives in a shared drive, the drive owns it — your account leaving doesn't affect it. You only need to deal with files in your personal Drive.",
   },
-  neutral: {
-    cardBg: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
-    cardGlow: 'rgba(100,116,139,0.2)',
+  {
+    title: 'Look for files you share with a team',
+    body: 'In Drive, sort by collaborators or filter by who you share with. These are usually the most important to move into a shared drive so the team keeps them.',
   },
-  success: {
-    cardBg: 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)',
-    cardGlow: 'rgba(29,42,93,0.3)',
+  {
+    title: 'Drag-and-drop into your destinations',
+    body: 'Open the destination in one tab, your files in another, and drag. Drive handles ownership transfer automatically when you move into a shared drive.',
   },
-};
-
-function CategoryCard({
-  label,
-  count,
-  detail,
-  action,
-  variant,
-}: {
-  label: string;
-  count: number;
-  detail: string;
-  action?: { label: string; onClick: () => void; loading?: boolean };
-  variant: CategoryVariant;
-}) {
-  const style = CATEGORY_STYLES[variant];
-  return (
-    <div
-      className="flex flex-col rounded-xl p-4 sm:p-5"
-      style={{ background: style.cardBg, boxShadow: `0 2px 12px ${style.cardGlow}` }}
-    >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <h3 className="text-sm font-semibold text-white">{label}</h3>
-        <span
-          className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-          style={{ background: 'rgba(255,255,255,0.18)', color: '#ffffff' }}
-        >
-          {count}
-        </span>
-      </div>
-      <p className="mb-4 text-sm leading-relaxed text-white/80">{detail}</p>
-      {action && (
-        <button
-          onClick={action.onClick}
-          disabled={action.loading || count === 0}
-          className="mt-auto self-start rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
-          style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-        >
-          {action.loading ? 'Working…' : action.label}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function destinationDescription(d: DriveDestination): string {
-  if (d.kind === 'personalFolder') return 'Personal — download before leaving';
-  if (d.kind === 'sharedDrive') return 'Shared drive';
-  return d.sharedDriveName ? `Folder in ${d.sharedDriveName}` : 'Folder';
-}
-
-function destinationIcon(d: DriveDestination): string {
-  if (d.kind === 'personalFolder') return 'Mine';
-  if (d.kind === 'sharedDrive') return 'Drive';
-  return 'Folder';
-}
-
-function WalkthroughCard({
-  entry,
-  index,
-  total,
-  destinations,
-  onMoveToDestination,
-  onTransfer,
-  onPersonal,
-  onSkip,
-  pendingDestinationId,
-  pendingAction,
-}: {
-  entry: FileScanEntry;
-  index: number;
-  total: number;
-  destinations: DriveDestination[];
-  onMoveToDestination: (d: DriveDestination) => Promise<void>;
-  onTransfer: () => void;
-  onPersonal: () => Promise<void>;
-  onSkip: () => void;
-  pendingDestinationId: string | null;
-  pendingAction: 'transfer' | 'personal' | null;
-}) {
-  const modified = entry.lastModified
-    ? entry.lastModified.toDate().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : '—';
-  const collabPreview = entry.collaborators
-    .slice(0, 3)
-    .map((c) => c.email)
-    .join(', ');
-  const overflow = entry.collaboratorCount - Math.min(3, entry.collaborators.length);
-  const isPending = pendingDestinationId !== null || pendingAction !== null;
-
-  return (
-    <div
-      className="rounded-xl p-5 sm:p-6"
-      style={{
-        background: '#ffffff',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)',
-      }}
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <span
-          className="text-xs font-semibold tracking-wider uppercase"
-          style={{ color: '#94a3b8' }}
-        >
-          File {index + 1} of {total}
-        </span>
-        <a
-          href={driveUrl(entry.fileId)}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-semibold"
-          style={{ color: '#2d3f89' }}
-        >
-          Open in Drive →
-        </a>
-      </div>
-
-      <div className="mb-4 flex items-start gap-3">
-        <div
-          className="flex h-10 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
-          style={{ background: '#eaecf5', color: '#1d2a5d' }}
-        >
-          {shortType(entry.mimeType)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-base font-semibold" style={{ color: '#1d2a5d' }}>
-            {entry.name}
-          </p>
-          <p className="mt-0.5 text-xs" style={{ color: '#64748b' }}>
-            {formatBytes(entry.sizeBytes)} · Modified {modified}
-          </p>
-        </div>
-      </div>
-
-      <div className="mb-5 rounded-lg p-3" style={{ background: '#f8f9fb', color: '#475569' }}>
-        <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#64748b' }}>
-          Shared with {entry.collaboratorCount}
-        </p>
-        <p className="mt-1 text-sm" style={{ color: '#334155' }}>
-          {collabPreview || '—'}
-          {overflow > 0 && <span style={{ color: '#94a3b8' }}> + {overflow} more</span>}
-        </p>
-      </div>
-
-      <p className="mb-3 text-sm font-semibold" style={{ color: '#1d2a5d' }}>
-        Where should this go?
-      </p>
-
-      <div className="space-y-2">
-        {destinations.map((d) => {
-          const pending = pendingDestinationId === d.folderId;
-          return (
-            <button
-              key={d.folderId}
-              onClick={() => onMoveToDestination(d)}
-              disabled={isPending}
-              className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
-              style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
-            >
-              <span
-                className="flex h-7 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
-                style={{ background: '#eaecf5', color: '#1d2a5d' }}
-              >
-                {destinationIcon(d)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">→ {d.name}</span>
-                <span
-                  className="block truncate text-[11px] font-normal"
-                  style={{ color: '#64748b' }}
-                >
-                  {destinationDescription(d)}
-                </span>
-              </span>
-              {pending && <span className="text-xs font-normal text-slate-400">Working…</span>}
-            </button>
-          );
-        })}
-
-        <button
-          onClick={onTransfer}
-          disabled={isPending}
-          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
-          style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
-        >
-          <span
-            className="flex h-7 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
-            style={{ background: '#eaecf5', color: '#1d2a5d' }}
-          >
-            User
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate">Transfer to a colleague</span>
-            <span className="block truncate text-[11px] font-normal" style={{ color: '#64748b' }}>
-              Hand ownership to someone in @orono.k12.mn.us
-            </span>
-          </span>
-          {pendingAction === 'transfer' && (
-            <span className="text-xs font-normal text-slate-400">Working…</span>
-          )}
-        </button>
-
-        <button
-          onClick={() => onPersonal()}
-          disabled={isPending}
-          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition hover:-translate-y-px hover:bg-slate-50 active:scale-[0.98] disabled:cursor-default disabled:opacity-50 disabled:hover:translate-y-0"
-          style={{ borderColor: '#cbd5e1', color: '#1d2a5d' }}
-        >
-          <span
-            className="flex h-7 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
-            style={{ background: '#eaecf5', color: '#1d2a5d' }}
-          >
-            Skip
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate">It's personal — leave it</span>
-            <span className="block truncate text-[11px] font-normal" style={{ color: '#64748b' }}>
-              Will be deleted with your account; that's fine
-            </span>
-          </span>
-          {pendingAction === 'personal' && (
-            <span className="text-xs font-normal text-slate-400">Working…</span>
-          )}
-        </button>
-      </div>
-
-      <button
-        onClick={onSkip}
-        disabled={isPending}
-        className="mt-4 w-full rounded-xl px-4 py-2 text-xs font-semibold transition hover:bg-slate-50 disabled:opacity-50"
-        style={{ color: '#64748b' }}
-      >
-        Skip — decide later
-      </button>
-    </div>
-  );
-}
+  {
+    title: 'When in doubt, drop it in your personal folder',
+    body: 'Anything in your personal staging folder you can download as a zip from Drive before your account is deactivated.',
+  },
+  {
+    title: "Old, untouched files probably aren't needed",
+    body: "Sort by last-modified — anything you haven't touched in over a year is usually safe to leave (it'll be deleted with your account).",
+  },
+];
 
 export function DrivePersonalTask() {
   const { doc } = useOutletContext<OutletCtx>();
   const { user } = useAuth();
   const taskState = (doc.tasks.drivePersonal ?? { status: 'not_started' }) as {
     status: string;
-    scanCount?: number;
-    atRiskCount?: number;
-    scanFinishedAt?: { toDate: () => Date } | null;
-    truncated?: boolean;
-    scanError?: string | null;
+    completedAt?: { toDate: () => Date } | null;
+    notes?: string | null;
     destinations?: DriveDestination[];
-    destinationsConfigured?: boolean;
   };
-  const fileScan = useFileScan(user?.uid ?? null, 5000);
+  const personalFolder = taskState.destinations?.find((d) => d.kind === 'personalFolder') ?? null;
+  const isComplete = taskState.status === 'completed';
 
-  const destinations = taskState.destinations ?? [];
+  const [folderName, setFolderName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [folderError, setFolderError] = useState<string | null>(null);
 
-  const [mode, setMode] = useState<Mode>('summary');
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
-  const [bulkPersonalBusy, setBulkPersonalBusy] = useState(false);
-  const [pendingDestinationId, setPendingDestinationId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<'transfer' | 'personal' | null>(null);
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [setupOpen, setSetupOpen] = useState(false);
+  const [notes, setNotes] = useState<string>(taskState.notes ?? '');
+  const [marking, setMarking] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
-  const entries = !fileScan.loading && 'entries' in fileScan ? fileScan.entries : [];
-  const categories = useMemo(() => categorize(entries), [entries]);
+  useEffect(() => {
+    if (folderName) return;
+    const first = user?.displayName?.split(' ')[0];
+    setFolderName(first ? `My Offboarding — ${first}` : 'My Offboarding');
+  }, [user?.displayName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const queue = useMemo(
-    () => categories.needsDecision.filter((e) => !skippedIds.has(e.fileId)),
-    [categories.needsDecision, skippedIds],
-  );
-  const current = queue[0] ?? null;
-  const reviewedCount = categories.decided.filter((e) => e.inMyDrive).length;
-  const totalToReview = categories.needsDecision.length + reviewedCount;
-
-  const handleScan = async () => {
-    setScanError(null);
+  const handleCreateFolder = async () => {
+    setFolderError(null);
     const token = getGoogleAccessToken();
     if (!token) {
-      setScanError('Your Google session expired. Please sign out and sign in again.');
+      setFolderError('Your Google session expired. Please sign out and sign in again.');
       return;
     }
-    setScanning(true);
+    const name = folderName.trim() || 'My Offboarding';
+    setCreating(true);
     try {
-      await scanDrive({ googleAccessToken: token });
-      setSkippedIds(new Set());
-      setMode('summary');
+      const res = await createDriveFolder({ name, parentId: null, googleAccessToken: token });
+      const newDestination: DriveDestination = {
+        kind: 'personalFolder',
+        folderId: res.data.id,
+        name: res.data.name,
+      };
+      const others = (taskState.destinations ?? []).filter((d) => d.kind !== 'personalFolder');
+      await setDriveDestinations({ destinations: [...others, newDestination] });
     } catch (err) {
-      setScanError(err instanceof Error ? err.message : 'Scan failed.');
+      setFolderError(err instanceof Error ? err.message : 'Could not create the folder.');
       console.error(err);
     } finally {
-      setScanning(false);
+      setCreating(false);
     }
   };
 
-  const handleBulkPersonal = async () => {
-    if (categories.personal.length === 0) return;
-    setBulkPersonalBusy(true);
+  const handleMarkComplete = async () => {
+    setCompleteError(null);
+    setMarking(true);
     try {
-      await markFilesPersonalBulk({ fileIds: categories.personal.map((e) => e.fileId) });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setBulkPersonalBusy(false);
-    }
-  };
-
-  const handlePersonalCurrent = async () => {
-    if (!current) return;
-    setPendingAction('personal');
-    try {
-      await markFilePersonal({ fileId: current.fileId });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleSkipCurrent = () => {
-    if (!current) return;
-    setSkippedIds((prev) => {
-      const next = new Set(prev);
-      next.add(current.fileId);
-      return next;
-    });
-  };
-
-  const handleMoveToDestination = async (destination: DriveDestination) => {
-    if (!current) return;
-    const token = getGoogleAccessToken();
-    if (!token) {
-      setScanError('Your Google session expired. Please sign out and sign in again.');
-      return;
-    }
-    setPendingDestinationId(destination.folderId);
-    try {
-      await moveFileToSharedDrive({
-        fileId: current.fileId,
-        targetFolderId: destination.folderId,
-        googleAccessToken: token,
+      await markTaskComplete({
+        taskKey: 'drivePersonal',
+        status: 'completed',
+        notes: notes.trim() || null,
       });
     } catch (err) {
+      setCompleteError(err instanceof Error ? err.message : 'Could not save. Please try again.');
       console.error(err);
     } finally {
-      setPendingDestinationId(null);
+      setMarking(false);
     }
   };
 
-  const handleConfirmTransfer = async (person: { email: string; displayName: string }) => {
-    if (!current) return;
-    const token = getGoogleAccessToken();
-    if (!token) throw new Error('Session expired. Please sign in again.');
-    setPendingAction('transfer');
+  const handleReopen = async () => {
+    setCompleteError(null);
+    setMarking(true);
     try {
-      await transferFileOwnership({
-        fileId: current.fileId,
-        newOwnerEmail: person.email,
-        googleAccessToken: token,
+      await markTaskComplete({
+        taskKey: 'drivePersonal',
+        status: 'in_progress',
       });
+    } catch (err) {
+      setCompleteError(err instanceof Error ? err.message : 'Could not save. Please try again.');
+      console.error(err);
     } finally {
-      setPendingAction(null);
+      setMarking(false);
     }
   };
-
-  const handleStartReview = () => {
-    if (!taskState.destinationsConfigured) {
-      setSetupOpen(true);
-    } else {
-      setMode('walkthrough');
-    }
-  };
-
-  const lastScanned = taskState.scanFinishedAt
-    ? taskState.scanFinishedAt.toDate().toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : null;
 
   return (
     <div>
@@ -455,258 +135,193 @@ export function DrivePersonalTask() {
           My Drive cleanup
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          We sort your Drive into a few buckets so you only have to make decisions on the files that
-          actually need them.
+          We help you set up a place to keep things, then you do the actual moving in Drive — it's
+          faster and you know your files better than any tool can.
         </p>
       </div>
 
-      {scanError && (
-        <p
-          className="mb-4 rounded-lg px-3 py-2 text-sm"
-          style={{ background: 'rgba(173,33,34,0.08)', color: '#ad2122' }}
-        >
-          {scanError}
-        </p>
-      )}
-
-      {!lastScanned && (
-        <div
-          className="rounded-xl p-6 text-center"
-          style={{
-            background: '#ffffff',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)',
-          }}
-        >
-          <p className="text-sm font-semibold" style={{ color: '#1d2a5d' }}>
-            No scan yet
-          </p>
-          <p className="mt-2 text-xs" style={{ color: '#64748b' }}>
-            We'll list files you own in your personal Drive and group them by what needs your
-            attention. Reads metadata only — never opens file contents.
-          </p>
-          <button
-            onClick={handleScan}
-            disabled={scanning}
-            className="mt-5 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-            style={{
-              background: 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)',
-              boxShadow: '0 2px 8px rgba(29,42,93,0.25)',
-            }}
-          >
-            {scanning ? 'Scanning…' : 'Scan My Drive'}
-          </button>
-        </div>
-      )}
-
-      {lastScanned && mode === 'summary' && (
-        <div className="space-y-4">
-          <div
-            className="flex flex-col gap-2 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-            style={{ background: 'rgba(255,255,255,0.04)' }}
-          >
-            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              <span className="font-semibold text-white">
-                {taskState.scanCount ?? 0} files scanned
-              </span>{' '}
-              · last scan {lastScanned}
-              {taskState.truncated && (
-                <span style={{ color: '#fca5a5' }}> · stopped at 50,000-file limit</span>
-              )}
-            </p>
-            <div className="flex shrink-0 gap-2">
-              <button
-                onClick={() => setSetupOpen(true)}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-              >
-                {taskState.destinationsConfigured ? 'Edit destinations' : 'Set destinations'}
-              </button>
-              <button
-                onClick={handleScan}
-                disabled={scanning}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-50"
-                style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-              >
-                {scanning ? 'Scanning…' : 'Rescan'}
-              </button>
-            </div>
-          </div>
-
-          {taskState.destinationsConfigured && destinations.length > 0 && (
-            <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <p
-                className="mb-2 text-[11px] font-semibold tracking-wider uppercase"
-                style={{ color: 'rgba(255,255,255,0.5)' }}
-              >
-                Your destinations
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {destinations.map((d) => (
-                  <span
-                    key={d.folderId}
-                    className="rounded-full px-2.5 py-1 text-xs font-semibold text-white"
-                    style={{ background: 'rgba(255,255,255,0.12)' }}
-                  >
-                    → {d.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <CategoryCard
-              label="Needs your decision"
-              count={categories.needsDecision.length}
-              detail="Files in My Drive that you share with others. Walk through these one by one."
-              variant="urgent"
-              action={
-                categories.needsDecision.length > 0
-                  ? { label: 'Start review', onClick: handleStartReview }
-                  : undefined
-              }
-            />
-            <CategoryCard
-              label="Personal — no shares"
-              count={categories.personal.length}
-              detail="Will be deleted with your account. One click marks them as 'leave alone' so they stop showing up."
-              variant="neutral"
-              action={
-                categories.personal.length > 0
-                  ? {
-                      label: 'Mark as leave alone',
-                      loading: bulkPersonalBusy,
-                      onClick: handleBulkPersonal,
-                    }
-                  : undefined
-              }
-            />
-            <CategoryCard
-              label="Already in shared drives"
-              count={categories.handedOff.length}
-              detail="Owned by a shared drive. Nothing to do — these stay accessible after you leave."
-              variant="success"
-            />
-            {categories.decided.length > 0 && (
-              <CategoryCard
-                label="Already decided"
-                count={categories.decided.length}
-                detail="Files you've moved, transferred, or marked personal in earlier sessions."
-                variant="success"
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {lastScanned && mode === 'walkthrough' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setMode('summary')}
-              className="text-xs font-semibold"
-              style={{ color: 'rgba(255,255,255,0.6)' }}
+      <div className="space-y-4">
+        {/* Step 1: Personal folder */}
+        <StepCard>
+          <StepHeader
+            step="Step 1"
+            title="Personal staging folder"
+            description="Optional — create a folder in your Drive to collect anything you want to keep. You can download it before your account is deactivated."
+            status={personalFolder ? { label: 'Created', tone: 'done' } : { label: 'Not yet' }}
+          />
+          {personalFolder ? (
+            <a
+              href={`https://drive.google.com/drive/u/0/folders/${personalFolder.folderId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded-lg p-3 transition hover:bg-white/5"
+              style={{ background: 'rgba(255,255,255,0.08)' }}
             >
-              ← Back to summary
-            </button>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              {reviewedCount} of {totalToReview} reviewed
-            </p>
-          </div>
-
-          {destinations.length === 0 && (
-            <div
-              className="rounded-xl px-4 py-3 text-sm"
-              style={{ background: 'rgba(173,33,34,0.12)', color: '#fecaca' }}
-            >
-              No destinations configured. Set some up to use the move buttons.
-              <button
-                onClick={() => setSetupOpen(true)}
-                className="ml-2 underline"
-                style={{ color: '#ffffff' }}
+              <span
+                className="flex h-9 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
+                style={{ background: 'rgba(255,255,255,0.15)' }}
               >
-                Set destinations
-              </button>
-            </div>
-          )}
-
-          {current ? (
-            <WalkthroughCard
-              entry={current}
-              index={reviewedCount}
-              total={totalToReview}
-              destinations={destinations}
-              onMoveToDestination={handleMoveToDestination}
-              onTransfer={() => setTransferOpen(true)}
-              onPersonal={handlePersonalCurrent}
-              onSkip={handleSkipCurrent}
-              pendingDestinationId={pendingDestinationId}
-              pendingAction={pendingAction}
-            />
+                Folder
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-white">
+                  {personalFolder.name}
+                </span>
+                <span className="block truncate text-xs text-white/60">
+                  In your personal Drive — download before your last day
+                </span>
+              </span>
+              <span className="text-xs font-semibold text-white/80">Open ↗</span>
+            </a>
           ) : (
-            <div
-              className="rounded-xl p-6 text-center"
-              style={{
-                background: '#ffffff',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)',
-              }}
-            >
-              <h3
-                className="text-sm font-semibold tracking-widest uppercase"
-                style={{ color: '#1d2a5d' }}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                placeholder="Folder name"
+                className="flex-1 rounded-lg px-3 py-2 text-sm transition outline-none"
+                style={{
+                  background: 'rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: '#1d2a5d',
+                }}
+              />
+              <button
+                onClick={handleCreateFolder}
+                disabled={creating}
+                className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
+                style={{
+                  background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
+                  boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+                }}
               >
-                {skippedIds.size > 0 ? 'Pause — caught up for now' : 'All done'}
-              </h3>
-              <p className="mt-2 text-sm" style={{ color: '#334155' }}>
-                {skippedIds.size > 0
-                  ? `${skippedIds.size} file${skippedIds.size === 1 ? '' : 's'} skipped. They'll wait until you come back.`
-                  : "You've made a decision on every shared file in your Drive."}
-              </p>
-              <div className="mt-5 flex flex-col-reverse justify-center gap-3 sm:flex-row">
-                <Link
-                  to="/"
-                  className="rounded-xl border px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
-                  style={{ borderColor: '#cbd5e1', color: '#475569' }}
-                >
-                  Back to dashboard
-                </Link>
-                {skippedIds.size > 0 && (
-                  <button
-                    onClick={() => setSkippedIds(new Set())}
-                    className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px"
-                    style={{
-                      background: 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)',
-                      boxShadow: '0 2px 8px rgba(29,42,93,0.25)',
-                    }}
-                  >
-                    Review skipped files
-                  </button>
-                )}
-              </div>
+                {creating ? 'Creating…' : 'Create folder'}
+              </button>
             </div>
           )}
-        </div>
-      )}
+          {folderError && (
+            <p
+              className="mt-3 rounded-lg px-3 py-2 text-xs"
+              style={{ background: 'rgba(255,255,255,0.12)', color: '#fecaca' }}
+            >
+              {folderError}
+            </p>
+          )}
+        </StepCard>
 
-      <DriveDestinationsSetup
-        open={setupOpen}
-        initialDestinations={destinations}
-        onClose={() => setSetupOpen(false)}
-        onSaved={() => {
-          // After saving, if the user was trying to start review, drop them in.
-          if (mode === 'summary' && categories.needsDecision.length > 0) {
-            setMode('walkthrough');
-          }
-        }}
-      />
-      <PersonPicker
-        open={transferOpen}
-        title="Transfer to a colleague"
-        description="The file's ownership transfers to the person you pick. Both of you have to be in @orono.k12.mn.us. Google will email them to let them know."
-        confirmLabel={(s) => (s ? `Transfer to ${s.givenName ?? s.displayName}` : 'Transfer')}
-        onClose={() => setTransferOpen(false)}
-        onConfirm={(p) => handleConfirmTransfer({ email: p.email, displayName: p.displayName })}
-      />
+        {/* Step 2: Open Drive + tips */}
+        <StepCard>
+          <StepHeader
+            step="Step 2"
+            title="Move things in Drive"
+            description="Open Drive in a new tab and drag files into your destinations. Drive handles ownership transfer automatically when you drop something into a shared drive."
+          />
+          <a
+            href={DRIVE_HOME_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+          >
+            Open My Drive ↗
+          </a>
+
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {TIPS.map((tip) => (
+              <div
+                key={tip.title}
+                className="rounded-lg p-3"
+                style={{ background: 'rgba(255,255,255,0.08)' }}
+              >
+                <p className="text-sm font-semibold text-white">{tip.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/75">{tip.body}</p>
+              </div>
+            ))}
+          </div>
+        </StepCard>
+
+        {/* Step 3: Mark complete */}
+        <StepCard>
+          <StepHeader
+            step="Step 3"
+            title="When you're done"
+            description={
+              isComplete
+                ? "You've marked this complete. IT will see it on their dashboard."
+                : 'Once your personal Drive only has stuff you’re okay losing, mark this task complete.'
+            }
+            status={isComplete ? { label: 'Completed', tone: 'done' } : { label: 'Not yet' }}
+          />
+
+          {isComplete ? (
+            <div className="space-y-3">
+              {taskState.notes && (
+                <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
+                    Your note
+                  </p>
+                  <p className="mt-1 text-sm text-white/85">{taskState.notes}</p>
+                </div>
+              )}
+              {taskState.completedAt && (
+                <p className="text-xs text-white/60">
+                  Marked complete{' '}
+                  {taskState.completedAt
+                    .toDate()
+                    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+              )}
+              <button
+                onClick={handleReopen}
+                disabled={marking}
+                className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
+                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              >
+                {marking ? 'Saving…' : 'Reopen — I have more to do'}
+              </button>
+            </div>
+          ) : (
+            <>
+              <label className="mb-1 block text-[11px] font-semibold tracking-wider text-white/60 uppercase">
+                Optional note for IT
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                placeholder="e.g. left a few old projects on purpose; Math team has the active stuff"
+                className="mb-3 w-full resize-none rounded-lg px-3 py-2 text-sm transition outline-none"
+                style={{
+                  background: 'rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: '#1d2a5d',
+                }}
+              />
+              <button
+                onClick={handleMarkComplete}
+                disabled={marking}
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
+                style={{
+                  background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
+                  boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+                }}
+              >
+                {marking ? 'Saving…' : "I'm done — mark complete"}
+              </button>
+            </>
+          )}
+
+          {completeError && (
+            <p
+              className="mt-3 rounded-lg px-3 py-2 text-xs"
+              style={{ background: 'rgba(255,255,255,0.12)', color: '#fecaca' }}
+            >
+              {completeError}
+            </p>
+          )}
+        </StepCard>
+      </div>
     </div>
   );
 }

@@ -62,6 +62,15 @@ export const setDriveDestinations = httpsCallable<
   { count: number }
 >(functions, 'setDriveDestinations');
 
+export const markTaskComplete = httpsCallable<
+  {
+    taskKey: string;
+    status?: 'completed' | 'skipped' | 'in_progress' | 'not_started';
+    notes?: string | null;
+  },
+  { taskKey: string; status: string }
+>(functions, 'markTaskComplete');
+
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },
   { success: boolean }
