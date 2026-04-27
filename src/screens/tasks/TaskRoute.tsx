@@ -1,10 +1,12 @@
 import { Navigate, useParams } from 'react-router';
 import { IMPLEMENTED_TASKS, TASK_CATALOGUE, type TaskKey } from '../../lib/offboarding';
 import { ComingSoonTask } from './ComingSoonTask';
+import { DrivePersonalTask } from './DrivePersonalTask';
 import { OutOfOfficeTask } from './OutOfOfficeTask';
 
 const TASK_SCREENS: Partial<Record<TaskKey, () => React.ReactElement>> = {
   outOfOffice: OutOfOfficeTask,
+  drivePersonal: DrivePersonalTask,
 };
 
 const VALID_KEYS = new Set<string>(TASK_CATALOGUE.map((t) => t.key));

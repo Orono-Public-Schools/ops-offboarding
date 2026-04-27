@@ -23,3 +23,33 @@ export const setOutOfOffice = httpsCallable<
   },
   { success: boolean }
 >(functions, 'setOutOfOffice');
+
+export const scanDrive = httpsCallable<
+  { googleAccessToken: string },
+  { scanCount: number; atRiskCount: number; truncated: boolean }
+>(functions, 'scanDrive');
+
+export const listSharedDrives = httpsCallable<
+  { googleAccessToken: string },
+  { drives: Array<{ id: string; name: string }> }
+>(functions, 'listSharedDrives');
+
+export const moveFileToSharedDrive = httpsCallable<
+  { fileId: string; sharedDriveId: string; googleAccessToken: string },
+  { success: boolean }
+>(functions, 'moveFileToSharedDrive');
+
+export const transferFileOwnership = httpsCallable<
+  { fileId: string; newOwnerEmail: string; googleAccessToken: string },
+  { success: boolean }
+>(functions, 'transferFileOwnership');
+
+export const markFilePersonal = httpsCallable<{ fileId: string }, { success: boolean }>(
+  functions,
+  'markFilePersonal',
+);
+
+export const markFilesPersonalBulk = httpsCallable<{ fileIds: string[] }, { updated: number }>(
+  functions,
+  'markFilesPersonalBulk',
+);

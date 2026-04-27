@@ -46,7 +46,7 @@ export type OffboardingDoc = {
   tasks: Record<TaskKey, TaskState>;
 };
 
-export const IMPLEMENTED_TASKS = new Set<TaskKey>(['outOfOffice']);
+export const IMPLEMENTED_TASKS = new Set<TaskKey>(['outOfOffice', 'drivePersonal']);
 
 export const TASK_CATALOGUE: ReadonlyArray<{
   key: TaskKey;

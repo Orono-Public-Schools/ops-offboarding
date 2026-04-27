@@ -11,6 +11,7 @@ import { ALLOWED_DOMAIN, auth } from './firebase';
 const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/directory.readonly',
   'https://www.googleapis.com/auth/gmail.settings.basic',
+  'https://www.googleapis.com/auth/drive',
 ];
 const ACCESS_TOKEN_KEY = 'ops-offboarding:googleAccessToken';
 
