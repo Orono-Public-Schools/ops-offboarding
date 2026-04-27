@@ -667,6 +667,76 @@ export const setDriveDestinations = onCall<SetDestinationsPayload>(
   },
 );
 
+type CreateHandoffDocPayload = {
+  name?: string;
+  googleAccessToken?: string;
+};
+
+export const createHandoffDoc = onCall<CreateHandoffDocPayload>(
+  { region: REGION },
+  async (request) => {
+    const { uid } = requireAuthedDomainUser(request);
+    const name = request.data?.name?.trim() || 'Handoff Notes';
+    const token = request.data?.googleAccessToken;
+    if (!token) {
+      throw new HttpsError('failed-precondition', 'Missing Google access token.');
+    }
+
+    const res = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        mimeType: 'application/vnd.google-apps.document',
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      if (res.status === 401 || res.status === 403) {
+        throw new HttpsError(
+          'permission-denied',
+          'Google rejected the request. Please sign out and sign in again to refresh permissions.',
+        );
+      }
+      throw new HttpsError('internal', `Drive create failed (${res.status}): ${txt}`);
+    }
+    const doc = (await res.json()) as { id: string; name: string };
+    const docUrl = `https://docs.google.com/document/d/${doc.id}/edit`;
+
+    const db = getFirestore();
+    const ref = db.collection('offboardings').doc(uid);
+    const auditRef = ref.collection('auditLog').doc();
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) {
+        throw new HttpsError('failed-precondition', 'Offboarding record not found.');
+      }
+      tx.update(ref, {
+        'tasks.knowledgeTransfer.docId': doc.id,
+        'tasks.knowledgeTransfer.docName': doc.name,
+        'tasks.knowledgeTransfer.docUrl': docUrl,
+        'tasks.knowledgeTransfer.docCreatedAt': FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(auditRef, {
+        ts: FieldValue.serverTimestamp(),
+        actor: uid,
+        action: 'create_handoff_doc',
+        target: 'tasks.knowledgeTransfer',
+        before: null,
+        after: { docId: doc.id, docName: doc.name },
+        success: true,
+        errorMsg: null,
+      });
+    });
+
+    return { docId: doc.id, docName: doc.name, docUrl };
+  },
+);
+
 const TASK_KEY_SET = new Set<string>(TASK_KEYS);
 
 type MarkTaskCompletePayload = {

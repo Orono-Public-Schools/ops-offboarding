@@ -71,6 +71,11 @@ export const markTaskComplete = httpsCallable<
   { taskKey: string; status: string }
 >(functions, 'markTaskComplete');
 
+export const createHandoffDoc = httpsCallable<
+  { name: string; googleAccessToken: string },
+  { docId: string; docName: string; docUrl: string }
+>(functions, 'createHandoffDoc');
+
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },
   { success: boolean }

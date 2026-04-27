@@ -46,7 +46,11 @@ export type OffboardingDoc = {
   tasks: Record<TaskKey, TaskState>;
 };
 
-export const IMPLEMENTED_TASKS = new Set<TaskKey>(['outOfOffice', 'drivePersonal']);
+export const IMPLEMENTED_TASKS = new Set<TaskKey>([
+  'outOfOffice',
+  'drivePersonal',
+  'knowledgeTransfer',
+]);
 
 export const TASK_CATALOGUE: ReadonlyArray<{
   key: TaskKey;
@@ -102,7 +106,8 @@ export const TASK_CATALOGUE: ReadonlyArray<{
   {
     key: 'knowledgeTransfer',
     label: 'Knowledge transfer',
-    description: 'Leave a handoff doc for your successor with key context.',
+    description:
+      'Create a handoff doc with active projects, key contacts, and the gotchas only you know.',
   },
   {
     key: 'sharedCredentials',
