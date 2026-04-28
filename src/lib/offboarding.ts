@@ -50,6 +50,12 @@ export const IMPLEMENTED_TASKS = new Set<TaskKey>([
   'outOfOffice',
   'drivePersonal',
   'knowledgeTransfer',
+  'deviceReturn',
+  'sharedCredentials',
+  'contactsExport',
+  'calendarTransfer',
+  'sitesOwnership',
+  'driveTeam',
 ]);
 
 export const TASK_CATALOGUE: ReadonlyArray<{
