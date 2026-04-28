@@ -1,11 +1,11 @@
-import type { DirectoryPerson } from '../lib/people';
+import type { StaffRecord } from '../lib/staff';
 import { PersonPicker } from './PersonPicker';
 
 type Props = {
   open: boolean;
   currentEmail?: string | null;
   onClose: () => void;
-  onConfirm: (person: DirectoryPerson) => Promise<void>;
+  onConfirm: (person: StaffRecord) => Promise<void>;
 };
 
 export function SupervisorPicker({ open, currentEmail, onClose, onConfirm }: Props) {

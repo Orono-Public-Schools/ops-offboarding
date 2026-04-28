@@ -28,12 +28,13 @@ export async function fetchOwnedCalendars(): Promise<OwnedCalendar[]> {
     { headers: { Authorization: `Bearer ${token}` } },
   );
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     clearGoogleAccessToken();
     throw new CalendarTokenError();
   }
   if (!res.ok) {
-    throw new Error(`Calendar API error: ${res.status} ${res.statusText}`);
+    const body = await res.text();
+    throw new Error(`Calendar API error (${res.status}): ${body || res.statusText}`);
   }
 
   const body = (await res.json()) as { items?: OwnedCalendar[] };

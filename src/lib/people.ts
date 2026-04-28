@@ -50,12 +50,13 @@ export async function searchDirectoryPeople(query: string): Promise<DirectoryPer
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     clearGoogleAccessToken();
     throw new TokenExpiredError();
   }
   if (!res.ok) {
-    throw new Error(`People API error: ${res.status} ${res.statusText}`);
+    const body = await res.text();
+    throw new Error(`People API error (${res.status}): ${body || res.statusText}`);
   }
 
   const body = (await res.json()) as PeopleApiResponse;

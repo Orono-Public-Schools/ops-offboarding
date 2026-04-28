@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { setSupervisor } from '../lib/functions';
-import type { DirectoryPerson } from '../lib/people';
+import type { StaffRecord } from '../lib/staff';
 import { SupervisorPicker } from './SupervisorPicker';
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 export function SupervisorBanner({ supervisorEmail, supervisorName }: Props) {
   const [open, setOpen] = useState(false);
 
-  const handleConfirm = async (person: DirectoryPerson) => {
+  const handleConfirm = async (person: StaffRecord) => {
     await setSupervisor({ email: person.email, displayName: person.displayName });
   };
 

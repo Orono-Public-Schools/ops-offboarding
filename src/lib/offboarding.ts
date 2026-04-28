@@ -56,6 +56,7 @@ export const IMPLEMENTED_TASKS = new Set<TaskKey>([
   'calendarTransfer',
   'sitesOwnership',
   'driveTeam',
+  'groupsOwnership',
 ]);
 
 export const TASK_CATALOGUE: ReadonlyArray<{

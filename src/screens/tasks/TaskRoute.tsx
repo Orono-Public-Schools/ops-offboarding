@@ -3,6 +3,7 @@ import { IMPLEMENTED_TASKS, TASK_CATALOGUE, type TaskKey } from '../../lib/offbo
 import { CalendarTransferTask } from './CalendarTransferTask';
 import { ComingSoonTask } from './ComingSoonTask';
 import { DrivePersonalTask } from './DrivePersonalTask';
+import { GroupsOwnershipTask } from './GroupsOwnershipTask';
 import { GuidedTask } from './GuidedTask';
 import { GUIDED_TASK_CONFIGS } from './guidedConfigs';
 import { KnowledgeTransferTask } from './KnowledgeTransferTask';
@@ -13,6 +14,7 @@ const TASK_SCREENS: Partial<Record<TaskKey, () => React.ReactElement>> = {
   drivePersonal: DrivePersonalTask,
   knowledgeTransfer: KnowledgeTransferTask,
   calendarTransfer: CalendarTransferTask,
+  groupsOwnership: GroupsOwnershipTask,
 };
 
 const VALID_KEYS = new Set<string>(TASK_CATALOGUE.map((t) => t.key));

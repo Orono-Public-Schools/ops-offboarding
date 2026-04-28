@@ -76,6 +76,16 @@ export const createHandoffDoc = httpsCallable<
   { docId: string; docName: string; docUrl: string }
 >(functions, 'createHandoffDoc');
 
+export const promoteGroupOwner = httpsCallable<
+  { groupId: string; newOwnerEmail: string; googleAccessToken: string },
+  { success: boolean; action: 'inserted' | 'updated' }
+>(functions, 'promoteGroupOwner');
+
+export const syncStaffRoster = httpsCallable<void, { synced: number; removed: number }>(
+  functions,
+  'syncStaffRoster',
+);
+
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },
   { success: boolean }

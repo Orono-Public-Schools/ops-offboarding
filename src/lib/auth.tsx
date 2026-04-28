@@ -13,6 +13,8 @@ const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/gmail.settings.basic',
   'https://www.googleapis.com/auth/drive',
   'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/admin.directory.group.readonly',
+  'https://www.googleapis.com/auth/admin.directory.group.member',
 ];
 const ACCESS_TOKEN_KEY = 'ops-offboarding:googleAccessToken';
 
