@@ -27,8 +27,8 @@ const STATUS_STYLES: Record<TaskStatus, { label: string; cardBg: string; cardGlo
   },
   skipped: {
     label: 'Skipped',
-    cardBg: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
-    cardGlow: 'rgba(100,116,139,0.2)',
+    cardBg: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
+    cardGlow: 'rgba(51,65,85,0.3)',
   },
 };
 

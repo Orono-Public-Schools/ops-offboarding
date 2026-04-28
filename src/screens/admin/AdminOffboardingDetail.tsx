@@ -12,7 +12,7 @@ const TASK_STATUS_STYLES: Record<TaskStatus, { label: string; color: string; bg:
   not_started: { label: 'Not started', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
   in_progress: { label: 'In progress', color: '#a5b4fc', bg: 'rgba(67,86,169,0.25)' },
   completed: { label: 'Completed', color: '#ffffff', bg: 'rgba(255,255,255,0.18)' },
-  skipped: { label: 'Skipped', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  skipped: { label: 'Skipped', color: '#cbd5e1', bg: 'rgba(51,65,85,0.45)' },
 };
 
 const ACTION_LABELS: Record<string, string> = {
