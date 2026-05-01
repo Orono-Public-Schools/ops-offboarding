@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -6,6 +7,7 @@ import {
   useOffboardingDetail,
   type AuditEntry,
 } from '../../lib/admin';
+import { resetUserChecklist } from '../../lib/functions';
 import { TASK_CATALOGUE, type TaskKey, type TaskStatus } from '../../lib/offboarding';
 
 const TASK_STATUS_STYLES: Record<TaskStatus, { label: string; color: string; bg: string }> = {
@@ -63,8 +65,29 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 
 export function AdminOffboardingDetail() {
   const { uid } = useParams();
+  const navigate = useNavigate();
   const detail = useOffboardingDetail(uid ?? null);
   const audit = useAuditLog(uid ?? null, 50);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const handleReset = async () => {
+    if (!uid) return;
+    const confirmed = window.confirm(
+      'Reset this user? Their checklist, all task statuses, audit log entries, and any cached file scan results will be permanently deleted. They’ll see the welcome screen again next time they sign in.',
+    );
+    if (!confirmed) return;
+    setResetting(true);
+    setResetError(null);
+    try {
+      await resetUserChecklist({ uid });
+      navigate('/admin');
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Reset failed.');
+      console.error(err);
+      setResetting(false);
+    }
+  };
 
   if (detail.loading) {
     return (
@@ -116,19 +139,41 @@ export function AdminOffboardingDetail() {
         ← Back to admin dashboard
       </Link>
 
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          {o.displayName || o.email}
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          {o.email}
-          {o.supervisorName && (
-            <>
-              {' · '}supervisor {o.supervisorName} ({o.supervisor})
-            </>
-          )}
-        </p>
+      <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
+            {o.displayName || o.email}
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            {o.email}
+            {o.supervisorName && (
+              <>
+                {' · '}supervisor {o.supervisorName} ({o.supervisor})
+              </>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={handleReset}
+          disabled={resetting}
+          className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 sm:text-sm"
+          style={{
+            background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
+            boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+          }}
+        >
+          {resetting ? 'Resetting…' : 'Reset user'}
+        </button>
       </div>
+
+      {resetError && (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ background: 'rgba(173,33,34,0.18)', color: '#fecaca' }}
+        >
+          {resetError}
+        </p>
+      )}
 
       {/* Summary card */}
       <div

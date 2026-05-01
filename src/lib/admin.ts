@@ -9,7 +9,7 @@ import {
   type Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { TASK_CATALOGUE, type OffboardingDoc, type TaskKey } from './offboarding';
+import { taskKeysForDoc, type OffboardingDoc } from './offboarding';
 
 export type OffboardingSummary = OffboardingDoc & { uid: string };
 
@@ -121,10 +121,11 @@ export function computeProgress(offboarding: OffboardingDoc): {
   total: number;
   percent: number;
 } {
-  const total = TASK_CATALOGUE.length;
+  const keys = taskKeysForDoc(offboarding);
+  const total = keys.length;
   let done = 0;
-  for (const task of TASK_CATALOGUE) {
-    const status = offboarding.tasks[task.key as TaskKey]?.status;
+  for (const key of keys) {
+    const status = offboarding.tasks[key]?.status;
     if (status === 'completed' || status === 'skipped') done += 1;
   }
   return { done, total, percent: total === 0 ? 0 : Math.round((done / total) * 100) };

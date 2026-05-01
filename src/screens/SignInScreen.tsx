@@ -35,7 +35,7 @@ export function SignInScreen() {
       >
         <img src="/orono-offboarding-blue.png" alt="" className="mx-auto mb-3 h-16 w-16" />
         <h1 className="text-center text-2xl font-bold tracking-tight" style={{ color: '#1d2a5d' }}>
-          OPS Offboarding
+          OPS Year-End
         </h1>
         <p className="mt-2 text-center text-sm" style={{ color: '#64748b' }}>
           Sign in with your Orono Public Schools Google account to begin.

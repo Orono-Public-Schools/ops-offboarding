@@ -28,6 +28,7 @@ export const enforceDomain = beforeUserCreated((event) => {
 });
 
 const TASK_KEYS = [
+  // Leaving
   'drivePersonal',
   'driveTeam',
   'groupsOwnership',
@@ -39,6 +40,17 @@ const TASK_KEYS = [
   'deviceReturn',
   'knowledgeTransfer',
   'sharedCredentials',
+  // Returning end-of-year
+  'eoyTeacherDevice',
+  'eoyHardware',
+  'eoyStudentIpads',
+  'eoyChromebookCheckin',
+  'eoyDeviceForm',
+  'eoySeesaw',
+  'eoyGoogleClassroom',
+  'eoySchoology',
+  'eoySummerPL',
+  'eoyVacationResponder',
 ] as const;
 
 function initialTasks() {
@@ -56,35 +68,117 @@ function requireAuthedDomainUser(request: { auth?: { uid: string; token: { email
   return { uid: request.auth.uid, email };
 }
 
-export const startOffboarding = onCall({ region: REGION }, async (request) => {
-  const { uid, email } = requireAuthedDomainUser(request);
-  const displayName = request.auth!.token.name ?? email;
+type ResetUserPayload = { uid?: string };
 
+async function deleteSubcollection(
+  collection: FirebaseFirestore.CollectionReference,
+  pageSize = 400,
+): Promise<number> {
   const db = getFirestore();
-  const ref = db.collection('offboardings').doc(uid);
+  let total = 0;
+  while (true) {
+    const snap = await collection.limit(pageSize).get();
+    if (snap.empty) break;
+    const writer = db.bulkWriter();
+    for (const doc of snap.docs) writer.delete(doc.ref);
+    await writer.close();
+    total += snap.size;
+    if (snap.size < pageSize) break;
+  }
+  return total;
+}
 
-  const created = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    if (snap.exists) return false;
-    tx.set(ref, {
-      uid,
-      email,
-      displayName,
-      department: null,
-      supervisor: null,
-      successorEmail: null,
-      lastDay: null,
-      status: 'in_progress',
-      startedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      completedAt: null,
-      tasks: initialTasks(),
+export const resetUserChecklist = onCall<ResetUserPayload>(
+  { region: REGION, timeoutSeconds: 540, memory: '1GiB' },
+  async (request) => {
+    requireAuthedDomainUser(request);
+    if (request.auth?.token.it_admin !== true) {
+      throw new HttpsError('permission-denied', 'IT admin only.');
+    }
+    const targetUid = request.data?.uid;
+    if (!targetUid || typeof targetUid !== 'string') {
+      throw new HttpsError('invalid-argument', 'uid is required.');
+    }
+
+    const db = getFirestore();
+    const ref = db.collection('offboardings').doc(targetUid);
+
+    const auditDeleted = await deleteSubcollection(ref.collection('auditLog'));
+    const fileScanDeleted = await deleteSubcollection(ref.collection('fileScan'));
+
+    await ref.delete();
+
+    return { success: true, uid: targetUid, auditDeleted, fileScanDeleted };
+  },
+);
+
+type StartOffboardingPayload = {
+  type?: 'returning' | 'leaving';
+  buildingChecklist?: 'schumann' | 'intermediate' | 'secondary' | 'nonInstructional' | null;
+};
+
+const VALID_FLOW_TYPES = new Set(['returning', 'leaving']);
+const VALID_BUILDING_CHECKLISTS = new Set([
+  'schumann',
+  'intermediate',
+  'secondary',
+  'nonInstructional',
+]);
+
+export const startOffboarding = onCall<StartOffboardingPayload>(
+  { region: REGION },
+  async (request) => {
+    const { uid, email } = requireAuthedDomainUser(request);
+    const displayName = request.auth!.token.name ?? email;
+
+    const reqType = request.data?.type;
+    const reqBuilding = request.data?.buildingChecklist ?? null;
+    const type = reqType && VALID_FLOW_TYPES.has(reqType) ? reqType : 'leaving';
+    const buildingChecklist =
+      type === 'returning' && reqBuilding && VALID_BUILDING_CHECKLISTS.has(reqBuilding)
+        ? reqBuilding
+        : null;
+
+    const db = getFirestore();
+    const ref = db.collection('offboardings').doc(uid);
+
+    const created = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (snap.exists) {
+        // If the doc already exists but doesn't have type/building yet (older
+        // record), fill them in once based on this start request.
+        const existingType = snap.get('type');
+        if (!existingType) {
+          tx.update(ref, {
+            type,
+            buildingChecklist,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+        return false;
+      }
+      tx.set(ref, {
+        uid,
+        email,
+        displayName,
+        department: null,
+        supervisor: null,
+        successorEmail: null,
+        lastDay: null,
+        type,
+        buildingChecklist,
+        status: 'in_progress',
+        startedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        completedAt: null,
+        tasks: initialTasks(),
+      });
+      return true;
     });
-    return true;
-  });
 
-  return { offboardingId: uid, created };
-});
+    return { offboardingId: uid, created, type, buildingChecklist };
+  },
+);
 
 type SetSupervisorPayload = {
   email?: string;

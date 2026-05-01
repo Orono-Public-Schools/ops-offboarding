@@ -95,6 +95,210 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
     notesPlaceholder: 'e.g. transferred classroom site to next-year teacher; no other sites',
   },
 
+  // ─── End-of-year (returning users) ─────────────────────────────────────────
+
+  eoyTeacherDevice: {
+    title: 'Your device',
+    description: 'Decide whether to keep your laptop over the summer or have it stored.',
+    tips: [
+      {
+        title: 'Keep it',
+        body: "You're welcome to take your district laptop home over the summer. Most staff do.",
+      },
+      {
+        title: 'Have it stored',
+        body: 'If you’d rather not keep it at home, connect with your building tech (Jason Banks at Schumann/Intermediate, Emily Zakashefski at Secondary) and they’ll store it.',
+      },
+      {
+        title: 'Sync to Google Drive',
+        body: 'Either way, sync your laptop to Drive before you go — classroom PCs may be re-imaged this summer and local files won’t survive.',
+      },
+    ],
+    notesPlaceholder: 'e.g. keeping mine at home; left iPad with Jason',
+  },
+
+  eoyHardware: {
+    title: 'Hardware cleanup',
+    description: 'Tidy up classroom tech before you leave for summer.',
+    tips: [
+      {
+        title: 'Tech box',
+        body: 'Place your tech box on/near your desk. If you don’t have one, ask your building tech.',
+      },
+      {
+        title: 'Return what you don’t need',
+        body: 'Doc cams, swivels, extra cords, old chromebooks/laptops, speakers, mice, keyboards, headphones — to the media center.',
+      },
+      {
+        title: 'Remove personal stuff',
+        body: 'Take home any personal keyboards, mice, microphones, chromebooks. The district isn’t responsible for personal items left in classrooms.',
+      },
+    ],
+    notesPlaceholder: 'e.g. returned 3 old chromebooks and a doc cam',
+  },
+
+  eoyStudentIpads: {
+    title: 'Student iPads',
+    description: 'Schumann — leave student iPads in their charging stations for the summer.',
+    tips: [
+      {
+        title: 'Charging stations',
+        body: 'Plug each iPad into its assigned slot in the charging station and confirm it’s charging.',
+      },
+      {
+        title: 'Personal accessories',
+        body: 'Have students take home anything they brought (cases, headphones, screen protectors).',
+      },
+    ],
+    notesPlaceholder: 'Optional',
+  },
+
+  eoyChromebookCheckin: {
+    title: 'Student Chromebook check-in',
+    description:
+      'Intermediate — collect Chromebooks with the check-in form so IT can inventory them over the summer.',
+    primaryLink: {
+      label: 'Open the check-in form',
+      url: 'https://docs.google.com/forms/d/e/check-in-form-link', // placeholder; update with the real form URL
+    },
+    tips: [
+      {
+        title: 'Each student fills the form',
+        body: 'Students complete one form per Chromebook and put the printed copy inside the closed device.',
+      },
+      {
+        title: 'Where to put them',
+        body: 'Leave Chromebooks in the cart/charging station with the papers tucked inside.',
+      },
+      {
+        title: 'Personal accessories',
+        body: 'Have students remove personal headphones, mice, etc. before checking in.',
+      },
+    ],
+    notesPlaceholder: 'e.g. all 24 collected, 2 missing — followed up with families',
+  },
+
+  eoyDeviceForm: {
+    title: 'Device plans form',
+    description:
+      'Secondary — fill out the form to tell IT what you’re doing with your devices over the summer.',
+    primaryLink: {
+      label: 'Open the device plans form',
+      url: 'https://docs.google.com/forms/d/e/device-plans-form-link', // placeholder; update with real form URL
+    },
+    tips: [
+      {
+        title: 'One form per teacher',
+        body: 'Quick form — takes a minute. IT uses your answer to plan summer device collection and storage.',
+      },
+    ],
+    notesPlaceholder: 'Optional',
+  },
+
+  eoySeesaw: {
+    title: 'Seesaw',
+    description: 'Schumann — Seesaw archives automatically. No action required, just review.',
+    tips: [
+      {
+        title: 'Auto-archive on June 6',
+        body: 'Current classes archive automatically. Don’t delete or remove anything yourself — your activities stay for next year.',
+      },
+      {
+        title: 'Student journals',
+        body: 'Parents who want their student’s journal can download it themselves. Send them: search “Download student journal in Seesaw.”',
+      },
+    ],
+    notesPlaceholder: 'Optional',
+  },
+
+  eoyGoogleClassroom: {
+    title: 'Google Classroom',
+    description: 'Intermediate — archive your classes on or before June 6.',
+    primaryLink: {
+      label: 'Open Google Classroom',
+      url: 'https://classroom.google.com',
+    },
+    tips: [
+      {
+        title: 'Archive (don’t delete)',
+        body: 'Archived classes are still accessible — students can no longer see them but you can pull materials from them next year.',
+      },
+      {
+        title: 'How to archive',
+        body: 'On the Classes page, click ⋮ on each class card → Archive.',
+      },
+    ],
+    notesPlaceholder: 'e.g. archived 4 sections of Math 6',
+  },
+
+  eoySchoology: {
+    title: 'Schoology',
+    description: 'Secondary — Schoology auto-archives June 7. Save anything you want to keep.',
+    primaryLink: {
+      label: 'Open Schoology',
+      url: 'https://app.schoology.com',
+    },
+    tips: [
+      {
+        title: 'Auto-archive on June 7',
+        body: 'Courses archive automatically. You don’t need to do anything to make that happen.',
+      },
+      {
+        title: 'Save course to resources',
+        body: 'If you want to reuse a course next year, save it to your personal resources before the archive.',
+      },
+      {
+        title: 'Heads-up on reused courses',
+        body: 'If you keep working on a course over the summer, refrain from attaching Google Drive Assignments — courses get re-synced and they may break.',
+      },
+    ],
+    notesPlaceholder: 'Optional',
+  },
+
+  eoySummerPL: {
+    title: 'Summer Professional Learning',
+    description: 'Optional — sign up for summer courses and the AI workshop.',
+    tips: [
+      {
+        title: 'On-demand courses',
+        body: 'Summer 2025 catalog is open June 9 – August 18. 1–2 CEUs per course, unlimited seats.',
+      },
+      {
+        title: 'AI Summer Workshop',
+        body: 'June 9, 8:00–11:00. 3 hours of curriculum writing + 3 hours CEUs. 15 seats.',
+      },
+      {
+        title: 'Where to sign up',
+        body: 'Use the links in your principal’s end-of-year email, or search for "Summer 2025 Course Catalogue."',
+      },
+    ],
+    notesPlaceholder: 'Optional',
+  },
+
+  eoyVacationResponder: {
+    title: 'Summer vacation responder',
+    description: 'Set your Gmail vacation reply for summer break.',
+    primaryLink: {
+      label: 'Open Gmail settings',
+      url: 'https://mail.google.com/mail/u/0/#settings/general',
+    },
+    tips: [
+      {
+        title: 'Sample message',
+        body: '"Thank you for contacting me. Orono Schools are on summer break until August 25th. If you need assistance please contact the office at 952-449-8338. Thank you, and have a great summer!"',
+      },
+      {
+        title: 'How to turn it on',
+        body: 'In Gmail, click the gear → See all settings → General tab → scroll to "Vacation responder."',
+      },
+      {
+        title: 'Set the dates',
+        body: 'Start date: your last day. End date: leave blank or set to a couple days before staff return.',
+      },
+    ],
+    notesPlaceholder: 'Optional',
+  },
+
   driveTeam: {
     title: 'Shared Drive handoff',
     description: 'Files in shared drives are already safe — but worth a quick check.',

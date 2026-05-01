@@ -1,13 +1,20 @@
+import { useMemo } from 'react';
 import { Link, useOutletContext } from 'react-router';
 import { SupervisorBanner } from '../components/SupervisorBanner';
 import { useAuth } from '../lib/auth';
 import {
+  BUILDING_CHECKLISTS,
   IMPLEMENTED_TASKS,
   TASK_CATALOGUE,
+  taskKeysForDoc,
   type TaskKey,
   type TaskStatus,
 } from '../lib/offboarding';
 import type { OutletCtx } from '../App';
+
+const TASK_LOOKUP: Map<TaskKey, (typeof TASK_CATALOGUE)[number]> = new Map(
+  TASK_CATALOGUE.map((t) => [t.key, t]),
+);
 
 const STATUS_STYLES: Record<TaskStatus, { label: string; cardBg: string; cardGlow: string }> = {
   not_started: {
@@ -37,6 +44,18 @@ export function DashboardScreen() {
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0];
 
+  const isLeaving = doc.type === 'leaving';
+  const buildingLabel = useMemo(() => {
+    if (!doc.buildingChecklist) return null;
+    return BUILDING_CHECKLISTS.find((b) => b.key === doc.buildingChecklist)?.label ?? null;
+  }, [doc.buildingChecklist]);
+
+  const visibleTasks = useMemo(() => {
+    return taskKeysForDoc(doc)
+      .map((key) => TASK_LOOKUP.get(key))
+      .filter((t): t is (typeof TASK_CATALOGUE)[number] => Boolean(t));
+  }, [doc]);
+
   return (
     <div>
       <div className="mb-5 sm:mb-8">
@@ -44,14 +63,18 @@ export function DashboardScreen() {
           {firstName ? `Welcome back, ${firstName}.` : 'Welcome back.'}
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Work through your offboarding tasks at your own pace. Progress is saved automatically.
+          {isLeaving
+            ? 'Work through your offboarding tasks at your own pace. Progress is saved automatically.'
+            : `End-of-year checklist${buildingLabel ? ` for ${buildingLabel}` : ''}. Work through it at your own pace — progress is saved automatically.`}
         </p>
       </div>
 
-      <SupervisorBanner supervisorEmail={doc.supervisor} supervisorName={doc.supervisorName} />
+      {isLeaving && (
+        <SupervisorBanner supervisorEmail={doc.supervisor} supervisorName={doc.supervisorName} />
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {TASK_CATALOGUE.map((task) => {
+        {visibleTasks.map((task) => {
           const state = doc.tasks[task.key as TaskKey];
           const status = state?.status ?? 'not_started';
           const statusStyle = STATUS_STYLES[status];

@@ -3,10 +3,18 @@ import { app } from './firebase';
 
 const functions = getFunctions(app, 'us-central1');
 
-export const startOffboarding = httpsCallable<void, { offboardingId: string; created: boolean }>(
-  functions,
-  'startOffboarding',
-);
+export const startOffboarding = httpsCallable<
+  {
+    type: 'returning' | 'leaving';
+    buildingChecklist: 'schumann' | 'intermediate' | 'secondary' | 'nonInstructional' | null;
+  },
+  {
+    offboardingId: string;
+    created: boolean;
+    type: 'returning' | 'leaving';
+    buildingChecklist: 'schumann' | 'intermediate' | 'secondary' | 'nonInstructional' | null;
+  }
+>(functions, 'startOffboarding');
 
 export const setSupervisor = httpsCallable<
   { email: string; displayName: string | null },
@@ -84,6 +92,11 @@ export const promoteGroupOwner = httpsCallable<
 export const syncStaffRoster = httpsCallable<void, { synced: number; removed: number }>(
   functions,
   'syncStaffRoster',
+);
+
+export const resetUserChecklist = httpsCallable<{ uid: string }, { success: boolean; uid: string }>(
+  functions,
+  'resetUserChecklist',
 );
 
 export const transferFileOwnership = httpsCallable<
