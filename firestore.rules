@@ -42,6 +42,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Staff roster synced from a spreadsheet via syncStaffRoster.
+    // Any authed domain user can read for the person picker; writes are
+    // server-side only.
+    match /staff/{email} {
+      allow read: if isAuthed();
+      allow write: if false;
+    }
+
     // Default deny.
     match /{document=**} {
       allow read, write: if false;

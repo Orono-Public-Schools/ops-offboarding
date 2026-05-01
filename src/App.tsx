@@ -1,6 +1,15 @@
-import { AuthProvider, useAuth } from './lib/auth';
-import { AuthenticatedShell } from './screens/AuthenticatedShell';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { AuthProvider, useAuth, useIsAdmin } from './lib/auth';
+import { useOffboarding, type OffboardingDoc } from './lib/offboarding';
+import { AdminDashboard } from './screens/admin/AdminDashboard';
+import { AdminOffboardingDetail } from './screens/admin/AdminOffboardingDetail';
+import { AuthedShell } from './screens/AuthenticatedShell';
+import { DashboardScreen } from './screens/DashboardScreen';
 import { SignInScreen } from './screens/SignInScreen';
+import { TaskRoute } from './screens/tasks/TaskRoute';
+import { WelcomeScreen } from './screens/WelcomeScreen';
+
+export type OutletCtx = { doc: OffboardingDoc };
 
 function LoadingScreen() {
   return (
@@ -12,16 +21,51 @@ function LoadingScreen() {
   );
 }
 
-function AuthGate() {
+function AppLayout() {
   const { user, loading } = useAuth();
+  const state = useOffboarding(user?.uid ?? null);
+
   if (loading) return <LoadingScreen />;
-  return user ? <AuthenticatedShell /> : <SignInScreen />;
+  if (!user) return <SignInScreen />;
+  if (state.loading) return <LoadingScreen />;
+  if ('error' in state) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4">
+        <div
+          className="max-w-md rounded-xl p-6 text-sm"
+          style={{ background: '#ffffff', color: '#334155' }}
+        >
+          Couldn't load your offboarding record. Please refresh, or contact IT if the problem
+          continues.
+        </div>
+      </main>
+    );
+  }
+  if (!state.exists) return <WelcomeScreen />;
+
+  return <AuthedShell doc={state.data} />;
+}
+
+function AdminGate() {
+  const isAdmin = useIsAdmin();
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return <Outlet />;
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <AuthGate />
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<DashboardScreen />} />
+          <Route path="/tasks/:taskKey" element={<TaskRoute />} />
+          <Route element={<AdminGate />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/offboardings/:uid" element={<AdminOffboardingDetail />} />
+          </Route>
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AuthProvider>
   );
 }

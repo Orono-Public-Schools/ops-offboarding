@@ -11,6 +11,7 @@ export type HelpRequest = {
 };
 
 export type TaskKey =
+  // Leaving-flow tasks
   | 'drivePersonal'
   | 'driveTeam'
   | 'groupsOwnership'
@@ -21,7 +22,18 @@ export type TaskKey =
   | 'contactsExport'
   | 'deviceReturn'
   | 'knowledgeTransfer'
-  | 'sharedCredentials';
+  | 'sharedCredentials'
+  // Returning end-of-year tasks
+  | 'eoyTeacherDevice'
+  | 'eoyHardware'
+  | 'eoyStudentIpads'
+  | 'eoyChromebookCheckin'
+  | 'eoyDeviceForm'
+  | 'eoySeesaw'
+  | 'eoyGoogleClassroom'
+  | 'eoySchoology'
+  | 'eoySummerPL'
+  | 'eoyVacationResponder';
 
 export type TaskState = {
   status: TaskStatus;
@@ -30,20 +42,140 @@ export type TaskState = {
   [k: string]: unknown;
 };
 
+export type FlowType = 'returning' | 'leaving';
+export type BuildingChecklist = 'schumann' | 'intermediate' | 'secondary' | 'nonInstructional';
+
 export type OffboardingDoc = {
   uid: string;
   email: string;
   displayName: string;
   department: string | null;
   supervisor: string | null;
+  supervisorName?: string | null;
   successorEmail: string | null;
   lastDay: Timestamp | null;
+  type?: FlowType;
+  buildingChecklist?: BuildingChecklist | null;
   status: 'in_progress' | 'completed' | 'archived';
   startedAt: Timestamp;
   updatedAt: Timestamp;
   completedAt: Timestamp | null;
   tasks: Record<TaskKey, TaskState>;
 };
+
+/** Map building initials from the staff roster to a checklist variant. */
+export function checklistForBuilding(
+  buildingInitials: string | null | undefined,
+): BuildingChecklist {
+  const code = (buildingInitials ?? '').trim().toUpperCase();
+  if (code === 'SE') return 'schumann';
+  if (code === 'IS') return 'intermediate';
+  if (code === 'HS' || code === 'MS' || code === 'HMS') return 'secondary';
+  return 'nonInstructional';
+}
+
+export const BUILDING_CHECKLISTS: Array<{
+  key: BuildingChecklist;
+  label: string;
+  detail: string;
+}> = [
+  {
+    key: 'schumann',
+    label: 'Schumann Elementary',
+    detail: 'iPads, Seesaw, K–4',
+  },
+  {
+    key: 'intermediate',
+    label: 'Intermediate School',
+    detail: 'Chromebooks, Google Classroom',
+  },
+  {
+    key: 'secondary',
+    label: 'Middle School / High School',
+    detail: 'Schoology',
+  },
+  {
+    key: 'nonInstructional',
+    label: 'Non-instructional',
+    detail: 'District office, IT, food service, transportation, etc.',
+  },
+];
+
+export const IMPLEMENTED_TASKS = new Set<TaskKey>([
+  // Leaving
+  'outOfOffice',
+  'drivePersonal',
+  'knowledgeTransfer',
+  'deviceReturn',
+  'sharedCredentials',
+  'contactsExport',
+  'calendarTransfer',
+  'sitesOwnership',
+  'driveTeam',
+  'groupsOwnership',
+  // End-of-year (all guided)
+  'eoyTeacherDevice',
+  'eoyHardware',
+  'eoyStudentIpads',
+  'eoyChromebookCheckin',
+  'eoyDeviceForm',
+  'eoySeesaw',
+  'eoyGoogleClassroom',
+  'eoySchoology',
+  'eoySummerPL',
+  'eoyVacationResponder',
+]);
+
+/**
+ * The leaving-flow task list — what users see on their dashboard if they chose
+ * the "leaving Orono Public Schools" branch.
+ */
+export const LEAVING_TASK_KEYS: TaskKey[] = [
+  'drivePersonal',
+  'driveTeam',
+  'groupsOwnership',
+  'outOfOffice',
+  'calendarTransfer',
+  'gmailForwarding',
+  'sitesOwnership',
+  'contactsExport',
+  'deviceReturn',
+  'knowledgeTransfer',
+  'sharedCredentials',
+];
+
+/**
+ * Per-building end-of-year task lists for users who are returning next year.
+ * Tasks aren't building-specific in the data model — we just choose which
+ * subset to show based on the user's chosen building checklist.
+ */
+export const RETURNING_TASK_KEYS_BY_BUILDING: Record<BuildingChecklist, TaskKey[]> = {
+  schumann: [
+    'eoyTeacherDevice',
+    'eoyStudentIpads',
+    'eoyHardware',
+    'eoySeesaw',
+    'eoySummerPL',
+    'eoyVacationResponder',
+  ],
+  intermediate: [
+    'eoyTeacherDevice',
+    'eoyChromebookCheckin',
+    'eoyHardware',
+    'eoyGoogleClassroom',
+    'eoySummerPL',
+    'eoyVacationResponder',
+  ],
+  secondary: ['eoyDeviceForm', 'eoyHardware', 'eoySchoology', 'eoyVacationResponder'],
+  nonInstructional: ['eoyTeacherDevice', 'eoyVacationResponder'],
+};
+
+export function taskKeysForDoc(doc: OffboardingDoc): TaskKey[] {
+  if (doc.type === 'returning' && doc.buildingChecklist) {
+    return RETURNING_TASK_KEYS_BY_BUILDING[doc.buildingChecklist];
+  }
+  return LEAVING_TASK_KEYS;
+}
 
 export const TASK_CATALOGUE: ReadonlyArray<{
   key: TaskKey;
@@ -54,7 +186,7 @@ export const TASK_CATALOGUE: ReadonlyArray<{
     key: 'drivePersonal',
     label: 'My Drive cleanup',
     description:
-      'Review files in your personal Drive and decide what to move, transfer, or delete.',
+      'Set up destinations and move things in Drive so nothing important disappears with your account.',
   },
   {
     key: 'driveTeam',
@@ -99,12 +231,65 @@ export const TASK_CATALOGUE: ReadonlyArray<{
   {
     key: 'knowledgeTransfer',
     label: 'Knowledge transfer',
-    description: 'Leave a handoff doc for your successor with key context.',
+    description:
+      'Create a handoff doc with active projects, key contacts, and the gotchas only you know.',
   },
   {
     key: 'sharedCredentials',
     label: 'Shared credentials',
     description: 'Hand off any shared logins or rotate credentials you had access to.',
+  },
+
+  // End-of-year tasks (returning users)
+  {
+    key: 'eoyTeacherDevice',
+    label: 'Your device',
+    description: 'Decide whether to keep your laptop or have it stored over the summer.',
+  },
+  {
+    key: 'eoyHardware',
+    label: 'Hardware cleanup',
+    description: 'Return unwanted devices, store accessories, remove personal tech.',
+  },
+  {
+    key: 'eoyStudentIpads',
+    label: 'Student iPads',
+    description: 'Leave iPads in their charging stations.',
+  },
+  {
+    key: 'eoyChromebookCheckin',
+    label: 'Student Chromebook check-in',
+    description: 'Have students complete the check-in form before leaving for summer.',
+  },
+  {
+    key: 'eoyDeviceForm',
+    label: 'Device plans form',
+    description: "Fill out the form to tell IT what you're doing with your devices.",
+  },
+  {
+    key: 'eoySeesaw',
+    label: 'Seesaw',
+    description: 'Auto-archive on June 6 — nothing to delete or remove.',
+  },
+  {
+    key: 'eoyGoogleClassroom',
+    label: 'Google Classroom',
+    description: 'Archive your classes on or before June 6.',
+  },
+  {
+    key: 'eoySchoology',
+    label: 'Schoology',
+    description: 'Auto-archives June 7 — save courses to resources if you want to keep them.',
+  },
+  {
+    key: 'eoySummerPL',
+    label: 'Summer Professional Learning',
+    description: 'Optional — sign up for on-demand courses and the AI summer workshop.',
+  },
+  {
+    key: 'eoyVacationResponder',
+    label: 'Summer vacation responder',
+    description: 'Set your out-of-office for summer break.',
   },
 ];
 

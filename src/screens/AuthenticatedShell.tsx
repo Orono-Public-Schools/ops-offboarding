@@ -1,52 +1,19 @@
-import { signOut, useAuth } from '../lib/auth';
-import { useOffboarding } from '../lib/offboarding';
-import { DashboardScreen } from './DashboardScreen';
-import { WelcomeScreen } from './WelcomeScreen';
+import { Link, Outlet } from 'react-router';
+import { signOut, useAuth, useIsAdmin } from '../lib/auth';
+import type { OffboardingDoc } from '../lib/offboarding';
 
-export function AuthenticatedShell() {
+export function AuthedShell({ doc }: { doc: OffboardingDoc }) {
   const { user } = useAuth();
-  const state = useOffboarding(user?.uid ?? null);
-
-  if (state.loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <div className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Loading…
-        </div>
-      </main>
-    );
-  }
-
-  if ('error' in state) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div
-          className="max-w-md rounded-xl p-6 text-sm"
-          style={{ background: '#ffffff', color: '#334155' }}
-        >
-          Couldn't load your offboarding record. Please refresh, or contact IT if the problem
-          continues.
-          <button
-            onClick={() => signOut()}
-            className="mt-4 block w-full rounded-xl border px-4 py-2 text-xs font-semibold"
-            style={{ borderColor: '#cbd5e1', color: '#475569' }}
-          >
-            Sign out
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  if (!state.exists) {
-    return <WelcomeScreen />;
-  }
+  const isAdmin = useIsAdmin();
 
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-3 py-4 sm:px-4 sm:py-6">
-        <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">OPS Offboarding</h1>
-        <div className="flex items-center gap-3 text-sm sm:gap-4">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3">
+          <img src="/orono-offboarding.png" alt="" className="h-8 w-8 sm:h-9 sm:w-9" />
+          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">OPS Year-End</h1>
+        </Link>
+        <div className="flex items-center gap-2 text-sm sm:gap-3">
           <span className="hidden sm:inline" style={{ color: 'rgba(255,255,255,0.6)' }}>
             {user?.email}
           </span>
@@ -57,11 +24,23 @@ export function AuthenticatedShell() {
           >
             Sign out
           </button>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] sm:px-4 sm:py-2 sm:text-sm"
+              style={{
+                background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
+                boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+              }}
+            >
+              Admin
+            </Link>
+          )}
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-3 py-6 sm:px-4 sm:py-12">
-        <DashboardScreen doc={state.data} />
+        <Outlet context={{ doc }} />
       </main>
     </div>
   );
