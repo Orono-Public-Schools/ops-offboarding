@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
 import { SupervisorBanner } from '../components/SupervisorBanner';
 import { useAuth } from '../lib/auth';
+import { resetUserChecklist } from '../lib/functions';
 import {
   BUILDING_CHECKLISTS,
   IMPLEMENTED_TASKS,
@@ -43,6 +44,26 @@ export function DashboardScreen() {
   const { doc } = useOutletContext<OutletCtx>();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0];
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const handleSelfReset = async () => {
+    if (!user?.uid) return;
+    const confirmed = window.confirm(
+      "Start over? Your current checklist progress will be wiped and you'll see the welcome screen again. (Use this if you picked the wrong building or want to switch between returning/leaving.)",
+    );
+    if (!confirmed) return;
+    setResetError(null);
+    setResetting(true);
+    try {
+      await resetUserChecklist({ uid: user.uid });
+      // The Firestore listener fires -> AppLayout shows WelcomeScreen.
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Could not reset. Please try again.');
+      console.error(err);
+      setResetting(false);
+    }
+  };
 
   const isLeaving = doc.type === 'leaving';
   const buildingLabel = useMemo(() => {
@@ -124,6 +145,31 @@ export function DashboardScreen() {
             </Link>
           );
         })}
+      </div>
+
+      <div className="mt-8 flex flex-col items-center gap-2">
+        {resetError && (
+          <p
+            className="rounded-lg px-3 py-2 text-xs"
+            style={{ background: 'rgba(173,33,34,0.12)', color: '#fecaca' }}
+          >
+            {resetError}
+          </p>
+        )}
+        <button
+          onClick={handleSelfReset}
+          disabled={resetting}
+          className="text-xs font-semibold transition disabled:opacity-50"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
+          onMouseEnter={(e) => {
+            if (!resetting) e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+          }}
+        >
+          {resetting ? 'Resetting…' : 'Picked the wrong checklist? Start over'}
+        </button>
       </div>
     </div>
   );

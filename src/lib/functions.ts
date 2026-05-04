@@ -28,6 +28,7 @@ export const setOutOfOffice = httpsCallable<
     startDate: string | null;
     endDate: string | null;
     googleAccessToken: string;
+    taskKey?: 'outOfOffice' | 'eoyVacationResponder';
   },
   { success: boolean }
 >(functions, 'setOutOfOffice');
@@ -98,6 +99,11 @@ export const resetUserChecklist = httpsCallable<{ uid: string }, { success: bool
   functions,
   'resetUserChecklist',
 );
+
+export const setEoySettings = httpsCallable<
+  { returnDate: string | null },
+  { returnDate: string | null }
+>(functions, 'setEoySettings');
 
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
   computeProgress,
@@ -6,8 +6,9 @@ import {
   useAllOffboardings,
   type OffboardingSummary,
 } from '../../lib/admin';
-import { syncStaffRoster } from '../../lib/functions';
+import { setEoySettings, syncStaffRoster } from '../../lib/functions';
 import { BUILDING_CHECKLISTS } from '../../lib/offboarding';
+import { DEFAULT_EOY_RETURN_DATE, useEoySettings } from '../../lib/settings';
 
 type FilterType = 'all' | 'returning' | 'leaving';
 
@@ -119,6 +120,37 @@ export function AdminDashboard() {
     text: string;
   } | null>(null);
 
+  const settingsState = useEoySettings();
+  const [returnDateInput, setReturnDateInput] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<{
+    kind: 'ok' | 'error';
+    text: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (settingsState.loading) return;
+    setReturnDateInput(settingsState.settings.returnDate ?? DEFAULT_EOY_RETURN_DATE);
+  }, [settingsState]);
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    setSettingsMessage(null);
+    try {
+      const value = returnDateInput.trim() || null;
+      await setEoySettings({ returnDate: value });
+      setSettingsMessage({ kind: 'ok', text: 'Saved.' });
+    } catch (err) {
+      setSettingsMessage({
+        kind: 'error',
+        text: err instanceof Error ? err.message : 'Save failed.',
+      });
+      console.error(err);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const allOffboardings =
     !state.loading && 'offboardings' in state ? state.offboardings : ([] as OffboardingSummary[]);
   const filtered = useMemo(() => {
@@ -191,6 +223,66 @@ export function AdminDashboard() {
           {syncMessage.text}
         </p>
       )}
+
+      <div
+        className="mb-6 rounded-xl p-4 sm:p-5"
+        style={{ background: 'rgba(255,255,255,0.04)' }}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[11px] font-semibold tracking-wider uppercase"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+            >
+              Summer responder return date
+            </p>
+            <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              Date staff will reference in their summer vacation responder. Secondary buildings
+              auto-shift one day later (matches OPS's historical pattern).
+            </p>
+          </div>
+          <div className="flex items-end gap-2">
+            <input
+              type="date"
+              value={returnDateInput}
+              onChange={(e) => setReturnDateInput(e.target.value)}
+              disabled={settingsState.loading || savingSettings}
+              className="rounded-lg px-3 py-2 text-sm transition outline-none disabled:opacity-60"
+              style={{
+                background: 'rgba(255,255,255,0.95)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: '#1d2a5d',
+              }}
+            />
+            <button
+              onClick={handleSaveSettings}
+              disabled={settingsState.loading || savingSettings}
+              className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 sm:text-sm"
+              style={{
+                background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
+                boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+              }}
+            >
+              {savingSettings ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+        {settingsMessage && (
+          <p
+            className="mt-3 rounded-lg px-3 py-2 text-xs"
+            style={{
+              background:
+                settingsMessage.kind === 'ok'
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(173,33,34,0.12)',
+              color: settingsMessage.kind === 'ok' ? '#ffffff' : '#fecaca',
+            }}
+          >
+            {settingsMessage.kind === 'ok' ? '✓ ' : '✕ '}
+            {settingsMessage.text}
+          </p>
+        )}
+      </div>
 
       {state.loading && (
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
