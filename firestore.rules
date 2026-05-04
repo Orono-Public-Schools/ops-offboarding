@@ -50,6 +50,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // App-wide settings IT admins can edit (e.g. EOY return date).
+    // Authed users read so the SummerVacationResponderTask can pick up
+    // the configured date; writes go through callables.
+    match /appSettings/{key} {
+      allow read: if isAuthed();
+      allow write: if false;
+    }
+
     // Default deny.
     match /{document=**} {
       allow read, write: if false;

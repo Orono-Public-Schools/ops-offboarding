@@ -275,30 +275,6 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
     notesPlaceholder: 'Optional',
   },
 
-  eoyVacationResponder: {
-    title: 'Summer vacation responder',
-    description: 'Set your Gmail vacation reply for summer break.',
-    primaryLink: {
-      label: 'Open Gmail settings',
-      url: 'https://mail.google.com/mail/u/0/#settings/general',
-    },
-    tips: [
-      {
-        title: 'Sample message',
-        body: '"Thank you for contacting me. Orono Schools are on summer break until August 25th. If you need assistance please contact the office at 952-449-8338. Thank you, and have a great summer!"',
-      },
-      {
-        title: 'How to turn it on',
-        body: 'In Gmail, click the gear → See all settings → General tab → scroll to "Vacation responder."',
-      },
-      {
-        title: 'Set the dates',
-        body: 'Start date: your last day. End date: leave blank or set to a couple days before staff return.',
-      },
-    ],
-    notesPlaceholder: 'Optional',
-  },
-
   driveTeam: {
     title: 'Shared Drive handoff',
     description: 'Files in shared drives are already safe — but worth a quick check.',

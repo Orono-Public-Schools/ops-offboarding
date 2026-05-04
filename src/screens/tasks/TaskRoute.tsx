@@ -8,6 +8,7 @@ import { GuidedTask } from './GuidedTask';
 import { GUIDED_TASK_CONFIGS } from './guidedConfigs';
 import { KnowledgeTransferTask } from './KnowledgeTransferTask';
 import { OutOfOfficeTask } from './OutOfOfficeTask';
+import { SummerVacationResponderTask } from './SummerVacationResponderTask';
 
 const TASK_SCREENS: Partial<Record<TaskKey, () => React.ReactElement>> = {
   outOfOffice: OutOfOfficeTask,
@@ -15,6 +16,7 @@ const TASK_SCREENS: Partial<Record<TaskKey, () => React.ReactElement>> = {
   knowledgeTransfer: KnowledgeTransferTask,
   calendarTransfer: CalendarTransferTask,
   groupsOwnership: GroupsOwnershipTask,
+  eoyVacationResponder: SummerVacationResponderTask,
 };
 
 const VALID_KEYS = new Set<string>(TASK_CATALOGUE.map((t) => t.key));

@@ -68,6 +68,32 @@ function requireAuthedDomainUser(request: { auth?: { uid: string; token: { email
   return { uid: request.auth.uid, email };
 }
 
+type SetEoySettingsPayload = { returnDate?: string | null };
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export const setEoySettings = onCall<SetEoySettingsPayload>({ region: REGION }, async (request) => {
+  const { uid } = requireAuthedDomainUser(request);
+  if (request.auth?.token.it_admin !== true) {
+    throw new HttpsError('permission-denied', 'IT admin only.');
+  }
+  const returnDate = request.data?.returnDate ?? null;
+  if (returnDate !== null && (typeof returnDate !== 'string' || !ISO_DATE_RE.test(returnDate))) {
+    throw new HttpsError('invalid-argument', 'returnDate must be YYYY-MM-DD or null.');
+  }
+
+  const db = getFirestore();
+  await db.collection('appSettings').doc('eoyVacationResponder').set(
+    {
+      returnDate,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: uid,
+    },
+    { merge: true },
+  );
+  return { returnDate };
+});
+
 type ResetUserPayload = { uid?: string };
 
 async function deleteSubcollection(
@@ -91,13 +117,18 @@ async function deleteSubcollection(
 export const resetUserChecklist = onCall<ResetUserPayload>(
   { region: REGION, timeoutSeconds: 540, memory: '1GiB' },
   async (request) => {
-    requireAuthedDomainUser(request);
-    if (request.auth?.token.it_admin !== true) {
-      throw new HttpsError('permission-denied', 'IT admin only.');
-    }
+    const { uid: callerUid } = requireAuthedDomainUser(request);
     const targetUid = request.data?.uid;
     if (!targetUid || typeof targetUid !== 'string') {
       throw new HttpsError('invalid-argument', 'uid is required.');
+    }
+    const isAdmin = request.auth?.token.it_admin === true;
+    const isSelf = callerUid === targetUid;
+    if (!isAdmin && !isSelf) {
+      throw new HttpsError(
+        'permission-denied',
+        'You can only reset your own checklist unless you are an IT admin.',
+      );
     }
 
     const db = getFirestore();
@@ -238,7 +269,10 @@ type SetOutOfOfficePayload = {
   startDate?: string | null;
   endDate?: string | null;
   googleAccessToken?: string;
+  taskKey?: 'outOfOffice' | 'eoyVacationResponder';
 };
+
+const VALID_OOO_TASK_KEYS = new Set<string>(['outOfOffice', 'eoyVacationResponder']);
 
 function dateToMillis(dateStr: string | null | undefined): number | undefined {
   if (!dateStr) return undefined;
@@ -251,10 +285,14 @@ export const setOutOfOffice = onCall<SetOutOfOfficePayload>({ region: REGION }, 
   const { uid } = requireAuthedDomainUser(request);
 
   const message = request.data?.message?.trim();
-  const subject = request.data?.subject?.trim() || 'I am no longer with Orono Public Schools';
+  const subject = request.data?.subject?.trim() || 'Out of office';
   const startDate = request.data?.startDate ?? null;
   const endDate = request.data?.endDate ?? null;
   const googleAccessToken = request.data?.googleAccessToken;
+  const taskKey =
+    request.data?.taskKey && VALID_OOO_TASK_KEYS.has(request.data.taskKey)
+      ? request.data.taskKey
+      : 'outOfOffice';
 
   if (!message) {
     throw new HttpsError('invalid-argument', 'Message is required.');
@@ -307,16 +345,17 @@ export const setOutOfOffice = onCall<SetOutOfOfficePayload>({ region: REGION }, 
     if (!snap.exists) {
       throw new HttpsError('failed-precondition', 'Offboarding record not found.');
     }
-    const before = snap.get('tasks.outOfOffice') ?? null;
+    const taskPath = `tasks.${taskKey}`;
+    const before = snap.get(taskPath) ?? null;
     tx.update(ref, {
-      'tasks.outOfOffice': {
+      [taskPath]: {
         status: 'completed',
         completedAt: FieldValue.serverTimestamp(),
         message,
         subject,
         startDate,
         endDate,
-        help: snap.get('tasks.outOfOffice.help') ?? null,
+        help: snap.get(`${taskPath}.help`) ?? null,
       },
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -324,7 +363,7 @@ export const setOutOfOffice = onCall<SetOutOfOfficePayload>({ region: REGION }, 
       ts: FieldValue.serverTimestamp(),
       actor: uid,
       action: 'set_out_of_office',
-      target: 'tasks.outOfOffice',
+      target: taskPath,
       before,
       after: { message, subject, startDate, endDate },
       success: true,
