@@ -72,33 +72,27 @@ type SetEoySettingsPayload = { returnDate?: string | null };
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const setEoySettings = onCall<SetEoySettingsPayload>(
-  { region: REGION },
-  async (request) => {
-    const { uid } = requireAuthedDomainUser(request);
-    if (request.auth?.token.it_admin !== true) {
-      throw new HttpsError('permission-denied', 'IT admin only.');
-    }
-    const returnDate = request.data?.returnDate ?? null;
-    if (returnDate !== null && (typeof returnDate !== 'string' || !ISO_DATE_RE.test(returnDate))) {
-      throw new HttpsError('invalid-argument', 'returnDate must be YYYY-MM-DD or null.');
-    }
+export const setEoySettings = onCall<SetEoySettingsPayload>({ region: REGION }, async (request) => {
+  const { uid } = requireAuthedDomainUser(request);
+  if (request.auth?.token.it_admin !== true) {
+    throw new HttpsError('permission-denied', 'IT admin only.');
+  }
+  const returnDate = request.data?.returnDate ?? null;
+  if (returnDate !== null && (typeof returnDate !== 'string' || !ISO_DATE_RE.test(returnDate))) {
+    throw new HttpsError('invalid-argument', 'returnDate must be YYYY-MM-DD or null.');
+  }
 
-    const db = getFirestore();
-    await db
-      .collection('appSettings')
-      .doc('eoyVacationResponder')
-      .set(
-        {
-          returnDate,
-          updatedAt: FieldValue.serverTimestamp(),
-          updatedBy: uid,
-        },
-        { merge: true },
-      );
-    return { returnDate };
-  },
-);
+  const db = getFirestore();
+  await db.collection('appSettings').doc('eoyVacationResponder').set(
+    {
+      returnDate,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: uid,
+    },
+    { merge: true },
+  );
+  return { returnDate };
+});
 
 type ResetUserPayload = { uid?: string };
 

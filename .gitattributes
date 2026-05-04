@@ -1,0 +1,5 @@
+# Force LF line endings for all text files in the repo so Prettier (which
+# expects LF) and Windows checkouts (where Git's autocrlf would otherwise
+# rewrite to CRLF) agree on what's "formatted." Without this, every Windows
+# commit cycles a wave of phantom format-check failures in CI.
+* text=auto eol=lf

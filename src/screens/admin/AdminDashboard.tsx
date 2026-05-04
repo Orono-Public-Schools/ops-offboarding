@@ -224,10 +224,7 @@ export function AdminDashboard() {
         </p>
       )}
 
-      <div
-        className="mb-6 rounded-xl p-4 sm:p-5"
-        style={{ background: 'rgba(255,255,255,0.04)' }}
-      >
+      <div className="mb-6 rounded-xl p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
             <p
@@ -272,9 +269,7 @@ export function AdminDashboard() {
             className="mt-3 rounded-lg px-3 py-2 text-xs"
             style={{
               background:
-                settingsMessage.kind === 'ok'
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(173,33,34,0.12)',
+                settingsMessage.kind === 'ok' ? 'rgba(255,255,255,0.08)' : 'rgba(173,33,34,0.12)',
               color: settingsMessage.kind === 'ok' ? '#ffffff' : '#fecaca',
             }}
           >

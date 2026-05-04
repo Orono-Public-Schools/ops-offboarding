@@ -14,9 +14,7 @@ export type EoySettings = {
   returnDate: string | null;
 };
 
-type State =
-  | { loading: true }
-  | { loading: false; settings: EoySettings };
+type State = { loading: true } | { loading: false; settings: EoySettings };
 
 export function useEoySettings(): State {
   const [state, setState] = useState<State>({ loading: true });

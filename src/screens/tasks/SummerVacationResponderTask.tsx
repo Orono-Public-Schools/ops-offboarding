@@ -11,22 +11,13 @@ import {
 import { getGoogleAccessToken } from '../../lib/auth';
 import { setOutOfOffice } from '../../lib/functions';
 import type { BuildingChecklist } from '../../lib/offboarding';
-import {
-  formatReturnDateOrdinal,
-  returnDateForBuilding,
-  useEoySettings,
-} from '../../lib/settings';
+import { formatReturnDateOrdinal, returnDateForBuilding, useEoySettings } from '../../lib/settings';
 import type { OutletCtx } from '../../App';
 
 type TemplateId = 'summer' | 'summer-with-coverage' | 'custom';
 
-function buildTemplates(
-  building: BuildingChecklist | null | undefined,
-  returnDateIso: string,
-) {
-  const returnDate = formatReturnDateOrdinal(
-    returnDateForBuilding(returnDateIso, building),
-  );
+function buildTemplates(building: BuildingChecklist | null | undefined, returnDateIso: string) {
+  const returnDate = formatReturnDateOrdinal(returnDateForBuilding(returnDateIso, building));
   return {
     summer: {
       label: 'Summer break',
