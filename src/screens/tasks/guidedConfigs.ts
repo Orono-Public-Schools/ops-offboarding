@@ -159,7 +159,7 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
       'Intermediate — collect Chromebooks with the check-in form so IT can inventory them over the summer.',
     primaryLink: {
       label: 'Open the check-in form',
-      url: 'https://docs.google.com/forms/d/e/check-in-form-link', // placeholder; update with the real form URL
+      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfM6S0pHSYtkMKhj60e7Qrxl9fWDLS9xb89b0JYtJnDdFrUmg/viewform',
     },
     tips: [
       {
@@ -184,7 +184,7 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
       'Secondary — fill out the form to tell IT what you’re doing with your devices over the summer.',
     primaryLink: {
       label: 'Open the device plans form',
-      url: 'https://docs.google.com/forms/d/e/device-plans-form-link', // placeholder; update with real form URL
+      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfM6S0pHSYtkMKhj60e7Qrxl9fWDLS9xb89b0JYtJnDdFrUmg/viewform',
     },
     tips: [
       {
