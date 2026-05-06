@@ -111,7 +111,11 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
       },
       {
         title: 'Sync to Google Drive',
-        body: 'Either way, sync your laptop to Drive before you go — classroom PCs may be re-imaged this summer and local files won’t survive.',
+        body: 'Sync your laptop to Drive before you go. Anything stored only locally lives just on that one device — Drive keeps your work safe and accessible everywhere.',
+        link: {
+          label: 'Why back up to Drive (slides)',
+          url: 'https://docs.google.com/presentation/d/1kTWBHpi3vMHmaHVMctUMmty-SDcicrbFi3rdu4LZNVg/edit?slide=id.g3068e83e534_0_69#slide=id.g3068e83e534_0_69',
+        },
       },
     ],
     notesPlaceholder: 'e.g. keeping mine at home; left iPad with Jason',
@@ -156,10 +160,10 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
   eoyChromebookCheckin: {
     title: 'Student Chromebook check-in',
     description:
-      'Intermediate — collect Chromebooks with the check-in form so IT can inventory them over the summer.',
+      'Intermediate — print the check-in form so students can complete one per Chromebook before summer.',
     primaryLink: {
-      label: 'Open the check-in form',
-      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfM6S0pHSYtkMKhj60e7Qrxl9fWDLS9xb89b0JYtJnDdFrUmg/viewform',
+      label: 'Open the printable check-in form',
+      url: 'https://docs.google.com/document/d/1WTfLJvxRxbEoyY_sktC5J6Pi5ThgBkdo-GkLP1Sn4lA/edit?tab=t.0',
     },
     tips: [
       {
@@ -191,6 +195,14 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
         title: 'One form per teacher',
         body: 'Quick form — takes a minute. IT uses your answer to plan summer device collection and storage.',
       },
+      {
+        title: 'Sync to Google Drive',
+        body: 'Sync your laptop to Drive before you go. Anything stored only locally lives just on that one device — Drive keeps your work safe and accessible everywhere.',
+        link: {
+          label: 'Why back up to Drive (slides)',
+          url: 'https://docs.google.com/presentation/d/1kTWBHpi3vMHmaHVMctUMmty-SDcicrbFi3rdu4LZNVg/edit?slide=id.g3068e83e534_0_69#slide=id.g3068e83e534_0_69',
+        },
+      },
     ],
     notesPlaceholder: 'Optional',
   },
@@ -205,7 +217,11 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
       },
       {
         title: 'Student journals',
-        body: 'Parents who want their student’s journal can download it themselves. Send them: search “Download student journal in Seesaw.”',
+        body: 'Parents can download their student’s journal themselves — share the help article with them.',
+        link: {
+          label: 'How families download student work',
+          url: 'https://help.seesaw.me/hc/en-us/articles/208754866-How-do-families-save-and-download-their-child-s-work',
+        },
       },
     ],
     notesPlaceholder: 'Optional',
@@ -231,6 +247,9 @@ export const GUIDED_TASK_CONFIGS: Partial<Record<TaskKey, GuidedTaskConfig>> = {
     notesPlaceholder: 'e.g. archived 4 sections of Math 6',
   },
 
+  // TODO(docs): Add a "How to access archived courses later" link/tip once
+  // we have a working Schoology archive guide. The PowerSchool help article
+  // we used to point at now redirects to the generic support page.
   eoySchoology: {
     title: 'Schoology',
     description: 'Secondary — Schoology auto-archives June 7. Save anything you want to keep.',
