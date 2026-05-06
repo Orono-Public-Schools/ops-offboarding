@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 import { LastDayBanner } from '../components/LastDayBanner';
 import { SupervisorBanner } from '../components/SupervisorBanner';
 import { useAuth } from '../lib/auth';
@@ -72,11 +73,70 @@ export function DashboardScreen() {
     return BUILDING_CHECKLISTS.find((b) => b.key === doc.buildingChecklist)?.label ?? null;
   }, [doc.buildingChecklist]);
 
-  const visibleTasks = useMemo(() => {
-    return taskKeysForDoc(doc)
+  const { activeTasks, doneTasks } = useMemo(() => {
+    const visible = taskKeysForDoc(doc)
       .map((key) => TASK_LOOKUP.get(key))
       .filter((t): t is (typeof TASK_CATALOGUE)[number] => Boolean(t));
+    const active: typeof visible = [];
+    const done: typeof visible = [];
+    for (const task of visible) {
+      const status = doc.tasks[task.key]?.status ?? 'not_started';
+      if (status === 'completed' || status === 'skipped') done.push(task);
+      else active.push(task);
+    }
+    return { activeTasks: active, doneTasks: done };
   }, [doc]);
+
+  const renderTile = (task: (typeof TASK_CATALOGUE)[number]) => {
+    const state = doc.tasks[task.key as TaskKey];
+    const status = state?.status ?? 'not_started';
+    const statusStyle = STATUS_STYLES[status];
+    const isImplemented = IMPLEMENTED_TASKS.has(task.key);
+
+    const inner = (
+      <>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-white">{task.label}</h3>
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={{ background: 'rgba(255,255,255,0.15)', color: '#ffffff' }}
+          >
+            {isImplemented ? statusStyle.label : 'Coming soon'}
+          </span>
+        </div>
+        <p className="text-sm leading-relaxed text-white/80">{task.description}</p>
+      </>
+    );
+
+    const baseClasses = 'flex flex-col rounded-xl p-4 transition-all duration-200 sm:p-5';
+    const style = {
+      background: statusStyle.cardBg,
+      boxShadow: `0 2px 12px ${statusStyle.cardGlow}`,
+    };
+
+    if (!isImplemented) {
+      return (
+        <div
+          key={task.key}
+          className={`${baseClasses} cursor-not-allowed opacity-70`}
+          style={style}
+        >
+          {inner}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={task.key}
+        to={`/tasks/${task.key}`}
+        className={`${baseClasses} cursor-pointer hover:-translate-y-0.5`}
+        style={style}
+      >
+        {inner}
+      </Link>
+    );
+  };
 
   return (
     <div>
@@ -98,58 +158,27 @@ export function DashboardScreen() {
         </>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visibleTasks.map((task) => {
-          const state = doc.tasks[task.key as TaskKey];
-          const status = state?.status ?? 'not_started';
-          const statusStyle = STATUS_STYLES[status];
-          const isImplemented = IMPLEMENTED_TASKS.has(task.key);
+      {activeTasks.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {activeTasks.map(renderTile)}
+        </div>
+      )}
 
-          const inner = (
-            <>
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <h3 className="text-sm font-semibold text-white">{task.label}</h3>
-                <span
-                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-                  style={{ background: 'rgba(255,255,255,0.15)', color: '#ffffff' }}
-                >
-                  {isImplemented ? statusStyle.label : 'Coming soon'}
-                </span>
-              </div>
-              <p className="text-sm leading-relaxed text-white/80">{task.description}</p>
-            </>
-          );
+      {doneTasks.length > 0 && (
+        <div className="mt-6">
+          <CollapsibleSection label={`Completed (${doneTasks.length})`}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {doneTasks.map(renderTile)}
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
 
-          const baseClasses = 'flex flex-col rounded-xl p-4 transition-all duration-200 sm:p-5';
-          const style = {
-            background: statusStyle.cardBg,
-            boxShadow: `0 2px 12px ${statusStyle.cardGlow}`,
-          };
-
-          if (!isImplemented) {
-            return (
-              <div
-                key={task.key}
-                className={`${baseClasses} cursor-not-allowed opacity-70`}
-                style={style}
-              >
-                {inner}
-              </div>
-            );
-          }
-
-          return (
-            <Link
-              key={task.key}
-              to={`/tasks/${task.key}`}
-              className={`${baseClasses} cursor-pointer hover:-translate-y-0.5`}
-              style={style}
-            >
-              {inner}
-            </Link>
-          );
-        })}
-      </div>
+      {activeTasks.length === 0 && doneTasks.length === 0 && (
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          No tasks to show yet.
+        </p>
+      )}
 
       <div className="mt-8 flex flex-col items-center gap-2">
         {resetError && (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { AdminListCard } from '../../components/AdminListCard';
+import { CollapsibleSection } from '../../components/CollapsibleSection';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -46,34 +47,6 @@ function urgencyHint(days: number | null, status: string): string {
   if (days === 0) return 'Last day is today';
   if (days === 1) return '1 day left';
   return `${days} days left`;
-}
-
-function Section({
-  label,
-  defaultOpen = false,
-  children,
-}: {
-  label: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <details open={defaultOpen} className="group mb-3">
-      <summary
-        className="flex cursor-pointer list-none items-center justify-between rounded-xl px-4 py-3 text-xs font-semibold tracking-wider uppercase transition hover:bg-white/5 [&::-webkit-details-marker]:hidden"
-        style={{
-          background: 'rgba(255,255,255,0.04)',
-          color: 'rgba(255,255,255,0.7)',
-        }}
-      >
-        <span>{label}</span>
-        <span className="text-[10px] transition-transform duration-200 group-open:rotate-180">
-          ▾
-        </span>
-      </summary>
-      <div className="mt-3">{children}</div>
-    </details>
-  );
 }
 
 function Row({ offboarding }: { offboarding: OffboardingSummary }) {
@@ -235,14 +208,7 @@ export function AdminDashboard() {
         </p>
       </div>
 
-      <div className="mb-8">
-        <p
-          className="mb-3 text-[11px] font-semibold tracking-wider uppercase"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
-        >
-          Progress tracker
-        </p>
-
+      <CollapsibleSection label="Progress tracker" defaultOpen>
         {state.loading && (
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
             Loading…
@@ -315,9 +281,9 @@ export function AdminDashboard() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
-      <Section label="Settings">
+      <CollapsibleSection label="Settings">
         <div
           className="mb-3 rounded-xl p-4 sm:p-5"
           style={{ background: 'rgba(255,255,255,0.04)' }}
@@ -377,9 +343,9 @@ export function AdminDashboard() {
         </div>
 
         <AdminListCard />
-      </Section>
+      </CollapsibleSection>
 
-      <Section label="Roster">
+      <CollapsibleSection label="Roster">
         <div className="rounded-xl p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
@@ -431,7 +397,7 @@ export function AdminDashboard() {
             </p>
           )}
         </div>
-      </Section>
+      </CollapsibleSection>
     </div>
   );
 }
