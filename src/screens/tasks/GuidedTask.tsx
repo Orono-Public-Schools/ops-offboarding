@@ -96,19 +96,26 @@ export function GuidedTask({ taskKey, config }: Props) {
                 key={tip.title}
                 className="rounded-r-xl p-3"
                 style={{
-                  background:
-                    'linear-gradient(to right, rgba(67,86,169,0.45), rgba(255,255,255,0.10))',
+                  background: '#ffffff',
                   borderLeft: '4px solid #4356a9',
                 }}
               >
-                <p className="text-base font-bold text-white">{tip.title}</p>
-                <p className="mt-1 text-sm leading-relaxed font-medium text-white/90">{tip.body}</p>
+                <p className="text-base font-bold" style={{ color: '#1d2a5d' }}>
+                  {tip.title}
+                </p>
+                <p
+                  className="mt-1 text-sm leading-relaxed font-medium"
+                  style={{ color: '#475569' }}
+                >
+                  {tip.body}
+                </p>
                 {tip.link && (
                   <a
                     href={tip.link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-white underline decoration-white/40 underline-offset-2 transition hover:decoration-white"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold underline underline-offset-2"
+                    style={{ color: '#4356a9' }}
                   >
                     {tip.link.label} ↗
                   </a>
