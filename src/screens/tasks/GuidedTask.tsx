@@ -102,9 +102,7 @@ export function GuidedTask({ taskKey, config }: Props) {
                 }}
               >
                 <p className="text-base font-bold text-white">{tip.title}</p>
-                <p className="mt-1 text-sm leading-relaxed font-medium text-white/90">
-                  {tip.body}
-                </p>
+                <p className="mt-1 text-sm leading-relaxed font-medium text-white/90">{tip.body}</p>
               </div>
             ))}
           </div>
