@@ -15,7 +15,7 @@ export type GuidedTaskConfig = {
   title: string;
   description: string;
   primaryLink?: { label: string; url: string };
-  tips: Array<{ title: string; body: string }>;
+  tips: Array<{ title: string; body: string; link?: { label: string; url: string } }>;
   doneCopy?: string;
   notesPlaceholder?: string;
 };
@@ -103,6 +103,16 @@ export function GuidedTask({ taskKey, config }: Props) {
               >
                 <p className="text-base font-bold text-white">{tip.title}</p>
                 <p className="mt-1 text-sm leading-relaxed font-medium text-white/90">{tip.body}</p>
+                {tip.link && (
+                  <a
+                    href={tip.link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-white underline decoration-white/40 underline-offset-2 transition hover:decoration-white"
+                  >
+                    {tip.link.label} ↗
+                  </a>
+                )}
               </div>
             ))}
           </div>
