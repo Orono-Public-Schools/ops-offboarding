@@ -58,6 +58,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Audit log for admin grant/revoke. IT admins can read; writes are
+    // server-side only (via setAdminClaim callable).
+    match /adminAudit/{id} {
+      allow read: if isItAdmin();
+      allow write: if false;
+    }
+
     // Default deny.
     match /{document=**} {
       allow read, write: if false;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { AdminListCard } from '../../components/AdminListCard';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -278,6 +279,8 @@ export function AdminDashboard() {
           </p>
         )}
       </div>
+
+      <AdminListCard />
 
       {state.loading && (
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>

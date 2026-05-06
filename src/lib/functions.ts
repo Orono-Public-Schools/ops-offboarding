@@ -110,6 +110,15 @@ export const setEoySettings = httpsCallable<
   { returnDate: string | null }
 >(functions, 'setEoySettings');
 
+export type AdminRecord = { uid: string; email: string; displayName: string | null };
+
+export const listAdmins = httpsCallable<void, { admins: AdminRecord[] }>(functions, 'listAdmins');
+
+export const setAdminClaim = httpsCallable<
+  { email: string; grant: boolean },
+  { success: boolean; uid: string; email: string; grant: boolean; displayName: string | null }
+>(functions, 'setAdminClaim');
+
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },
   { success: boolean }
