@@ -8,7 +8,12 @@ import {
   type AuditEntry,
 } from '../../lib/admin';
 import { resetUserChecklist } from '../../lib/functions';
-import { TASK_CATALOGUE, type TaskKey, type TaskStatus } from '../../lib/offboarding';
+import {
+  TASK_CATALOGUE,
+  taskKeysForDoc,
+  type TaskKey,
+  type TaskStatus,
+} from '../../lib/offboarding';
 
 const TASK_STATUS_STYLES: Record<TaskStatus, { label: string; color: string; bg: string }> = {
   not_started: { label: 'Not started', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
@@ -129,6 +134,10 @@ export function AdminOffboardingDetail() {
   const o = detail.data;
   const { done, total, percent } = computeProgress(o);
   const days = daysUntilLastDay(o.lastDay);
+  const taskLookup = new Map(TASK_CATALOGUE.map((t) => [t.key, t]));
+  const visibleTasks = taskKeysForDoc(o)
+    .map((key) => taskLookup.get(key))
+    .filter((t): t is (typeof TASK_CATALOGUE)[number] => Boolean(t));
 
   return (
     <div>
@@ -216,7 +225,7 @@ export function AdminOffboardingDetail() {
 
       {/* Task grid */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {TASK_CATALOGUE.map((task) => {
+        {visibleTasks.map((task) => {
           const state = o.tasks[task.key as TaskKey];
           const status = (state?.status as TaskStatus) ?? 'not_started';
           const style = TASK_STATUS_STYLES[status];
