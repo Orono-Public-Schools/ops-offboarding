@@ -144,17 +144,26 @@ export const setAdminClaim = onCall<SetAdminClaimPayload>({ region: REGION }, as
 
   const auth = getAuth();
   let user;
+  let preCreated = false;
   try {
     user = await auth.getUserByEmail(email);
   } catch (err) {
     const code = (err as { code?: string }).code;
-    if (code === 'auth/user-not-found') {
+    if (code !== 'auth/user-not-found') throw err;
+    if (!grant) {
       throw new HttpsError(
         'failed-precondition',
-        'That person hasn’t signed in to OPS Year-End yet, so there’s no account to grant admin to. Have them sign in once, then try again.',
+        'No Firebase Auth account exists for that email — nothing to revoke.',
       );
     }
-    throw err;
+    // Pre-create the Auth record so the claim attaches now. When the user
+    // later signs in via Google SSO, Firebase Auth links by email and the
+    // claim is already present. setAdminClaim's domain check above keeps
+    // this safe even though manual createUser bypasses enforceDomain.
+    const staffSnap = await getFirestore().collection('staff').doc(email).get();
+    const displayName = (staffSnap.get('displayName') as string | undefined) ?? undefined;
+    user = await auth.createUser({ email, displayName });
+    preCreated = true;
   }
 
   if (!grant && user.uid === callerUid) {
@@ -180,6 +189,7 @@ export const setAdminClaim = onCall<SetAdminClaimPayload>({ region: REGION }, as
     action: grant ? 'grant_admin' : 'revoke_admin',
     target: user.uid,
     targetEmail: email,
+    preCreated,
     success: true,
   });
 
@@ -189,6 +199,7 @@ export const setAdminClaim = onCall<SetAdminClaimPayload>({ region: REGION }, as
     email,
     grant,
     displayName: user.displayName ?? null,
+    preCreated,
   };
 });
 
@@ -1216,7 +1227,10 @@ function parseStaffRows(rows: string[][]): StaffRow[] {
   return out;
 }
 
-async function performStaffRosterSync(): Promise<{ synced: number; removed: number }> {
+async function performStaffRosterSync(
+  source: 'manual' | 'scheduled',
+  triggeredBy: string | null = null,
+): Promise<{ synced: number; removed: number }> {
   const auth = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
@@ -1270,17 +1284,28 @@ async function performStaffRosterSync(): Promise<{ synced: number; removed: numb
   }
   await deleter.close();
 
+  await db.collection('appSettings').doc('staffRosterSync').set(
+    {
+      lastSyncedAt: FieldValue.serverTimestamp(),
+      source,
+      triggeredBy,
+      synced: staff.length,
+      removed,
+    },
+    { merge: true },
+  );
+
   return { synced: staff.length, removed };
 }
 
 export const syncStaffRoster = onCall(
   { region: REGION, timeoutSeconds: 240, memory: '512MiB' },
   async (request) => {
-    requireAuthedDomainUser(request);
+    const { uid } = requireAuthedDomainUser(request);
     if (request.auth?.token.it_admin !== true) {
       throw new HttpsError('permission-denied', 'IT admin only.');
     }
-    return performStaffRosterSync();
+    return performStaffRosterSync('manual', uid);
   },
 );
 
@@ -1294,7 +1319,7 @@ export const scheduledStaffRosterSync = onSchedule(
   },
   async () => {
     try {
-      const result = await performStaffRosterSync();
+      const result = await performStaffRosterSync('scheduled');
       logger.info('Scheduled staff roster sync complete', result);
     } catch (err) {
       logger.error('Scheduled staff roster sync failed', err);

@@ -9,7 +9,12 @@ import {
 } from '../../lib/admin';
 import { setEoySettings, syncStaffRoster } from '../../lib/functions';
 import { BUILDING_CHECKLISTS } from '../../lib/offboarding';
-import { DEFAULT_EOY_RETURN_DATE, useEoySettings } from '../../lib/settings';
+import {
+  DEFAULT_EOY_RETURN_DATE,
+  formatRelativeTime,
+  useEoySettings,
+  useStaffRosterSyncStatus,
+} from '../../lib/settings';
 
 type FilterType = 'all' | 'returning' | 'leaving';
 
@@ -122,6 +127,7 @@ export function AdminDashboard() {
   } | null>(null);
 
   const settingsState = useEoySettings();
+  const syncState = useStaffRosterSyncStatus();
   const [returnDateInput, setReturnDateInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<{
@@ -191,39 +197,67 @@ export function AdminDashboard() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-            IT admin dashboard
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            Everyone with an active year-end checklist or offboarding. Click in to see per-task
-            status and the audit log.
-          </p>
-        </div>
-        <button
-          onClick={handleSyncStaff}
-          disabled={syncing}
-          className="shrink-0 rounded-xl border px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-60 sm:text-sm"
-          style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-        >
-          {syncing ? 'Syncing…' : 'Sync staff roster'}
-        </button>
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
+          IT admin dashboard
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          Everyone with an active year-end checklist or offboarding. Click in to see per-task status
+          and the audit log.
+        </p>
       </div>
 
-      {syncMessage && (
-        <p
-          className="mb-4 rounded-lg px-3 py-2 text-sm"
-          style={{
-            background:
-              syncMessage.kind === 'ok' ? 'rgba(255,255,255,0.08)' : 'rgba(173,33,34,0.12)',
-            color: syncMessage.kind === 'ok' ? '#ffffff' : '#fecaca',
-          }}
-        >
-          {syncMessage.kind === 'ok' ? '✓ ' : '✕ '}
-          {syncMessage.text}
-        </p>
-      )}
+      <div className="mb-6 rounded-xl p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[11px] font-semibold tracking-wider uppercase"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+            >
+              Staff roster
+            </p>
+            {!syncState.loading && syncState.status?.lastSyncedAt ? (
+              <p className="mt-1 text-sm font-semibold text-white">
+                {syncState.status.synced ?? '?'} staff · last synced{' '}
+                {formatRelativeTime(syncState.status.lastSyncedAt)}
+                {syncState.status.source && (
+                  <span className="font-normal text-white/55"> ({syncState.status.source})</span>
+                )}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm font-semibold text-white">
+                {syncState.loading ? 'Loading…' : 'Never synced'}
+              </p>
+            )}
+            <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              Auto-syncs daily at 3:00 AM Central. Use Sync now if you’ve just edited the roster
+              sheet and need staff to show up immediately.
+            </p>
+          </div>
+          <button
+            onClick={handleSyncStaff}
+            disabled={syncing}
+            className="shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-60 sm:text-sm"
+            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
+          >
+            {syncing ? 'Syncing…' : 'Sync now'}
+          </button>
+        </div>
+
+        {syncMessage && (
+          <p
+            className="mt-3 rounded-lg px-3 py-2 text-xs"
+            style={{
+              background:
+                syncMessage.kind === 'ok' ? 'rgba(255,255,255,0.08)' : 'rgba(173,33,34,0.18)',
+              color: syncMessage.kind === 'ok' ? '#ffffff' : '#fecaca',
+            }}
+          >
+            {syncMessage.kind === 'ok' ? '✓ ' : '✕ '}
+            {syncMessage.text}
+          </p>
+        )}
+      </div>
 
       <div className="mb-6 rounded-xl p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

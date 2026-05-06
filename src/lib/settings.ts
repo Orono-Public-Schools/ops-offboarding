@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import type { BuildingChecklist } from './offboarding';
 
@@ -86,3 +86,58 @@ function ordinalSuffix(n: number): string {
 }
 
 export const DEFAULT_EOY_RETURN_DATE = DEFAULT_RETURN_DATE;
+
+export type StaffRosterSyncStatus = {
+  lastSyncedAt: Timestamp | null;
+  source: 'manual' | 'scheduled' | null;
+  triggeredBy: string | null;
+  synced: number | null;
+  removed: number | null;
+};
+
+type SyncState = { loading: true } | { loading: false; status: StaffRosterSyncStatus | null };
+
+export function useStaffRosterSyncStatus(): SyncState {
+  const [state, setState] = useState<SyncState>({ loading: true });
+
+  useEffect(() => {
+    const ref = doc(db, 'appSettings', 'staffRosterSync');
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setState({ loading: false, status: null });
+          return;
+        }
+        const data = snap.data();
+        setState({
+          loading: false,
+          status: {
+            lastSyncedAt: (data.lastSyncedAt as Timestamp | undefined) ?? null,
+            source: (data.source as StaffRosterSyncStatus['source'] | undefined) ?? null,
+            triggeredBy: (data.triggeredBy as string | null | undefined) ?? null,
+            synced: (data.synced as number | undefined) ?? null,
+            removed: (data.removed as number | undefined) ?? null,
+          },
+        });
+      },
+      () => setState({ loading: false, status: null }),
+    );
+    return unsub;
+  }, []);
+
+  return state;
+}
+
+export function formatRelativeTime(ts: Timestamp | null): string {
+  if (!ts) return 'never';
+  const ms = Date.now() - ts.toMillis();
+  if (ms < 60_000) return 'just now';
+  const min = Math.floor(ms / 60_000);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  return ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
