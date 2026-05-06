@@ -211,6 +211,50 @@ export const startOffboarding = onCall<StartOffboardingPayload>(
   },
 );
 
+type SetLastDayPayload = { lastDay?: string | null };
+
+export const setLastDay = onCall<SetLastDayPayload>({ region: REGION }, async (request) => {
+  const { uid } = requireAuthedDomainUser(request);
+  const lastDay = request.data?.lastDay ?? null;
+  if (lastDay !== null && (typeof lastDay !== 'string' || !ISO_DATE_RE.test(lastDay))) {
+    throw new HttpsError('invalid-argument', 'lastDay must be YYYY-MM-DD or null.');
+  }
+
+  const ms = lastDay ? Date.parse(lastDay) : null;
+  if (lastDay !== null && (ms === null || Number.isNaN(ms))) {
+    throw new HttpsError('invalid-argument', 'lastDay could not be parsed as a date.');
+  }
+  const timestamp = ms !== null ? new Date(ms) : null;
+
+  const db = getFirestore();
+  const ref = db.collection('offboardings').doc(uid);
+  const auditRef = ref.collection('auditLog').doc();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      throw new HttpsError('failed-precondition', 'Offboarding record not found.');
+    }
+    const before = snap.get('lastDay') ?? null;
+    tx.update(ref, {
+      lastDay: timestamp,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(auditRef, {
+      ts: FieldValue.serverTimestamp(),
+      actor: uid,
+      action: 'set_last_day',
+      target: 'lastDay',
+      before,
+      after: lastDay,
+      success: true,
+      errorMsg: null,
+    });
+  });
+
+  return { lastDay };
+});
+
 type SetSupervisorPayload = {
   email?: string;
   displayName?: string;

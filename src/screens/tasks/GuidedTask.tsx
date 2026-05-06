@@ -94,11 +94,15 @@ export function GuidedTask({ taskKey, config }: Props) {
             {config.tips.map((tip) => (
               <div
                 key={tip.title}
-                className="rounded-lg p-3"
-                style={{ background: 'rgba(255,255,255,0.08)' }}
+                className="rounded-r-xl p-3"
+                style={{
+                  background:
+                    'linear-gradient(to right, rgba(67,86,169,0.45), rgba(255,255,255,0.10))',
+                  borderLeft: '4px solid #4356a9',
+                }}
               >
-                <p className="text-sm font-semibold text-white">{tip.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/75">{tip.body}</p>
+                <p className="text-base font-bold text-white">{tip.title}</p>
+                <p className="mt-1 text-sm leading-relaxed font-medium text-white/90">{tip.body}</p>
               </div>
             ))}
           </div>

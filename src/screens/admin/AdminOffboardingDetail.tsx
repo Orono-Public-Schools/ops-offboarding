@@ -19,6 +19,7 @@ const TASK_STATUS_STYLES: Record<TaskStatus, { label: string; color: string; bg:
 
 const ACTION_LABELS: Record<string, string> = {
   set_supervisor: 'Set supervisor',
+  set_last_day: 'Set last day',
   set_out_of_office: 'Activated out-of-office',
   scan_drive: 'Scanned Drive',
   move_to_folder: 'Moved file',
