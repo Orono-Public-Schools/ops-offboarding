@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { LastDayBanner } from '../components/LastDayBanner';
 import { SupervisorBanner } from '../components/SupervisorBanner';
 import { useAuth } from '../lib/auth';
 import { resetUserChecklist } from '../lib/functions';
@@ -91,7 +92,10 @@ export function DashboardScreen() {
       </div>
 
       {isLeaving && (
-        <SupervisorBanner supervisorEmail={doc.supervisor} supervisorName={doc.supervisorName} />
+        <>
+          <LastDayBanner lastDay={doc.lastDay} />
+          <SupervisorBanner supervisorEmail={doc.supervisor} supervisorName={doc.supervisorName} />
+        </>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

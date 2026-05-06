@@ -21,6 +21,11 @@ export const setSupervisor = httpsCallable<
   { supervisorEmail: string; supervisorName: string | null }
 >(functions, 'setSupervisor');
 
+export const setLastDay = httpsCallable<
+  { lastDay: string | null },
+  { lastDay: string | null }
+>(functions, 'setLastDay');
+
 export const setOutOfOffice = httpsCallable<
   {
     message: string;
