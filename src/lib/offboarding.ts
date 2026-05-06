@@ -82,7 +82,7 @@ export const BUILDING_CHECKLISTS: Array<{
   {
     key: 'schumann',
     label: 'Schumann Elementary',
-    detail: 'iPads, Seesaw, K–4',
+    detail: 'iPads, Seesaw, K–2',
   },
   {
     key: 'intermediate',
