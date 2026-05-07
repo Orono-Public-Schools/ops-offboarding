@@ -113,6 +113,7 @@ export const IMPLEMENTED_TASKS = new Set<TaskKey>([
   'sitesOwnership',
   'driveTeam',
   'groupsOwnership',
+  'gmailForwarding',
   // End-of-year (all guided)
   'eoyTeacherDevice',
   'eoyHardware',
@@ -209,7 +210,7 @@ export const TASK_CATALOGUE: ReadonlyArray<{
   {
     key: 'gmailForwarding',
     label: 'Gmail forwarding',
-    description: 'Optionally forward incoming mail to your successor until deactivation.',
+    description: 'Request that IT forward incoming mail to a successor or other address.',
   },
   {
     key: 'sitesOwnership',

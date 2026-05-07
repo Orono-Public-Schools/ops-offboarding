@@ -3,6 +3,7 @@ import { IMPLEMENTED_TASKS, TASK_CATALOGUE, type TaskKey } from '../../lib/offbo
 import { CalendarTransferTask } from './CalendarTransferTask';
 import { ComingSoonTask } from './ComingSoonTask';
 import { DrivePersonalTask } from './DrivePersonalTask';
+import { GmailForwardingTask } from './GmailForwardingTask';
 import { GroupsOwnershipTask } from './GroupsOwnershipTask';
 import { GuidedTask } from './GuidedTask';
 import { GUIDED_TASK_CONFIGS } from './guidedConfigs';
@@ -16,6 +17,7 @@ const TASK_SCREENS: Partial<Record<TaskKey, () => React.ReactElement>> = {
   knowledgeTransfer: KnowledgeTransferTask,
   calendarTransfer: CalendarTransferTask,
   groupsOwnership: GroupsOwnershipTask,
+  gmailForwarding: GmailForwardingTask,
   eoyVacationResponder: SummerVacationResponderTask,
 };
 

@@ -38,6 +38,11 @@ export const setOutOfOffice = httpsCallable<
   { success: boolean }
 >(functions, 'setOutOfOffice');
 
+export const requestGmailForwarding = httpsCallable<
+  { forwardTo: string; note: string | null },
+  { success: boolean; forwardTo: string }
+>(functions, 'requestGmailForwarding');
+
 export const scanDrive = httpsCallable<
   { googleAccessToken: string },
   { scanCount: number; atRiskCount: number; truncated: boolean }
