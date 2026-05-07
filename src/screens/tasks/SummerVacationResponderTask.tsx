@@ -255,7 +255,7 @@ export function SummerVacationResponderTask() {
 
         {error && <StepError>{error}</StepError>}
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link
             to="/"
             className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
@@ -263,9 +263,38 @@ export function SummerVacationResponderTask() {
           >
             {savedOk ? 'Done' : 'Cancel'}
           </Link>
+          {isComplete || isSkipped ? (
+            <button
+              onClick={() => handleManual('in_progress')}
+              disabled={manualPending !== null || saving}
+              className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+              style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+            >
+              {manualPending === 'reopen' ? 'Reopening…' : 'Reopen'}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleManual('skipped')}
+                disabled={manualPending !== null || saving}
+                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              >
+                {manualPending === 'skip' ? 'Saving…' : 'Skip'}
+              </button>
+              <button
+                onClick={() => handleManual('completed')}
+                disabled={manualPending !== null || saving}
+                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              >
+                {manualPending === 'complete' ? 'Saving…' : 'Mark complete'}
+              </button>
+            </>
+          )}
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || manualPending !== null}
             className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             style={{
               background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
@@ -278,49 +307,6 @@ export function SummerVacationResponderTask() {
                 ? 'Update responder'
                 : 'Activate responder'}
           </button>
-        </div>
-
-        <div
-          className="flex flex-col items-center gap-2 pt-2 text-center sm:flex-row sm:justify-center"
-          style={{ color: 'rgba(255,255,255,0.55)' }}
-        >
-          {isComplete || isSkipped ? (
-            <>
-              <span className="text-xs">
-                {isSkipped ? 'Marked as skipped.' : 'Marked complete.'}
-              </span>
-              <button
-                onClick={() => handleManual('in_progress')}
-                disabled={manualPending !== null}
-                className="text-xs font-semibold underline underline-offset-2 transition hover:text-white disabled:opacity-50"
-              >
-                {manualPending === 'reopen' ? 'Reopening…' : 'Reopen'}
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="text-xs">Already set up in Gmail, or not setting one?</span>
-              <div className="flex flex-wrap justify-center gap-3">
-                <button
-                  onClick={() => handleManual('completed')}
-                  disabled={manualPending !== null || saving}
-                  className="text-xs font-semibold underline underline-offset-2 transition hover:text-white disabled:opacity-50"
-                >
-                  {manualPending === 'complete' ? 'Saving…' : 'Mark complete'}
-                </button>
-                <span className="text-xs" aria-hidden>
-                  ·
-                </span>
-                <button
-                  onClick={() => handleManual('skipped')}
-                  disabled={manualPending !== null || saving}
-                  className="text-xs font-semibold underline underline-offset-2 transition hover:text-white disabled:opacity-50"
-                >
-                  {manualPending === 'skip' ? 'Saving…' : 'Skip'}
-                </button>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
