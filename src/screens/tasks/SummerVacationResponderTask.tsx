@@ -9,7 +9,7 @@ import {
   StepTextarea,
 } from '../../components/TaskStep';
 import { getGoogleAccessToken } from '../../lib/auth';
-import { setOutOfOffice } from '../../lib/functions';
+import { markTaskComplete, setOutOfOffice } from '../../lib/functions';
 import type { BuildingChecklist } from '../../lib/offboarding';
 import { formatReturnDateOrdinal, returnDateForBuilding, useEoySettings } from '../../lib/settings';
 import type { OutletCtx } from '../../App';
@@ -68,8 +68,24 @@ export function SummerVacationResponderTask() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [manualPending, setManualPending] = useState<'complete' | 'skip' | 'reopen' | null>(null);
 
   const isComplete = taskState.status === 'completed' || savedOk;
+  const isSkipped = taskState.status === 'skipped';
+
+  const handleManual = async (status: 'completed' | 'skipped' | 'in_progress') => {
+    setError(null);
+    setSavedOk(false);
+    setManualPending(status === 'completed' ? 'complete' : status === 'skipped' ? 'skip' : 'reopen');
+    try {
+      await markTaskComplete({ taskKey: 'eoyVacationResponder', status });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save. Please try again.');
+      console.error(err);
+    } finally {
+      setManualPending(null);
+    }
+  };
 
   const applyTemplate = (id: TemplateId) => {
     setTemplateId(id);
@@ -262,6 +278,49 @@ export function SummerVacationResponderTask() {
                 ? 'Update responder'
                 : 'Activate responder'}
           </button>
+        </div>
+
+        <div
+          className="flex flex-col items-center gap-2 pt-2 text-center sm:flex-row sm:justify-center"
+          style={{ color: 'rgba(255,255,255,0.55)' }}
+        >
+          {isComplete || isSkipped ? (
+            <>
+              <span className="text-xs">
+                {isSkipped ? 'Marked as skipped.' : 'Marked complete.'}
+              </span>
+              <button
+                onClick={() => handleManual('in_progress')}
+                disabled={manualPending !== null}
+                className="text-xs font-semibold underline underline-offset-2 transition hover:text-white disabled:opacity-50"
+              >
+                {manualPending === 'reopen' ? 'Reopening…' : 'Reopen'}
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-xs">Already set up in Gmail, or not setting one?</span>
+              <div className="flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => handleManual('completed')}
+                  disabled={manualPending !== null || saving}
+                  className="text-xs font-semibold underline underline-offset-2 transition hover:text-white disabled:opacity-50"
+                >
+                  {manualPending === 'complete' ? 'Saving…' : 'Mark complete'}
+                </button>
+                <span className="text-xs" aria-hidden>
+                  ·
+                </span>
+                <button
+                  onClick={() => handleManual('skipped')}
+                  disabled={manualPending !== null || saving}
+                  className="text-xs font-semibold underline underline-offset-2 transition hover:text-white disabled:opacity-50"
+                >
+                  {manualPending === 'skip' ? 'Saving…' : 'Skip'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
