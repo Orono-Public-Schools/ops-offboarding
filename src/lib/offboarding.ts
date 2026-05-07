@@ -155,7 +155,6 @@ export const RETURNING_TASK_KEYS_BY_BUILDING: Record<BuildingChecklist, TaskKey[
     'eoyStudentIpads',
     'eoyHardware',
     'eoySeesaw',
-    'eoySummerPL',
     'eoyVacationResponder',
   ],
   intermediate: [
@@ -163,7 +162,6 @@ export const RETURNING_TASK_KEYS_BY_BUILDING: Record<BuildingChecklist, TaskKey[
     'eoyChromebookCheckin',
     'eoyHardware',
     'eoyGoogleClassroom',
-    'eoySummerPL',
     'eoyVacationResponder',
   ],
   secondary: ['eoyDeviceForm', 'eoyHardware', 'eoySchoology', 'eoyVacationResponder'],

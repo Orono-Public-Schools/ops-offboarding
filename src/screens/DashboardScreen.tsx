@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { AllDoneCard } from '../components/AllDoneCard';
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { LastDayBanner } from '../components/LastDayBanner';
 import { SupervisorBanner } from '../components/SupervisorBanner';
@@ -162,6 +163,14 @@ export function DashboardScreen() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {activeTasks.map(renderTile)}
         </div>
+      )}
+
+      {activeTasks.length === 0 && doneTasks.length > 0 && (
+        <AllDoneCard
+          flow={isLeaving ? 'leaving' : 'returning'}
+          lastDay={doc.lastDay}
+          buildingLabel={buildingLabel}
+        />
       )}
 
       {doneTasks.length > 0 && (
