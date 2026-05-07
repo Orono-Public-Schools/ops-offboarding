@@ -1,7 +1,10 @@
 import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
 import { beforeUserCreated } from 'firebase-functions/v2/identity';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { logger } from 'firebase-functions/v2';
 import { google } from 'googleapis';
 
 initializeApp();
@@ -92,6 +95,112 @@ export const setEoySettings = onCall<SetEoySettingsPayload>({ region: REGION }, 
     { merge: true },
   );
   return { returnDate };
+});
+
+type ListAdminsResponse = {
+  admins: Array<{ uid: string; email: string; displayName: string | null }>;
+};
+
+export const listAdmins = onCall<void, Promise<ListAdminsResponse>>(
+  { region: REGION, timeoutSeconds: 120 },
+  async (request) => {
+    requireAuthedDomainUser(request);
+    if (request.auth?.token.it_admin !== true) {
+      throw new HttpsError('permission-denied', 'IT admin only.');
+    }
+    const auth = getAuth();
+    const admins: ListAdminsResponse['admins'] = [];
+    let pageToken: string | undefined;
+    do {
+      const page = await auth.listUsers(1000, pageToken);
+      for (const user of page.users) {
+        if (user.customClaims?.it_admin === true) {
+          admins.push({
+            uid: user.uid,
+            email: user.email ?? '',
+            displayName: user.displayName ?? null,
+          });
+        }
+      }
+      pageToken = page.pageToken;
+    } while (pageToken);
+    admins.sort((a, b) => (a.email > b.email ? 1 : a.email < b.email ? -1 : 0));
+    return { admins };
+  },
+);
+
+type SetAdminClaimPayload = { email?: string; grant?: boolean };
+
+export const setAdminClaim = onCall<SetAdminClaimPayload>({ region: REGION }, async (request) => {
+  const { uid: callerUid } = requireAuthedDomainUser(request);
+  if (request.auth?.token.it_admin !== true) {
+    throw new HttpsError('permission-denied', 'IT admin only.');
+  }
+  const email = request.data?.email?.trim().toLowerCase();
+  const grant = request.data?.grant === true;
+  if (!email || !email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+    throw new HttpsError('invalid-argument', `Email must be a valid @${ALLOWED_DOMAIN} address.`);
+  }
+
+  const auth = getAuth();
+  let user;
+  let preCreated = false;
+  try {
+    user = await auth.getUserByEmail(email);
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code !== 'auth/user-not-found') throw err;
+    if (!grant) {
+      throw new HttpsError(
+        'failed-precondition',
+        'No Firebase Auth account exists for that email — nothing to revoke.',
+      );
+    }
+    // Pre-create the Auth record so the claim attaches now. When the user
+    // later signs in via Google SSO, Firebase Auth links by email and the
+    // claim is already present. setAdminClaim's domain check above keeps
+    // this safe even though manual createUser bypasses enforceDomain.
+    const staffSnap = await getFirestore().collection('staff').doc(email).get();
+    const displayName = (staffSnap.get('displayName') as string | undefined) ?? undefined;
+    user = await auth.createUser({ email, displayName });
+    preCreated = true;
+  }
+
+  if (!grant && user.uid === callerUid) {
+    throw new HttpsError(
+      'failed-precondition',
+      'You can’t revoke your own admin access. Ask another admin to do it.',
+    );
+  }
+
+  const existing = user.customClaims ?? {};
+  const next: Record<string, unknown> = { ...existing };
+  if (grant) {
+    next.it_admin = true;
+  } else {
+    delete next.it_admin;
+  }
+  await auth.setCustomUserClaims(user.uid, next);
+
+  const db = getFirestore();
+  await db.collection('adminAudit').add({
+    ts: FieldValue.serverTimestamp(),
+    actor: callerUid,
+    action: grant ? 'grant_admin' : 'revoke_admin',
+    target: user.uid,
+    targetEmail: email,
+    preCreated,
+    success: true,
+  });
+
+  return {
+    success: true,
+    uid: user.uid,
+    email,
+    grant,
+    displayName: user.displayName ?? null,
+    preCreated,
+  };
 });
 
 type ResetUserPayload = { uid?: string };
@@ -1118,68 +1227,104 @@ function parseStaffRows(rows: string[][]): StaffRow[] {
   return out;
 }
 
+async function performStaffRosterSync(
+  source: 'manual' | 'scheduled',
+  triggeredBy: string | null = null,
+): Promise<{ synced: number; removed: number }> {
+  const auth = new google.auth.GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+  });
+  const sheets = google.sheets({ version: 'v4', auth });
+
+  let rows: string[][];
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: STAFF_SHEET_ID,
+      range: STAFF_SHEET_RANGE,
+    });
+    rows = (res.data.values as string[][]) ?? [];
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new HttpsError(
+      'internal',
+      `Sheets API error: ${msg}. Check that the sheet is shared with the function's service account, and that the Sheets API is enabled.`,
+    );
+  }
+
+  const staff = parseStaffRows(rows);
+  if (staff.length === 0) {
+    const sample = rows.slice(0, 3).map((r) => r.slice(0, 7));
+    throw new HttpsError(
+      'failed-precondition',
+      `No staff rows parsed. Got ${rows.length} rows from sheet. First rows: ${JSON.stringify(sample)}`,
+    );
+  }
+
+  const db = getFirestore();
+  const writer = db.bulkWriter();
+  const seenEmails = new Set<string>();
+  for (const s of staff) {
+    seenEmails.add(s.email);
+    writer.set(db.collection('staff').doc(s.email), {
+      ...s,
+      syncedAt: FieldValue.serverTimestamp(),
+    });
+  }
+  await writer.close();
+
+  // Remove docs no longer in the sheet so the picker doesn't show stale staff.
+  const existing = await db.collection('staff').listDocuments();
+  const deleter = db.bulkWriter();
+  let removed = 0;
+  for (const ref of existing) {
+    if (!seenEmails.has(ref.id)) {
+      deleter.delete(ref);
+      removed += 1;
+    }
+  }
+  await deleter.close();
+
+  await db.collection('appSettings').doc('staffRosterSync').set(
+    {
+      lastSyncedAt: FieldValue.serverTimestamp(),
+      source,
+      triggeredBy,
+      synced: staff.length,
+      removed,
+    },
+    { merge: true },
+  );
+
+  return { synced: staff.length, removed };
+}
+
 export const syncStaffRoster = onCall(
   { region: REGION, timeoutSeconds: 240, memory: '512MiB' },
   async (request) => {
-    requireAuthedDomainUser(request);
+    const { uid } = requireAuthedDomainUser(request);
     if (request.auth?.token.it_admin !== true) {
       throw new HttpsError('permission-denied', 'IT admin only.');
     }
+    return performStaffRosterSync('manual', uid);
+  },
+);
 
-    const auth = new google.auth.GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-    });
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    let rows: string[][];
+export const scheduledStaffRosterSync = onSchedule(
+  {
+    schedule: 'every day 03:00',
+    timeZone: 'America/Chicago',
+    region: REGION,
+    timeoutSeconds: 240,
+    memory: '512MiB',
+  },
+  async () => {
     try {
-      const res = await sheets.spreadsheets.values.get({
-        spreadsheetId: STAFF_SHEET_ID,
-        range: STAFF_SHEET_RANGE,
-      });
-      rows = (res.data.values as string[][]) ?? [];
+      const result = await performStaffRosterSync('scheduled');
+      logger.info('Scheduled staff roster sync complete', result);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new HttpsError(
-        'internal',
-        `Sheets API error: ${msg}. Check that the sheet is shared with the function's service account, and that the Sheets API is enabled.`,
-      );
+      logger.error('Scheduled staff roster sync failed', err);
+      throw err;
     }
-
-    const staff = parseStaffRows(rows);
-    if (staff.length === 0) {
-      const sample = rows.slice(0, 3).map((r) => r.slice(0, 7));
-      throw new HttpsError(
-        'failed-precondition',
-        `No staff rows parsed. Got ${rows.length} rows from sheet. First rows: ${JSON.stringify(sample)}`,
-      );
-    }
-
-    const db = getFirestore();
-    const writer = db.bulkWriter();
-    const seenEmails = new Set<string>();
-    for (const s of staff) {
-      seenEmails.add(s.email);
-      writer.set(db.collection('staff').doc(s.email), {
-        ...s,
-        syncedAt: FieldValue.serverTimestamp(),
-      });
-    }
-    await writer.close();
-
-    // Remove docs no longer in the sheet so the picker doesn't show stale staff.
-    const existing = await db.collection('staff').listDocuments();
-    const deleter = db.bulkWriter();
-    let removed = 0;
-    for (const ref of existing) {
-      if (!seenEmails.has(ref.id)) {
-        deleter.delete(ref);
-        removed += 1;
-      }
-    }
-    await deleter.close();
-
-    return { synced: staff.length, removed };
   },
 );
 
