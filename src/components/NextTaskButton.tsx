@@ -22,8 +22,12 @@ export function NextTaskButton({ currentKey, className = '' }: Props) {
   return (
     <Link
       to={`/tasks/${nextKey}`}
-      className={`inline-flex items-center gap-1 rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] ${className}`.trim()}
-      style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+      className={`inline-flex items-center gap-1 rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-md active:scale-[0.98] ${className}`.trim()}
+      style={{
+        background: '#ffffff',
+        color: '#1d2a5d',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      }}
     >
       Next task →
     </Link>
