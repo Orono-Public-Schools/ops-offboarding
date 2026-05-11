@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router';
+import { useOutletContext } from 'react-router';
+import { NextTaskButton } from '../../components/NextTaskButton';
 import { StepCard, StepHeader } from '../../components/TaskStep';
 import { getGoogleAccessToken, useAuth } from '../../lib/auth';
 import {
@@ -122,14 +123,6 @@ export function DrivePersonalTask() {
 
   return (
     <div>
-      <Link
-        to="/"
-        className="mb-5 inline-flex items-center gap-1 text-xs font-semibold transition hover:text-white"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
-      >
-        ← Back to dashboard
-      </Link>
-
       <div className="mb-5 sm:mb-8">
         <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
           My Drive cleanup
@@ -272,14 +265,17 @@ export function DrivePersonalTask() {
                     .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               )}
-              <button
-                onClick={handleReopen}
-                disabled={marking}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-              >
-                {marking ? 'Saving…' : 'Reopen — I have more to do'}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleReopen}
+                  disabled={marking}
+                  className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
+                  style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+                >
+                  {marking ? 'Saving…' : 'Reopen — I have more to do'}
+                </button>
+                <NextTaskButton currentKey="drivePersonal" />
+              </div>
             </div>
           ) : (
             <>
@@ -298,17 +294,20 @@ export function DrivePersonalTask() {
                   color: '#1d2a5d',
                 }}
               />
-              <button
-                onClick={handleMarkComplete}
-                disabled={marking}
-                className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
-                style={{
-                  background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-                  boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
-                }}
-              >
-                {marking ? 'Saving…' : "I'm done — mark complete"}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleMarkComplete}
+                  disabled={marking}
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
+                    boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+                  }}
+                >
+                  {marking ? 'Saving…' : "I'm done — mark complete"}
+                </button>
+                <NextTaskButton currentKey="drivePersonal" />
+              </div>
             </>
           )}
 

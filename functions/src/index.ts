@@ -527,6 +527,61 @@ export const setOutOfOffice = onCall<SetOutOfOfficePayload>({ region: REGION }, 
   return { success: true };
 });
 
+type RequestGmailForwardingPayload = {
+  forwardTo?: string;
+  note?: string | null;
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const requestGmailForwarding = onCall<RequestGmailForwardingPayload>(
+  { region: REGION },
+  async (request) => {
+    const { uid } = requireAuthedDomainUser(request);
+
+    const forwardTo = request.data?.forwardTo?.trim().toLowerCase() ?? '';
+    const note = request.data?.note?.trim() || null;
+
+    if (!forwardTo || !EMAIL_RE.test(forwardTo)) {
+      throw new HttpsError('invalid-argument', 'A valid forwarding email address is required.');
+    }
+
+    const db = getFirestore();
+    const ref = db.collection('offboardings').doc(uid);
+    const auditRef = ref.collection('auditLog').doc();
+
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) {
+        throw new HttpsError('failed-precondition', 'Offboarding record not found.');
+      }
+      const before = snap.get('tasks.gmailForwarding') ?? null;
+      tx.update(ref, {
+        'tasks.gmailForwarding': {
+          status: 'completed',
+          completedAt: FieldValue.serverTimestamp(),
+          forwardTo,
+          note,
+          help: snap.get('tasks.gmailForwarding.help') ?? null,
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(auditRef, {
+        ts: FieldValue.serverTimestamp(),
+        actor: uid,
+        action: 'request_gmail_forwarding',
+        target: 'tasks.gmailForwarding',
+        before,
+        after: { forwardTo, note },
+        success: true,
+        errorMsg: null,
+      });
+    });
+
+    return { success: true, forwardTo };
+  },
+);
+
 type ScanDrivePayload = {
   googleAccessToken?: string;
 };

@@ -1,8 +1,10 @@
 import { Navigate, useParams } from 'react-router';
+import { TaskPageHeader } from '../../components/TaskPageHeader';
 import { IMPLEMENTED_TASKS, TASK_CATALOGUE, type TaskKey } from '../../lib/offboarding';
 import { CalendarTransferTask } from './CalendarTransferTask';
 import { ComingSoonTask } from './ComingSoonTask';
 import { DrivePersonalTask } from './DrivePersonalTask';
+import { GmailForwardingTask } from './GmailForwardingTask';
 import { GroupsOwnershipTask } from './GroupsOwnershipTask';
 import { GuidedTask } from './GuidedTask';
 import { GUIDED_TASK_CONFIGS } from './guidedConfigs';
@@ -16,6 +18,7 @@ const TASK_SCREENS: Partial<Record<TaskKey, () => React.ReactElement>> = {
   knowledgeTransfer: KnowledgeTransferTask,
   calendarTransfer: CalendarTransferTask,
   groupsOwnership: GroupsOwnershipTask,
+  gmailForwarding: GmailForwardingTask,
   eoyVacationResponder: SummerVacationResponderTask,
 };
 
@@ -29,15 +32,27 @@ export function TaskRoute() {
 
   const key = taskKey as TaskKey;
 
+  let screen: React.ReactElement;
   if (!IMPLEMENTED_TASKS.has(key)) {
-    return <ComingSoonTask taskKey={key} />;
+    screen = <ComingSoonTask taskKey={key} />;
+  } else {
+    const Screen = TASK_SCREENS[key];
+    if (Screen) {
+      screen = <Screen />;
+    } else {
+      const guidedConfig = GUIDED_TASK_CONFIGS[key];
+      screen = guidedConfig ? (
+        <GuidedTask taskKey={key} config={guidedConfig} />
+      ) : (
+        <ComingSoonTask taskKey={key} />
+      );
+    }
   }
 
-  const Screen = TASK_SCREENS[key];
-  if (Screen) return <Screen />;
-
-  const guidedConfig = GUIDED_TASK_CONFIGS[key];
-  if (guidedConfig) return <GuidedTask taskKey={key} config={guidedConfig} />;
-
-  return <ComingSoonTask taskKey={key} />;
+  return (
+    <>
+      <TaskPageHeader />
+      {screen}
+    </>
+  );
 }

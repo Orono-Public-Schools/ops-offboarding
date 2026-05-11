@@ -232,6 +232,10 @@ export function AdminOffboardingDetail() {
           const completedAt =
             (state?.completedAt as { toDate: () => Date } | null | undefined) ?? null;
           const notes = state?.notes as string | null | undefined;
+          const forwardTo =
+            task.key === 'gmailForwarding' ? (state?.forwardTo as string | null | undefined) : null;
+          const forwardingNote =
+            task.key === 'gmailForwarding' ? (state?.note as string | null | undefined) : null;
 
           return (
             <div
@@ -257,6 +261,10 @@ export function AdminOffboardingDetail() {
                   })}
                 </p>
               )}
+              {forwardTo && (
+                <p className="mt-2 text-xs font-semibold text-white/85">Forward to: {forwardTo}</p>
+              )}
+              {forwardingNote && <p className="mt-1 text-xs text-white/70">{forwardingNote}</p>}
               {notes && <p className="mt-2 text-xs text-white/70">{notes as string}</p>}
             </div>
           );

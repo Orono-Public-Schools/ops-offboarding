@@ -113,6 +113,7 @@ export const IMPLEMENTED_TASKS = new Set<TaskKey>([
   'sitesOwnership',
   'driveTeam',
   'groupsOwnership',
+  'gmailForwarding',
   // End-of-year (all guided)
   'eoyTeacherDevice',
   'eoyHardware',
@@ -155,7 +156,6 @@ export const RETURNING_TASK_KEYS_BY_BUILDING: Record<BuildingChecklist, TaskKey[
     'eoyStudentIpads',
     'eoyHardware',
     'eoySeesaw',
-    'eoySummerPL',
     'eoyVacationResponder',
   ],
   intermediate: [
@@ -163,7 +163,6 @@ export const RETURNING_TASK_KEYS_BY_BUILDING: Record<BuildingChecklist, TaskKey[
     'eoyChromebookCheckin',
     'eoyHardware',
     'eoyGoogleClassroom',
-    'eoySummerPL',
     'eoyVacationResponder',
   ],
   secondary: ['eoyDeviceForm', 'eoyHardware', 'eoySchoology', 'eoyVacationResponder'],
@@ -211,7 +210,7 @@ export const TASK_CATALOGUE: ReadonlyArray<{
   {
     key: 'gmailForwarding',
     label: 'Gmail forwarding',
-    description: 'Optionally forward incoming mail to your successor until deactivation.',
+    description: 'Request that IT forward incoming mail to a successor or other address.',
   },
   {
     key: 'sitesOwnership',

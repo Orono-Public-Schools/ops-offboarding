@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
   StepError,
@@ -9,7 +10,7 @@ import {
   StepTextarea,
 } from '../../components/TaskStep';
 import { getGoogleAccessToken } from '../../lib/auth';
-import { setOutOfOffice } from '../../lib/functions';
+import { markTaskComplete, setOutOfOffice } from '../../lib/functions';
 import type { BuildingChecklist } from '../../lib/offboarding';
 import { formatReturnDateOrdinal, returnDateForBuilding, useEoySettings } from '../../lib/settings';
 import type { OutletCtx } from '../../App';
@@ -68,8 +69,26 @@ export function SummerVacationResponderTask() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [manualPending, setManualPending] = useState<'complete' | 'skip' | 'reopen' | null>(null);
 
   const isComplete = taskState.status === 'completed' || savedOk;
+  const isSkipped = taskState.status === 'skipped';
+
+  const handleManual = async (status: 'completed' | 'skipped' | 'in_progress') => {
+    setError(null);
+    setSavedOk(false);
+    setManualPending(
+      status === 'completed' ? 'complete' : status === 'skipped' ? 'skip' : 'reopen',
+    );
+    try {
+      await markTaskComplete({ taskKey: 'eoyVacationResponder', status });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save. Please try again.');
+      console.error(err);
+    } finally {
+      setManualPending(null);
+    }
+  };
 
   const applyTemplate = (id: TemplateId) => {
     setTemplateId(id);
@@ -121,14 +140,6 @@ export function SummerVacationResponderTask() {
 
   return (
     <div>
-      <Link
-        to="/"
-        className="mb-5 inline-flex items-center gap-1 text-xs font-semibold transition hover:text-white"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
-      >
-        ← Back to dashboard
-      </Link>
-
       <div className="mb-5 sm:mb-8">
         <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
           Summer vacation responder
@@ -239,7 +250,7 @@ export function SummerVacationResponderTask() {
 
         {error && <StepError>{error}</StepError>}
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link
             to="/"
             className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
@@ -247,9 +258,38 @@ export function SummerVacationResponderTask() {
           >
             {savedOk ? 'Done' : 'Cancel'}
           </Link>
+          {isComplete || isSkipped ? (
+            <button
+              onClick={() => handleManual('in_progress')}
+              disabled={manualPending !== null || saving}
+              className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+              style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+            >
+              {manualPending === 'reopen' ? 'Reopening…' : 'Reopen'}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleManual('skipped')}
+                disabled={manualPending !== null || saving}
+                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              >
+                {manualPending === 'skip' ? 'Saving…' : 'Skip'}
+              </button>
+              <button
+                onClick={() => handleManual('completed')}
+                disabled={manualPending !== null || saving}
+                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              >
+                {manualPending === 'complete' ? 'Saving…' : 'Mark complete'}
+              </button>
+            </>
+          )}
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || manualPending !== null}
             className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             style={{
               background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
@@ -262,6 +302,7 @@ export function SummerVacationResponderTask() {
                 ? 'Update responder'
                 : 'Activate responder'}
           </button>
+          <NextTaskButton currentKey="eoyVacationResponder" className="order-first sm:order-last" />
         </div>
       </div>
     </div>
