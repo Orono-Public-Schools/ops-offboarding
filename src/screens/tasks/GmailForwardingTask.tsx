@@ -23,9 +23,7 @@ export function GmailForwardingTask() {
   const savedForwardTo = (taskState.forwardTo as string | undefined) ?? '';
   const savedNote = (taskState.note as string | null | undefined) ?? '';
 
-  const [forwardTo, setForwardTo] = useState<string>(
-    savedForwardTo || doc.successorEmail || '',
-  );
+  const [forwardTo, setForwardTo] = useState<string>(savedForwardTo || doc.successorEmail || '');
   const [note, setNote] = useState<string>(savedNote ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [pending, setPending] = useState<'skip' | 'reopen' | null>(null);
@@ -118,15 +116,12 @@ export function GmailForwardingTask() {
               title={isSkipped ? 'No forwarding requested.' : 'Request submitted.'}
               description={
                 isSkipped
-                  ? "You skipped this — no forwarding will be set up."
+                  ? 'You skipped this — no forwarding will be set up.'
                   : `IT will configure forwarding to ${savedForwardTo} before your account is deactivated. If something needs to change, reopen this task and resubmit, or email support@orono.k12.mn.us.`
               }
             />
             {isComplete && savedNote && (
-              <div
-                className="rounded-lg p-3"
-                style={{ background: 'rgba(255,255,255,0.08)' }}
-              >
+              <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
                 <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
                   Your note
                 </p>
@@ -178,10 +173,7 @@ export function GmailForwardingTask() {
               </button>
             </>
           )}
-          <NextTaskButton
-            currentKey="gmailForwarding"
-            className="order-first sm:order-last"
-          />
+          <NextTaskButton currentKey="gmailForwarding" className="order-first sm:order-last" />
         </div>
       </div>
     </div>

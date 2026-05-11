@@ -77,7 +77,9 @@ export function SummerVacationResponderTask() {
   const handleManual = async (status: 'completed' | 'skipped' | 'in_progress') => {
     setError(null);
     setSavedOk(false);
-    setManualPending(status === 'completed' ? 'complete' : status === 'skipped' ? 'skip' : 'reopen');
+    setManualPending(
+      status === 'completed' ? 'complete' : status === 'skipped' ? 'skip' : 'reopen',
+    );
     try {
       await markTaskComplete({ taskKey: 'eoyVacationResponder', status });
     } catch (err) {
@@ -300,10 +302,7 @@ export function SummerVacationResponderTask() {
                 ? 'Update responder'
                 : 'Activate responder'}
           </button>
-          <NextTaskButton
-            currentKey="eoyVacationResponder"
-            className="order-first sm:order-last"
-          />
+          <NextTaskButton currentKey="eoyVacationResponder" className="order-first sm:order-last" />
         </div>
       </div>
     </div>

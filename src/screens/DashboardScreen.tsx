@@ -184,8 +184,7 @@ export function DashboardScreen() {
       </>
     );
 
-    const baseClasses =
-      'flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200';
+    const baseClasses = 'flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200';
     const style = {
       background: statusStyle.cardBg,
       boxShadow: `0 2px 12px ${statusStyle.cardGlow}`,
