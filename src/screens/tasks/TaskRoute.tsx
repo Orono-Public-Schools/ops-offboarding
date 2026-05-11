@@ -1,4 +1,5 @@
 import { Navigate, useParams } from 'react-router';
+import { TaskPageFooter } from '../../components/TaskPageFooter';
 import { TaskPageHeader } from '../../components/TaskPageHeader';
 import { IMPLEMENTED_TASKS, TASK_CATALOGUE, type TaskKey } from '../../lib/offboarding';
 import { CalendarTransferTask } from './CalendarTransferTask';
@@ -51,8 +52,9 @@ export function TaskRoute() {
 
   return (
     <>
-      <TaskPageHeader currentKey={key} />
+      <TaskPageHeader />
       {screen}
+      <TaskPageFooter currentKey={key} />
     </>
   );
 }
