@@ -20,6 +20,18 @@ const TASK_LOOKUP: Map<TaskKey, (typeof TASK_CATALOGUE)[number]> = new Map(
   TASK_CATALOGUE.map((t) => [t.key, t]),
 );
 
+type DashboardView = 'cards' | 'list';
+const VIEW_STORAGE_KEY = 'ops-dashboard-view';
+
+function readStoredView(): DashboardView {
+  if (typeof window === 'undefined') return 'cards';
+  try {
+    return window.localStorage.getItem(VIEW_STORAGE_KEY) === 'list' ? 'list' : 'cards';
+  } catch {
+    return 'cards';
+  }
+}
+
 const STATUS_STYLES: Record<TaskStatus, { label: string; cardBg: string; cardGlow: string }> = {
   not_started: {
     label: 'Not started',
@@ -49,6 +61,16 @@ export function DashboardScreen() {
   const firstName = user?.displayName?.split(' ')[0];
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [view, setView] = useState<DashboardView>(readStoredView);
+
+  const handleViewChange = (next: DashboardView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      // localStorage may be disabled (private mode); state still applies for the session
+    }
+  };
 
   const handleSelfReset = async () => {
     if (!user?.uid) return;
@@ -139,6 +161,66 @@ export function DashboardScreen() {
     );
   };
 
+  const renderRow = (task: (typeof TASK_CATALOGUE)[number]) => {
+    const state = doc.tasks[task.key as TaskKey];
+    const status = state?.status ?? 'not_started';
+    const statusStyle = STATUS_STYLES[status];
+    const isImplemented = IMPLEMENTED_TASKS.has(task.key);
+
+    const inner = (
+      <>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-white">{task.label}</h3>
+          <p className="mt-0.5 truncate text-xs leading-relaxed text-white/75">
+            {task.description}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
+          style={{ background: 'rgba(255,255,255,0.15)', color: '#ffffff' }}
+        >
+          {isImplemented ? statusStyle.label : 'Coming soon'}
+        </span>
+      </>
+    );
+
+    const baseClasses =
+      'flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200';
+    const style = {
+      background: statusStyle.cardBg,
+      boxShadow: `0 2px 12px ${statusStyle.cardGlow}`,
+    };
+
+    if (!isImplemented) {
+      return (
+        <div
+          key={task.key}
+          className={`${baseClasses} cursor-not-allowed opacity-70`}
+          style={style}
+        >
+          {inner}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={task.key}
+        to={`/tasks/${task.key}`}
+        className={`${baseClasses} cursor-pointer hover:-translate-y-px`}
+        style={style}
+      >
+        {inner}
+      </Link>
+    );
+  };
+
+  const cardGridClasses = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3';
+  const listClasses = 'flex flex-col gap-2';
+  const containerClasses = view === 'list' ? listClasses : cardGridClasses;
+  const renderTask = view === 'list' ? renderRow : renderTile;
+  const hasAnyTasks = activeTasks.length > 0 || doneTasks.length > 0;
+
   return (
     <div>
       <div className="mb-5 sm:mb-8">
@@ -159,10 +241,62 @@ export function DashboardScreen() {
         </>
       )}
 
-      {activeTasks.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {activeTasks.map(renderTile)}
+      {hasAnyTasks && (
+        <div className="mb-3 flex justify-end">
+          <div
+            className="flex items-center gap-1 rounded-lg p-1"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+            role="group"
+            aria-label="View mode"
+          >
+            <button
+              type="button"
+              onClick={() => handleViewChange('cards')}
+              aria-pressed={view === 'cards'}
+              aria-label="Card view"
+              className="flex h-7 w-7 items-center justify-center rounded-md transition"
+              style={{
+                background: view === 'cards' ? 'rgba(255,255,255,0.18)' : 'transparent',
+                color: view === 'cards' ? '#ffffff' : 'rgba(255,255,255,0.55)',
+              }}
+            >
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                <rect x="1" y="1" width="6" height="6" rx="1" />
+                <rect x="9" y="1" width="6" height="6" rx="1" />
+                <rect x="1" y="9" width="6" height="6" rx="1" />
+                <rect x="9" y="9" width="6" height="6" rx="1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewChange('list')}
+              aria-pressed={view === 'list'}
+              aria-label="List view"
+              className="flex h-7 w-7 items-center justify-center rounded-md transition"
+              style={{
+                background: view === 'list' ? 'rgba(255,255,255,0.18)' : 'transparent',
+                color: view === 'list' ? '#ffffff' : 'rgba(255,255,255,0.55)',
+              }}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className="h-3.5 w-3.5"
+              >
+                <line x1="3" y1="4" x2="13" y2="4" />
+                <line x1="3" y1="8" x2="13" y2="8" />
+                <line x1="3" y1="12" x2="13" y2="12" />
+              </svg>
+            </button>
+          </div>
         </div>
+      )}
+
+      {activeTasks.length > 0 && (
+        <div className={containerClasses}>{activeTasks.map(renderTask)}</div>
       )}
 
       {activeTasks.length === 0 && doneTasks.length > 0 && (
@@ -176,9 +310,7 @@ export function DashboardScreen() {
       {doneTasks.length > 0 && (
         <div className="mt-6">
           <CollapsibleSection label={`Completed (${doneTasks.length})`}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {doneTasks.map(renderTile)}
-            </div>
+            <div className={containerClasses}>{doneTasks.map(renderTask)}</div>
           </CollapsibleSection>
         </div>
       )}
@@ -189,7 +321,10 @@ export function DashboardScreen() {
         </p>
       )}
 
-      <div className="mt-8 flex flex-col items-center gap-2">
+      <div className="mt-10 flex flex-col items-center gap-3">
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          Picked the wrong building, or switching between returning and leaving?
+        </p>
         {resetError && (
           <p
             className="rounded-lg px-3 py-2 text-xs"
@@ -201,16 +336,10 @@ export function DashboardScreen() {
         <button
           onClick={handleSelfReset}
           disabled={resetting}
-          className="text-xs font-semibold transition disabled:opacity-50"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-          onMouseEnter={(e) => {
-            if (!resetting) e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
-          }}
+          className="rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+          style={{ borderColor: 'rgba(255,255,255,0.4)' }}
         >
-          {resetting ? 'Resetting…' : 'Picked the wrong checklist? Start over'}
+          {resetting ? 'Resetting…' : 'Start over with a different checklist'}
         </button>
       </div>
     </div>
