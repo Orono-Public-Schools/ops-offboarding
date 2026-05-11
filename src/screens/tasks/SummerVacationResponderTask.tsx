@@ -137,14 +137,6 @@ export function SummerVacationResponderTask() {
 
   return (
     <div>
-      <Link
-        to="/"
-        className="mb-5 inline-flex items-center gap-1 text-xs font-semibold transition hover:text-white"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
-      >
-        ← Back to dashboard
-      </Link>
-
       <div className="mb-5 sm:mb-8">
         <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
           Summer vacation responder

@@ -1,4 +1,3 @@
-import { Link } from 'react-router';
 import { TASK_CATALOGUE, type TaskKey } from '../../lib/offboarding';
 
 export function ComingSoonTask({ taskKey }: { taskKey: TaskKey }) {
@@ -6,14 +5,6 @@ export function ComingSoonTask({ taskKey }: { taskKey: TaskKey }) {
 
   return (
     <div>
-      <Link
-        to="/"
-        className="mb-5 inline-flex items-center gap-1 text-xs font-semibold transition hover:text-white"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
-      >
-        ← Back to dashboard
-      </Link>
-
       <div
         className="rounded-xl p-6 text-center sm:p-10"
         style={{
