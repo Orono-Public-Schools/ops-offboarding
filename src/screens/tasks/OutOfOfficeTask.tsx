@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
   StepError,
@@ -254,6 +255,7 @@ export function OutOfOfficeTask() {
                 ? 'Update responder'
                 : 'Activate responder'}
           </button>
+          <NextTaskButton currentKey="outOfOffice" className="order-first sm:order-last" />
         </div>
       </div>
     </div>

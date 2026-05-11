@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { NextTaskButton } from '../../components/NextTaskButton';
 import { PersonPicker } from '../../components/PersonPicker';
 import {
   StepCard,
@@ -358,6 +359,7 @@ export function GroupsOwnershipTask() {
                 </button>
               </>
             )}
+            <NextTaskButton currentKey="groupsOwnership" />
           </div>
 
           {saveError && <StepError>{saveError}</StepError>}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
   StepError,
@@ -177,6 +178,10 @@ export function GmailForwardingTask() {
               </button>
             </>
           )}
+          <NextTaskButton
+            currentKey="gmailForwarding"
+            className="order-first sm:order-last"
+          />
         </div>
       </div>
     </div>
