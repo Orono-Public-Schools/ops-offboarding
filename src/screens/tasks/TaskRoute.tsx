@@ -1,5 +1,4 @@
 import { Navigate, useParams } from 'react-router';
-import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { TaskPageHeader } from '../../components/TaskPageHeader';
 import { IMPLEMENTED_TASKS, TASK_CATALOGUE, type TaskKey } from '../../lib/offboarding';
 import { CalendarTransferTask } from './CalendarTransferTask';
@@ -34,8 +33,7 @@ export function TaskRoute() {
   const key = taskKey as TaskKey;
 
   let screen: React.ReactElement;
-  const isImplemented = IMPLEMENTED_TASKS.has(key);
-  if (!isImplemented) {
+  if (!IMPLEMENTED_TASKS.has(key)) {
     screen = <ComingSoonTask taskKey={key} />;
   } else {
     const Screen = TASK_SCREENS[key];
@@ -55,7 +53,6 @@ export function TaskRoute() {
     <>
       <TaskPageHeader />
       {screen}
-      {isImplemented && <HelpFlagSection currentKey={key} />}
     </>
   );
 }

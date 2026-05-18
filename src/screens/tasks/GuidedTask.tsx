@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -171,6 +172,8 @@ export function GuidedTask({ taskKey, config }: Props) {
               />
             </>
           )}
+
+          <HelpFlagSection currentKey={taskKey} />
 
           <div className="flex flex-wrap gap-2">
             {isComplete || isSkipped ? (

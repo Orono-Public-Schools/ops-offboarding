@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -238,6 +239,7 @@ export function KnowledgeTransferTask() {
                     .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               )}
+              <HelpFlagSection currentKey="knowledgeTransfer" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleReopen}
@@ -260,6 +262,7 @@ export function KnowledgeTransferTask() {
                 placeholder="e.g. doc is in shared drive 'Math Department' under Handoffs/"
                 className="mb-3"
               />
+              <HelpFlagSection currentKey="knowledgeTransfer" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleMarkComplete}

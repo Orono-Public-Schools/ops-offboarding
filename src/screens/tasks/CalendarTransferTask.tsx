@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -261,6 +262,8 @@ export function CalendarTransferTask() {
               />
             </>
           )}
+
+          <HelpFlagSection currentKey="calendarTransfer" />
 
           <div className="flex flex-wrap gap-2">
             {isComplete || isSkipped ? (

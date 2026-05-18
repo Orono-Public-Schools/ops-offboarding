@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -132,6 +133,8 @@ export function GmailForwardingTask() {
         )}
 
         {error && <StepError>{error}</StepError>}
+
+        <HelpFlagSection currentKey="gmailForwarding" />
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link

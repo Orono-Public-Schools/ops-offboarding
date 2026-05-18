@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import { PersonPicker } from '../../components/PersonPicker';
 import {
@@ -325,6 +326,8 @@ export function GroupsOwnershipTask() {
               />
             </>
           )}
+
+          <HelpFlagSection currentKey="groupsOwnership" />
 
           <div className="flex flex-wrap gap-2">
             {isComplete || isSkipped ? (

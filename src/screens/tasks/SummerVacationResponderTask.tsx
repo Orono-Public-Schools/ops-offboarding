@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -249,6 +250,8 @@ export function SummerVacationResponderTask() {
         )}
 
         {error && <StepError>{error}</StepError>}
+
+        <HelpFlagSection currentKey="eoyVacationResponder" />
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link

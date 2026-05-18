@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import { StepCard, StepHeader } from '../../components/TaskStep';
 import { getGoogleAccessToken, useAuth } from '../../lib/auth';
@@ -265,6 +266,7 @@ export function DrivePersonalTask() {
                     .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               )}
+              <HelpFlagSection currentKey="drivePersonal" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleReopen}
@@ -294,6 +296,7 @@ export function DrivePersonalTask() {
                   color: '#1d2a5d',
                 }}
               />
+              <HelpFlagSection currentKey="drivePersonal" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleMarkComplete}
