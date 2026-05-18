@@ -90,6 +90,16 @@ export const markTaskComplete = httpsCallable<
   { taskKey: string; status: string }
 >(functions, 'markTaskComplete');
 
+export const requestHelp = httpsCallable<
+  { taskKey: string; reason: string },
+  { taskKey: string; success: boolean }
+>(functions, 'requestHelp');
+
+export const resolveHelp = httpsCallable<
+  { taskKey: string; uid?: string },
+  { taskKey: string; uid: string; success: boolean }
+>(functions, 'resolveHelp');
+
 export const createHandoffDoc = httpsCallable<
   { name: string; googleAccessToken: string },
   { docId: string; docName: string; docUrl: string }

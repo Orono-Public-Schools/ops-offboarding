@@ -9,7 +9,12 @@ import {
   type OffboardingSummary,
 } from '../../lib/admin';
 import { setEoySettings, syncStaffRoster } from '../../lib/functions';
-import { BUILDING_CHECKLISTS } from '../../lib/offboarding';
+import {
+  BUILDING_CHECKLISTS,
+  TASK_CATALOGUE,
+  type HelpRequest,
+  type TaskKey,
+} from '../../lib/offboarding';
 import {
   DEFAULT_EOY_RETURN_DATE,
   formatRelativeTime,
@@ -161,6 +166,42 @@ export function AdminDashboard() {
 
   const allOffboardings =
     !state.loading && 'offboardings' in state ? state.offboardings : ([] as OffboardingSummary[]);
+
+  const taskLabelByKey = useMemo(() => new Map(TASK_CATALOGUE.map((t) => [t.key, t.label])), []);
+
+  const openHelpRequests = useMemo(() => {
+    type Open = {
+      uid: string;
+      displayName: string;
+      email: string;
+      taskKey: TaskKey;
+      taskLabel: string;
+      reason: string;
+      requestedAt: Date | null;
+    };
+    const out: Open[] = [];
+    for (const o of allOffboardings) {
+      for (const [key, state] of Object.entries(o.tasks ?? {})) {
+        const help = (state as { help?: HelpRequest | null } | undefined)?.help;
+        if (!help || help.resolvedAt) continue;
+        out.push({
+          uid: o.uid,
+          displayName: o.displayName || o.email,
+          email: o.email,
+          taskKey: key as TaskKey,
+          taskLabel: taskLabelByKey.get(key as TaskKey) ?? key,
+          reason: help.reason,
+          requestedAt: help.requestedAt?.toDate ? help.requestedAt.toDate() : null,
+        });
+      }
+    }
+    out.sort((a, b) => {
+      const ta = a.requestedAt?.getTime() ?? 0;
+      const tb = b.requestedAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+    return out;
+  }, [allOffboardings, taskLabelByKey]);
   const filtered = useMemo(() => {
     if (filter === 'all') return allOffboardings;
     return allOffboardings.filter((o) => (o.type ?? 'leaving') === filter);
@@ -207,6 +248,48 @@ export function AdminDashboard() {
           and the audit log.
         </p>
       </div>
+
+      {openHelpRequests.length > 0 && (
+        <CollapsibleSection
+          label={`🚩 Open help requests (${openHelpRequests.length})`}
+          defaultOpen
+        >
+          <div className="space-y-2">
+            {openHelpRequests.map((req) => (
+              <Link
+                key={`${req.uid}-${req.taskKey}`}
+                to={`/admin/offboardings/${req.uid}`}
+                className="flex flex-col gap-1 rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-start sm:gap-5 sm:p-5"
+                style={{
+                  background: 'rgba(245,158,11,0.14)',
+                  border: '1px solid rgba(245,158,11,0.4)',
+                  boxShadow: '0 2px 12px rgba(245,158,11,0.15)',
+                }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold" style={{ color: '#fde68a' }}>
+                    {req.displayName} · {req.taskLabel}
+                  </p>
+                  <p className="mt-1 text-xs" style={{ color: 'rgba(253,230,138,0.85)' }}>
+                    "{req.reason}"
+                  </p>
+                </div>
+                <p
+                  className="shrink-0 text-[11px] font-semibold tracking-wider uppercase"
+                  style={{ color: 'rgba(253,230,138,0.7)' }}
+                >
+                  {req.requestedAt
+                    ? req.requestedAt.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : ''}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
 
       <CollapsibleSection label="Progress tracker" defaultOpen>
         {state.loading && (
