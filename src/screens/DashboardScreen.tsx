@@ -5,7 +5,6 @@ import { CollapsibleSection } from '../components/CollapsibleSection';
 import { LastDayBanner } from '../components/LastDayBanner';
 import { SupervisorBanner } from '../components/SupervisorBanner';
 import { useAuth } from '../lib/auth';
-import { resetUserChecklist } from '../lib/functions';
 import {
   BUILDING_CHECKLISTS,
   IMPLEMENTED_TASKS,
@@ -59,8 +58,6 @@ export function DashboardScreen() {
   const { doc } = useOutletContext<OutletCtx>();
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0];
-  const [resetting, setResetting] = useState(false);
-  const [resetError, setResetError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>(readStoredView);
 
   const handleViewChange = (next: DashboardView) => {
@@ -69,24 +66,6 @@ export function DashboardScreen() {
       window.localStorage.setItem(VIEW_STORAGE_KEY, next);
     } catch {
       // localStorage may be disabled (private mode); state still applies for the session
-    }
-  };
-
-  const handleSelfReset = async () => {
-    if (!user?.uid) return;
-    const confirmed = window.confirm(
-      "Start over? Your current checklist progress will be wiped and you'll see the welcome screen again. (Use this if you picked the wrong building or want to switch between returning/leaving.)",
-    );
-    if (!confirmed) return;
-    setResetError(null);
-    setResetting(true);
-    try {
-      await resetUserChecklist({ uid: user.uid });
-      // The Firestore listener fires -> AppLayout shows WelcomeScreen.
-    } catch (err) {
-      setResetError(err instanceof Error ? err.message : 'Could not reset. Please try again.');
-      console.error(err);
-      setResetting(false);
     }
   };
 
@@ -319,28 +298,6 @@ export function DashboardScreen() {
           No tasks to show yet.
         </p>
       )}
-
-      <div className="mt-10 flex flex-col items-center gap-3">
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          Picked the wrong building, or switching between returning and leaving?
-        </p>
-        {resetError && (
-          <p
-            className="rounded-lg px-3 py-2 text-xs"
-            style={{ background: 'rgba(173,33,34,0.12)', color: '#fecaca' }}
-          >
-            {resetError}
-          </p>
-        )}
-        <button
-          onClick={handleSelfReset}
-          disabled={resetting}
-          className="rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-          style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-        >
-          {resetting ? 'Resetting…' : 'Start over with a different checklist'}
-        </button>
-      </div>
     </div>
   );
 }
