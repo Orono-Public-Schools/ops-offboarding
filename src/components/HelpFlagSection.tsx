@@ -4,14 +4,14 @@ import { requestHelp, resolveHelp } from '../lib/functions';
 import type { HelpRequest, TaskKey } from '../lib/offboarding';
 import type { OutletCtx } from '../App';
 
-type Props = { currentKey: TaskKey };
+type Props = { currentKey: TaskKey; className?: string };
 
 function formatRequestedAt(ts: HelpRequest['requestedAt'] | null | undefined): string | null {
   if (!ts || typeof ts.toDate !== 'function') return null;
   return ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function HelpFlagSection({ currentKey }: Props) {
+export function HelpFlagSection({ currentKey, className = '' }: Props) {
   const { doc } = useOutletContext<OutletCtx>();
   const help = doc.tasks[currentKey]?.help as HelpRequest | null | undefined;
   const isPending = Boolean(help && !help.resolvedAt);
@@ -70,7 +70,7 @@ export function HelpFlagSection({ currentKey }: Props) {
     const when = formatRequestedAt(help.requestedAt);
     return (
       <div
-        className="mt-4 rounded-xl p-4"
+        className={`w-full rounded-xl p-4 ${className}`.trim()}
         style={{
           background: 'rgba(245,158,11,0.12)',
           border: '1px solid rgba(245,158,11,0.4)',
@@ -109,7 +109,7 @@ export function HelpFlagSection({ currentKey }: Props) {
   if (composing) {
     return (
       <div
-        className="mt-4 rounded-xl p-4"
+        className={`w-full rounded-xl p-4 ${className}`.trim()}
         style={{
           background: 'rgba(245,158,11,0.08)',
           border: '1px solid rgba(245,158,11,0.3)',
@@ -159,14 +159,12 @@ export function HelpFlagSection({ currentKey }: Props) {
   }
 
   return (
-    <div className="mt-4 flex justify-end">
-      <button
-        onClick={startComposing}
-        className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
-        style={{ borderColor: 'rgba(245,158,11,0.6)' }}
-      >
-        🚩 Flag for help
-      </button>
-    </div>
+    <button
+      onClick={startComposing}
+      className={`inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] ${className}`.trim()}
+      style={{ borderColor: 'rgba(245,158,11,0.6)' }}
+    >
+      🚩 Flag for help
+    </button>
   );
 }

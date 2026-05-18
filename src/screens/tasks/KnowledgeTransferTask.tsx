@@ -239,7 +239,6 @@ export function KnowledgeTransferTask() {
                     .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               )}
-              <HelpFlagSection currentKey="knowledgeTransfer" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleReopen}
@@ -250,6 +249,7 @@ export function KnowledgeTransferTask() {
                   {marking ? 'Saving…' : 'Reopen — I have more to add'}
                 </button>
                 <NextTaskButton currentKey="knowledgeTransfer" />
+                <HelpFlagSection currentKey="knowledgeTransfer" />
               </div>
             </div>
           ) : (
@@ -262,7 +262,6 @@ export function KnowledgeTransferTask() {
                 placeholder="e.g. doc is in shared drive 'Math Department' under Handoffs/"
                 className="mb-3"
               />
-              <HelpFlagSection currentKey="knowledgeTransfer" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleMarkComplete}
@@ -276,6 +275,7 @@ export function KnowledgeTransferTask() {
                   {marking ? 'Saving…' : "I'm done — mark complete"}
                 </button>
                 <NextTaskButton currentKey="knowledgeTransfer" />
+                <HelpFlagSection currentKey="knowledgeTransfer" />
               </div>
               {!hasDoc && (
                 <p className="mt-2 text-xs text-white/60">

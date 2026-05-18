@@ -263,8 +263,6 @@ export function CalendarTransferTask() {
             </>
           )}
 
-          <HelpFlagSection currentKey="calendarTransfer" />
-
           <div className="flex flex-wrap gap-2">
             {isComplete || isSkipped ? (
               <button
@@ -299,6 +297,7 @@ export function CalendarTransferTask() {
               </>
             )}
             <NextTaskButton currentKey="calendarTransfer" />
+            <HelpFlagSection currentKey="calendarTransfer" />
           </div>
 
           {saveError && <StepError>{saveError}</StepError>}

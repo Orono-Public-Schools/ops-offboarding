@@ -266,7 +266,6 @@ export function DrivePersonalTask() {
                     .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               )}
-              <HelpFlagSection currentKey="drivePersonal" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleReopen}
@@ -277,6 +276,7 @@ export function DrivePersonalTask() {
                   {marking ? 'Saving…' : 'Reopen — I have more to do'}
                 </button>
                 <NextTaskButton currentKey="drivePersonal" />
+                <HelpFlagSection currentKey="drivePersonal" />
               </div>
             </div>
           ) : (
@@ -296,7 +296,6 @@ export function DrivePersonalTask() {
                   color: '#1d2a5d',
                 }}
               />
-              <HelpFlagSection currentKey="drivePersonal" />
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleMarkComplete}
@@ -310,6 +309,7 @@ export function DrivePersonalTask() {
                   {marking ? 'Saving…' : "I'm done — mark complete"}
                 </button>
                 <NextTaskButton currentKey="drivePersonal" />
+                <HelpFlagSection currentKey="drivePersonal" />
               </div>
             </>
           )}

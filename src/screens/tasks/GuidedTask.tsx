@@ -173,8 +173,6 @@ export function GuidedTask({ taskKey, config }: Props) {
             </>
           )}
 
-          <HelpFlagSection currentKey={taskKey} />
-
           <div className="flex flex-wrap gap-2">
             {isComplete || isSkipped ? (
               <button
@@ -209,6 +207,7 @@ export function GuidedTask({ taskKey, config }: Props) {
               </>
             )}
             <NextTaskButton currentKey={taskKey} />
+            <HelpFlagSection currentKey={taskKey} />
           </div>
 
           {error && <StepError>{error}</StepError>}

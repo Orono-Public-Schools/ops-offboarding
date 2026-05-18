@@ -327,8 +327,6 @@ export function GroupsOwnershipTask() {
             </>
           )}
 
-          <HelpFlagSection currentKey="groupsOwnership" />
-
           <div className="flex flex-wrap gap-2">
             {isComplete || isSkipped ? (
               <button
@@ -363,6 +361,7 @@ export function GroupsOwnershipTask() {
               </>
             )}
             <NextTaskButton currentKey="groupsOwnership" />
+            <HelpFlagSection currentKey="groupsOwnership" />
           </div>
 
           {saveError && <StepError>{saveError}</StepError>}

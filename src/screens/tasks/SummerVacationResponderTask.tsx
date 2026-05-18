@@ -251,8 +251,6 @@ export function SummerVacationResponderTask() {
 
         {error && <StepError>{error}</StepError>}
 
-        <HelpFlagSection currentKey="eoyVacationResponder" />
-
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link
             to="/"
@@ -306,6 +304,10 @@ export function SummerVacationResponderTask() {
                 : 'Activate responder'}
           </button>
           <NextTaskButton currentKey="eoyVacationResponder" className="order-first sm:order-last" />
+          <HelpFlagSection
+            currentKey="eoyVacationResponder"
+            className="order-first sm:order-last"
+          />
         </div>
       </div>
     </div>

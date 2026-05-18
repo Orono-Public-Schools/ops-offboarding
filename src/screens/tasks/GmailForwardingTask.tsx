@@ -134,8 +134,6 @@ export function GmailForwardingTask() {
 
         {error && <StepError>{error}</StepError>}
 
-        <HelpFlagSection currentKey="gmailForwarding" />
-
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link
             to="/"
@@ -177,6 +175,7 @@ export function GmailForwardingTask() {
             </>
           )}
           <NextTaskButton currentKey="gmailForwarding" className="order-first sm:order-last" />
+          <HelpFlagSection currentKey="gmailForwarding" className="order-first sm:order-last" />
         </div>
       </div>
     </div>
