@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -232,7 +233,7 @@ export function OutOfOfficeTask() {
 
         {error && <StepError>{error}</StepError>}
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link
             to="/"
             className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
@@ -256,6 +257,7 @@ export function OutOfOfficeTask() {
                 : 'Activate responder'}
           </button>
           <NextTaskButton currentKey="outOfOffice" className="order-first sm:order-last" />
+          <HelpFlagSection currentKey="outOfOffice" className="order-first sm:order-last" />
         </div>
       </div>
     </div>

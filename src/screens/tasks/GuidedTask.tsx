@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -206,6 +207,7 @@ export function GuidedTask({ taskKey, config }: Props) {
               </>
             )}
             <NextTaskButton currentKey={taskKey} />
+            <HelpFlagSection currentKey={taskKey} />
           </div>
 
           {error && <StepError>{error}</StepError>}

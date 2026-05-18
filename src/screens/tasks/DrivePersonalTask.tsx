@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import { StepCard, StepHeader } from '../../components/TaskStep';
 import { getGoogleAccessToken, useAuth } from '../../lib/auth';
@@ -275,6 +276,7 @@ export function DrivePersonalTask() {
                   {marking ? 'Saving…' : 'Reopen — I have more to do'}
                 </button>
                 <NextTaskButton currentKey="drivePersonal" />
+                <HelpFlagSection currentKey="drivePersonal" />
               </div>
             </div>
           ) : (
@@ -307,6 +309,7 @@ export function DrivePersonalTask() {
                   {marking ? 'Saving…' : "I'm done — mark complete"}
                 </button>
                 <NextTaskButton currentKey="drivePersonal" />
+                <HelpFlagSection currentKey="drivePersonal" />
               </div>
             </>
           )}

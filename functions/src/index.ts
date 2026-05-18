@@ -1239,6 +1239,111 @@ export const markTaskComplete = onCall<MarkTaskCompletePayload>(
   },
 );
 
+type RequestHelpPayload = { taskKey?: string; reason?: string };
+
+export const requestHelp = onCall<RequestHelpPayload>({ region: REGION }, async (request) => {
+  const { uid } = requireAuthedDomainUser(request);
+  const taskKey = request.data?.taskKey;
+  const reason = request.data?.reason?.trim();
+
+  if (!taskKey || !TASK_KEY_SET.has(taskKey)) {
+    throw new HttpsError('invalid-argument', `Unknown taskKey: ${taskKey}`);
+  }
+  if (!reason) {
+    throw new HttpsError('invalid-argument', 'A reason for the help request is required.');
+  }
+  if (reason.length > 2000) {
+    throw new HttpsError('invalid-argument', 'Reason is too long (max 2000 characters).');
+  }
+
+  const db = getFirestore();
+  const ref = db.collection('offboardings').doc(uid);
+  const auditRef = ref.collection('auditLog').doc();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      throw new HttpsError('failed-precondition', 'Offboarding record not found.');
+    }
+    const before = snap.get(`tasks.${taskKey}.help`) ?? null;
+    tx.update(ref, {
+      [`tasks.${taskKey}.help`]: {
+        reason,
+        requestedAt: FieldValue.serverTimestamp(),
+        resolvedAt: null,
+      },
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(auditRef, {
+      ts: FieldValue.serverTimestamp(),
+      actor: uid,
+      action: 'request_help',
+      target: `tasks.${taskKey}.help`,
+      before,
+      after: { reason },
+      success: true,
+      errorMsg: null,
+    });
+  });
+
+  return { taskKey, success: true };
+});
+
+type ResolveHelpPayload = { taskKey?: string; uid?: string };
+
+export const resolveHelp = onCall<ResolveHelpPayload>({ region: REGION }, async (request) => {
+  const { uid: callerUid } = requireAuthedDomainUser(request);
+  const taskKey = request.data?.taskKey;
+  const targetUid = request.data?.uid ?? callerUid;
+
+  if (!taskKey || !TASK_KEY_SET.has(taskKey)) {
+    throw new HttpsError('invalid-argument', `Unknown taskKey: ${taskKey}`);
+  }
+  if (typeof targetUid !== 'string' || !targetUid) {
+    throw new HttpsError('invalid-argument', 'targetUid is required.');
+  }
+
+  const isAdmin = request.auth?.token.it_admin === true;
+  const isSelf = callerUid === targetUid;
+  if (!isAdmin && !isSelf) {
+    throw new HttpsError(
+      'permission-denied',
+      'You can only resolve your own help requests unless you are an IT admin.',
+    );
+  }
+
+  const db = getFirestore();
+  const ref = db.collection('offboardings').doc(targetUid);
+  const auditRef = ref.collection('auditLog').doc();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      throw new HttpsError('failed-precondition', 'Offboarding record not found.');
+    }
+    const before = snap.get(`tasks.${taskKey}.help`);
+    if (!before) {
+      throw new HttpsError('failed-precondition', 'No help request exists for this task.');
+    }
+    tx.update(ref, {
+      [`tasks.${taskKey}.help.resolvedAt`]: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(auditRef, {
+      ts: FieldValue.serverTimestamp(),
+      actor: callerUid,
+      action: 'resolve_help',
+      target: `tasks.${taskKey}.help`,
+      before,
+      after: { resolved: true, byAdmin: isAdmin && !isSelf },
+      success: true,
+      errorMsg: null,
+    });
+  });
+
+  return { taskKey, uid: targetUid, success: true };
+});
+
 type StaffRow = {
   email: string;
   displayName: string;

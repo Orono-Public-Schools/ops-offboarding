@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -248,6 +249,7 @@ export function KnowledgeTransferTask() {
                   {marking ? 'Saving…' : 'Reopen — I have more to add'}
                 </button>
                 <NextTaskButton currentKey="knowledgeTransfer" />
+                <HelpFlagSection currentKey="knowledgeTransfer" />
               </div>
             </div>
           ) : (
@@ -273,6 +275,7 @@ export function KnowledgeTransferTask() {
                   {marking ? 'Saving…' : "I'm done — mark complete"}
                 </button>
                 <NextTaskButton currentKey="knowledgeTransfer" />
+                <HelpFlagSection currentKey="knowledgeTransfer" />
               </div>
               {!hasDoc && (
                 <p className="mt-2 text-xs text-white/60">

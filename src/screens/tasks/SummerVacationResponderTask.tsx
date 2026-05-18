@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -303,6 +304,10 @@ export function SummerVacationResponderTask() {
                 : 'Activate responder'}
           </button>
           <NextTaskButton currentKey="eoyVacationResponder" className="order-first sm:order-last" />
+          <HelpFlagSection
+            currentKey="eoyVacationResponder"
+            className="order-first sm:order-last"
+          />
         </div>
       </div>
     </div>

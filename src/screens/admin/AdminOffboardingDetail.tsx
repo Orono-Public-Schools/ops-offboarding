@@ -7,10 +7,11 @@ import {
   useOffboardingDetail,
   type AuditEntry,
 } from '../../lib/admin';
-import { resetUserChecklist } from '../../lib/functions';
+import { resetUserChecklist, resolveHelp } from '../../lib/functions';
 import {
   TASK_CATALOGUE,
   taskKeysForDoc,
+  type HelpRequest,
   type TaskKey,
   type TaskStatus,
 } from '../../lib/offboarding';
@@ -34,6 +35,9 @@ const ACTION_LABELS: Record<string, string> = {
   mark_files_personal_bulk: 'Bulk-marked personal files',
   mark_task_complete: 'Updated task status',
   create_handoff_doc: 'Created handoff doc',
+  request_help: 'Flagged for help',
+  resolve_help: 'Resolved help request',
+  request_gmail_forwarding: 'Requested mail forwarding',
 };
 
 function AuditRow({ entry }: { entry: AuditEntry }) {
@@ -76,6 +80,22 @@ export function AdminOffboardingDetail() {
   const audit = useAuditLog(uid ?? null, 50);
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [resolvingKey, setResolvingKey] = useState<TaskKey | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  const handleResolveHelp = async (taskKey: TaskKey) => {
+    if (!uid) return;
+    setResolveError(null);
+    setResolvingKey(taskKey);
+    try {
+      await resolveHelp({ taskKey, uid });
+    } catch (err) {
+      setResolveError(err instanceof Error ? err.message : 'Could not resolve. Please try again.');
+      console.error(err);
+    } finally {
+      setResolvingKey(null);
+    }
+  };
 
   const handleReset = async () => {
     if (!uid) return;
@@ -223,6 +243,15 @@ export function AdminOffboardingDetail() {
         </div>
       </div>
 
+      {resolveError && (
+        <p
+          className="mb-3 rounded-lg px-3 py-2 text-sm"
+          style={{ background: 'rgba(173,33,34,0.18)', color: '#fecaca' }}
+        >
+          {resolveError}
+        </p>
+      )}
+
       {/* Task grid */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {visibleTasks.map((task) => {
@@ -236,12 +265,23 @@ export function AdminOffboardingDetail() {
             task.key === 'gmailForwarding' ? (state?.forwardTo as string | null | undefined) : null;
           const forwardingNote =
             task.key === 'gmailForwarding' ? (state?.note as string | null | undefined) : null;
+          const help = state?.help as HelpRequest | null | undefined;
+          const helpPending = Boolean(help && !help.resolvedAt);
+          const helpRequestedAt = help?.requestedAt?.toDate
+            ? help.requestedAt.toDate().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              })
+            : null;
 
           return (
             <div
               key={task.key}
               className="rounded-xl p-4"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
+              style={{
+                background: helpPending ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.06)',
+                border: helpPending ? '1px solid rgba(245,158,11,0.4)' : '1px solid transparent',
+              }}
             >
               <div className="mb-2 flex items-start justify-between gap-3">
                 <h3 className="text-sm font-semibold text-white">{task.label}</h3>
@@ -266,6 +306,30 @@ export function AdminOffboardingDetail() {
               )}
               {forwardingNote && <p className="mt-1 text-xs text-white/70">{forwardingNote}</p>}
               {notes && <p className="mt-2 text-xs text-white/70">{notes as string}</p>}
+              {helpPending && help && (
+                <div
+                  className="mt-3 rounded-lg p-3"
+                  style={{ background: 'rgba(245,158,11,0.18)' }}
+                >
+                  <p
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: '#fde68a' }}
+                  >
+                    🚩 Help requested{helpRequestedAt ? ` · ${helpRequestedAt}` : ''}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed" style={{ color: '#fde68a' }}>
+                    "{help.reason}"
+                  </p>
+                  <button
+                    onClick={() => handleResolveHelp(task.key as TaskKey)}
+                    disabled={resolvingKey === task.key}
+                    className="mt-2 rounded-lg border px-3 py-1 text-[11px] font-semibold transition hover:bg-white/10 disabled:opacity-60"
+                    style={{ borderColor: 'rgba(253,230,138,0.5)', color: '#fde68a' }}
+                  >
+                    {resolvingKey === task.key ? 'Resolving…' : 'Mark resolved'}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

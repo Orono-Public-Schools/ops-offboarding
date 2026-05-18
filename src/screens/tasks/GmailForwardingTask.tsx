@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -174,6 +175,7 @@ export function GmailForwardingTask() {
             </>
           )}
           <NextTaskButton currentKey="gmailForwarding" className="order-first sm:order-last" />
+          <HelpFlagSection currentKey="gmailForwarding" className="order-first sm:order-last" />
         </div>
       </div>
     </div>

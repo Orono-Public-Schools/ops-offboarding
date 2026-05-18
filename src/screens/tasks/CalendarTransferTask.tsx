@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
   StepCard,
@@ -296,6 +297,7 @@ export function CalendarTransferTask() {
               </>
             )}
             <NextTaskButton currentKey="calendarTransfer" />
+            <HelpFlagSection currentKey="calendarTransfer" />
           </div>
 
           {saveError && <StepError>{saveError}</StepError>}

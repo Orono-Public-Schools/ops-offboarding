@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import { PersonPicker } from '../../components/PersonPicker';
 import {
@@ -360,6 +361,7 @@ export function GroupsOwnershipTask() {
               </>
             )}
             <NextTaskButton currentKey="groupsOwnership" />
+            <HelpFlagSection currentKey="groupsOwnership" />
           </div>
 
           {saveError && <StepError>{saveError}</StepError>}
