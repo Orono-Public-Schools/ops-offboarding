@@ -3,8 +3,8 @@
   "description": "Cloud Functions for OPS Offboarding",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
+    "build": "node copy-shared.mjs && tsc",
+    "build:watch": "node copy-shared.mjs && tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",

@@ -51,3 +51,25 @@ button:not(:disabled),
 a[href] {
   cursor: pointer;
 }
+
+/* Form inputs on white cards (Orono design system .input-neu pattern). */
+.input-form {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #1d2a5d;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.input-form:focus {
+  border-color: #2d3f89;
+  box-shadow: 0 0 0 3px rgba(45, 63, 137, 0.1);
+}
+.input-form[aria-invalid='true'] {
+  border-color: #ad2122;
+}

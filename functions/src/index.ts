@@ -28,3 +28,4 @@ export {
   createHandoffDoc,
 } from './drive';
 export { promoteGroupOwner } from './groups';
+export { submitForm, updateSubmissionStatus } from './forms';

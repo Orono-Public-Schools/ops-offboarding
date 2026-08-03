@@ -5,7 +5,11 @@ import { AdminDashboard } from './screens/admin/AdminDashboard';
 import { AdminOffboardingDetail } from './screens/admin/AdminOffboardingDetail';
 import { AuthedShell } from './screens/AuthenticatedShell';
 import { DashboardScreen } from './screens/DashboardScreen';
+import { FormFillScreen } from './screens/forms/FormFillScreen';
+import { FormsHome } from './screens/forms/FormsHome';
+import { SubmissionDetail } from './screens/forms/SubmissionDetail';
 import { HomeScreen } from './screens/HomeScreen';
+import { HRInbox } from './screens/hr/HRInbox';
 import { OffboardingModule } from './screens/OffboardingModule';
 import { SignInScreen } from './screens/SignInScreen';
 import { TaskRoute } from './screens/tasks/TaskRoute';
@@ -51,6 +55,10 @@ export default function App() {
             <Route index element={<DashboardScreen />} />
             <Route path="tasks/:taskKey" element={<TaskRoute />} />
           </Route>
+          <Route path="/forms" element={<FormsHome />} />
+          <Route path="/forms/submissions/:id" element={<SubmissionDetail />} />
+          <Route path="/forms/:formId" element={<FormFillScreen />} />
+          <Route path="/hr" element={<HRInbox />} />
           <Route element={<AdminGate />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/offboardings/:uid" element={<AdminOffboardingDetail />} />

@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { computeProgress } from '../lib/admin';
-import { useAuth } from '../lib/auth';
+import { useAuth, useIsHR } from '../lib/auth';
 import { useOffboarding } from '../lib/offboarding';
 
 function OffboardingStatus() {
@@ -62,6 +62,7 @@ function ComingSoonCard({ title, description }: { title: string; description: st
 
 export function HomeScreen() {
   const { user } = useAuth();
+  const isHR = useIsHR();
   const firstName = user?.displayName?.split(' ')[0];
 
   return (
@@ -98,15 +99,54 @@ export function HomeScreen() {
         </Link>
 
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+          <Link
+            to="/forms"
+            className="block rounded-xl p-4 transition hover:-translate-y-px sm:p-5"
+            style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2
+                className="text-sm font-semibold tracking-widest uppercase"
+                style={{ color: 'var(--color-ops-navy)' }}
+              >
+                HR Forms
+              </h2>
+              <span className="text-sm font-semibold" style={{ color: 'var(--color-ops-blue)' }}>
+                Open →
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-ink)' }}>
+              Submit a change of address and other HR forms, and track their status.
+            </p>
+          </Link>
           <ComingSoonCard
             title="Onboarding"
             description="Your first-days checklist: policies, payroll setup, and getting your accounts in order."
           />
-          <ComingSoonCard
-            title="HR Forms"
-            description="Lane changes, contract changes, change of address, leave of absence, and more."
-          />
         </div>
+
+        {isHR && (
+          <Link
+            to="/hr"
+            className="block rounded-xl p-4 transition hover:-translate-y-px sm:p-5"
+            style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2
+                className="text-sm font-semibold tracking-widest uppercase"
+                style={{ color: 'var(--color-ops-navy)' }}
+              >
+                HR Inbox
+              </h2>
+              <span className="text-sm font-semibold" style={{ color: 'var(--color-ops-blue)' }}>
+                Open →
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-ink)' }}>
+              Review and process staff form submissions.
+            </p>
+          </Link>
+        )}
       </div>
     </div>
   );
