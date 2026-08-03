@@ -86,10 +86,11 @@ export function LastDayBanner({ lastDay }: Props) {
             <button
               onClick={handleSave}
               disabled={saving || !value}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
               style={{
-                background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-                boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+                background: '#ffffff',
+                color: '#1d2a5d',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               }}
             >
               {saving ? 'Saving…' : 'Save'}

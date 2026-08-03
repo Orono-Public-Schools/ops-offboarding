@@ -16,9 +16,9 @@ const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/admin.directory.group.readonly',
   'https://www.googleapis.com/auth/admin.directory.group.member',
 ];
-const ACCESS_TOKEN_KEY = 'ops-offboarding:googleAccessToken';
+const ACCESS_TOKEN_KEY = 'oronohr:googleAccessToken';
 
-type AuthClaims = { it_admin?: boolean };
+type AuthClaims = { it_admin?: boolean; hr?: boolean };
 
 type AuthState = {
   user: User | null;
@@ -64,6 +64,11 @@ export function useAuth() {
 export function useIsAdmin(): boolean {
   const { claims } = useAuth();
   return Boolean(claims?.it_admin);
+}
+
+export function useIsHR(): boolean {
+  const { claims } = useAuth();
+  return Boolean(claims?.hr || claims?.it_admin);
 }
 
 export async function signInWithGoogle() {

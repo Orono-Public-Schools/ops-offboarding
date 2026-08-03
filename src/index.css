@@ -1,6 +1,33 @@
 @import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/*
+ * Orono design system tokens (source: .claude/skills/style/SKILL.md).
+ * Brand hexes live here only — components reference the utilities or CSS vars.
+ */
+@theme {
+  --color-ops-navy: #1d2a5d;
+  --color-ops-blue: #2d3f89;
+  --color-ops-light: #4356a9;
+  --color-ops-lighter: #eaecf5;
+  --color-ops-red: #ad2122;
+  --color-ink: #334155;
+  --color-ink-muted: #64748b;
+  --color-ink-faint: #94a3b8;
+}
+
+:root {
+  /* Gradients & shadows (not expressible as single-color utilities) */
+  --grad-primary: linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%);
+  --grad-danger: linear-gradient(135deg, #ad2122 0%, #c9393a 100%);
+  --grad-progress: linear-gradient(90deg, #1d2a5d 0%, #4356a9 100%);
+  --shadow-primary: 0 2px 10px rgba(29, 42, 93, 0.45);
+  --shadow-danger: 0 2px 10px rgba(173, 33, 34, 0.35);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --border-muted: rgba(180, 185, 195, 0.25);
+  --inset-bg: #f8f9fb;
+}
+
 html,
 body,
 #root {
@@ -15,7 +42,7 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
-  color: #334155;
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
 }
 

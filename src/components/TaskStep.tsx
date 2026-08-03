@@ -113,8 +113,9 @@ export function StepTextarea(
 }
 
 /**
- * Primary action button styled in Orono red — designed to stand out against the
- * navy gradient StepCard backgrounds.
+ * Primary action button for use on the navy StepCard surface: white fill with
+ * navy text so it stands out against the gradient (same treatment as
+ * NextTaskButton).
  */
 export function StepPrimaryButton({
   onClick,
@@ -129,10 +130,11 @@ export function StepPrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
+      className="rounded-lg px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
       style={{
-        background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-        boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+        background: '#ffffff',
+        color: '#1d2a5d',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}
     >
       {children}

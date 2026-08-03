@@ -235,7 +235,7 @@ export function OutOfOfficeTask() {
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
           <Link
-            to="/"
+            to="/offboarding"
             className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
             style={{ borderColor: 'rgba(255,255,255,0.3)' }}
           >
@@ -244,10 +244,11 @@ export function OutOfOfficeTask() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             style={{
-              background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-              boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+              background: '#ffffff',
+              color: '#1d2a5d',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
           >
             {saving

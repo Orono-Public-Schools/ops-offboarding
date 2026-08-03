@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "ops-offboarding"
+  },
+  "targets": {
+    "ops-offboarding": {
+      "hosting": {
+        "app": ["oronohr"],
+        "legacy": ["ops-offboarding"]
+      }
+    }
   }
 }

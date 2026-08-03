@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 /**
- * Grant (or revoke) the `it_admin` custom claim on a Firebase Auth user.
+ * Grant (or revoke) a role custom claim on a Firebase Auth user.
+ * Roles: it_admin (default), hr.
  *
  * Usage:
- *   npm run grant-admin -- user@orono.k12.mn.us           # grant
- *   npm run grant-admin -- user@orono.k12.mn.us --revoke  # revoke
+ *   npm run grant-admin -- user@orono.k12.mn.us                # grant it_admin
+ *   npm run grant-admin -- user@orono.k12.mn.us --role hr      # grant hr
+ *   npm run grant-admin -- user@orono.k12.mn.us --revoke       # revoke it_admin
+ *   npm run grant-admin -- user@orono.k12.mn.us --role hr --revoke
  *
  * Auth: Application Default Credentials. Run once:
  *   gcloud auth application-default login
@@ -15,6 +18,7 @@ import { getAuth } from 'firebase-admin/auth';
 
 const PROJECT_ID = 'ops-offboarding';
 const ALLOWED_DOMAIN = 'orono.k12.mn.us';
+const ROLES = ['it_admin', 'hr'];
 
 function fail(msg) {
   console.error(`Error: ${msg}`);
@@ -23,13 +27,18 @@ function fail(msg) {
 
 const args = process.argv.slice(2);
 const revoke = args.includes('--revoke');
-const email = args.find((a) => !a.startsWith('--'));
+const roleFlagIdx = args.indexOf('--role');
+const role = roleFlagIdx === -1 ? 'it_admin' : args[roleFlagIdx + 1];
+const email = args.find((a, i) => !a.startsWith('--') && i !== roleFlagIdx + 1);
 
 if (!email) {
-  fail('missing email. Usage: npm run grant-admin -- user@orono.k12.mn.us [--revoke]');
+  fail('missing email. Usage: npm run grant-admin -- user@orono.k12.mn.us [--role hr] [--revoke]');
 }
 if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
   fail(`email must be @${ALLOWED_DOMAIN}`);
+}
+if (!ROLES.includes(role)) {
+  fail(`unknown role "${role}". Roles: ${ROLES.join(', ')}`);
 }
 
 initializeApp({ projectId: PROJECT_ID, credential: applicationDefault() });
@@ -39,13 +48,13 @@ try {
   const existing = user.customClaims ?? {};
   const next = { ...existing };
   if (revoke) {
-    delete next.it_admin;
+    delete next[role];
   } else {
-    next.it_admin = true;
+    next[role] = true;
   }
   await getAuth().setCustomUserClaims(user.uid, next);
   const action = revoke ? 'Revoked' : 'Granted';
-  console.log(`${action} it_admin for ${email} (uid: ${user.uid})`);
+  console.log(`${action} ${role} for ${email} (uid: ${user.uid})`);
   console.log('Claims now:', next);
   console.log(
     'The user must sign out and sign back in for the new claim to appear in their ID token.',
@@ -53,7 +62,7 @@ try {
 } catch (err) {
   if (err?.code === 'auth/user-not-found') {
     fail(
-      `no Firebase Auth user with email ${email}. They must sign in once before you can grant admin.`,
+      `no Firebase Auth user with email ${email}. They must sign in once before you can grant a role.`,
     );
   }
   fail(err?.message ?? String(err));

@@ -1,17 +1,18 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { Navigate, Outlet, Route, Routes, useParams } from 'react-router';
 import { AuthProvider, useAuth, useIsAdmin } from './lib/auth';
-import { useOffboarding, type OffboardingDoc } from './lib/offboarding';
+import { type OffboardingDoc } from './lib/offboarding';
 import { AdminDashboard } from './screens/admin/AdminDashboard';
 import { AdminOffboardingDetail } from './screens/admin/AdminOffboardingDetail';
 import { AuthedShell } from './screens/AuthenticatedShell';
 import { DashboardScreen } from './screens/DashboardScreen';
+import { HomeScreen } from './screens/HomeScreen';
+import { OffboardingModule } from './screens/OffboardingModule';
 import { SignInScreen } from './screens/SignInScreen';
 import { TaskRoute } from './screens/tasks/TaskRoute';
-import { WelcomeScreen } from './screens/WelcomeScreen';
 
 export type OutletCtx = { doc: OffboardingDoc };
 
-function LoadingScreen() {
+export function LoadingScreen() {
   return (
     <main className="flex min-h-screen items-center justify-center">
       <div className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -23,27 +24,10 @@ function LoadingScreen() {
 
 function AppLayout() {
   const { user, loading } = useAuth();
-  const state = useOffboarding(user?.uid ?? null);
 
   if (loading) return <LoadingScreen />;
   if (!user) return <SignInScreen />;
-  if (state.loading) return <LoadingScreen />;
-  if ('error' in state) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div
-          className="max-w-md rounded-xl p-6 text-sm"
-          style={{ background: '#ffffff', color: '#334155' }}
-        >
-          Couldn't load your offboarding record. Please refresh, or contact IT if the problem
-          continues.
-        </div>
-      </main>
-    );
-  }
-  if (!state.exists) return <WelcomeScreen />;
-
-  return <AuthedShell doc={state.data} />;
+  return <AuthedShell />;
 }
 
 function AdminGate() {
@@ -52,17 +36,27 @@ function AdminGate() {
   return <Outlet />;
 }
 
+function LegacyTaskRedirect() {
+  const { taskKey } = useParams();
+  return <Navigate to={`/offboarding/tasks/${taskKey}`} replace />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardScreen />} />
-          <Route path="/tasks/:taskKey" element={<TaskRoute />} />
+          <Route path="/" element={<HomeScreen />} />
+          <Route path="/offboarding" element={<OffboardingModule />}>
+            <Route index element={<DashboardScreen />} />
+            <Route path="tasks/:taskKey" element={<TaskRoute />} />
+          </Route>
           <Route element={<AdminGate />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/offboardings/:uid" element={<AdminOffboardingDetail />} />
           </Route>
+          {/* Pre-portal URLs from old emails/bookmarks */}
+          <Route path="/tasks/:taskKey" element={<LegacyTaskRedirect />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

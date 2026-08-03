@@ -1,5 +1,5 @@
 {
-  "name": "ops-offboarding",
+  "name": "oronohr",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -14,7 +14,8 @@
     "deploy:rules": "firebase deploy --only firestore:rules",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "grant-admin": "node scripts/grant-admin.mjs"
+    "grant-admin": "node scripts/grant-admin.mjs",
+    "grant-role": "node scripts/grant-admin.mjs"
   },
   "dependencies": {
     "firebase": "^12.14.0",
