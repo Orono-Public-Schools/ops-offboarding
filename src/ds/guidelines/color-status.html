@@ -1,0 +1,22 @@
+<!-- @dsCard group="Colors" viewport="700x190" subtitle="Workflow darkens through the brand family; red denied, green terminal only" name="Status ramp" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Status ramp</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{padding:20px 22px;font:var(--type-body);color:var(--text-body)}
+.card{background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
+.g{display:grid;gap:14px}
+.sw i{height:48px;display:block;border-radius:8px 8px 0 0}
+.sw b{font:var(--type-caption);font-weight:400;color:var(--text-muted);padding:7px 9px;display:flex;justify-content:space-between;gap:6px;background:#fff;border-radius:0 0 8px 8px}
+.sw{border-radius:8px;overflow:hidden;box-shadow:var(--shadow-card)}
+.lbl{font:var(--type-field-label);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--text-muted)}
+.ondark{font:var(--type-caption);color:var(--on-dark-muted)}
+h3.ch{margin:0 0 14px;font:var(--type-card-heading);letter-spacing:var(--tracking-widest);text-transform:uppercase;color:var(--dark)}
+</style></head><body>
+<div class="card">
+ <h3 class="ch">Status ramp</h3>
+ <div style="display:flex;gap:10px;flex-wrap:wrap">
+ <span style="display:inline-flex;padding:4px 10px;border-radius:999px;font:var(--type-badge);color:var(--status-draft);background:rgba(148,163,184,0.12)">Draft</span><span style="display:inline-flex;padding:4px 10px;border-radius:999px;font:var(--type-badge);color:var(--status-submitted);background:rgba(var(--secondary-rgb),0.12)">Submitted</span><span style="display:inline-flex;padding:4px 10px;border-radius:999px;font:var(--type-badge);color:var(--status-processing);background:rgba(var(--primary-rgb),0.12)">Processing</span><span style="display:inline-flex;padding:4px 10px;border-radius:999px;font:var(--type-badge);color:var(--status-completed);background:rgba(var(--dark-rgb),0.12)">Completed</span><span style="display:inline-flex;padding:4px 10px;border-radius:999px;font:var(--type-badge);color:var(--status-denied);background:rgba(var(--accent-rgb),0.12)">Denied</span><span style="display:inline-flex;padding:4px 10px;border-radius:999px;font:var(--type-badge);color:var(--status-paid);background:rgba(var(--success-rgb),0.12)">Paid</span>
+ </div>
+ <p style="font:var(--type-caption);color:var(--text-muted);margin:16px 0 0">Formula: solid brand-family color for text, the same color at 12% for the fill. Green is reserved for terminal money states — never for "approved".</p>
+ </div>
+</body></html>

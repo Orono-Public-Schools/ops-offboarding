@@ -1,0 +1,26 @@
+:root {
+  --sp-tight:   8px;    /* 0.5rem — within a control */
+  --sp-inner:   16px;   /* 1rem  — within a card */
+  --sp-section: 24px;   /* 1.5rem — between cards */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-12: 48px;
+
+  --card-pad: 20px;
+  --card-pad-sm: 16px;
+
+  /* Mobile-first page frame: px-3 py-6 -> sm:px-4 sm:py-12 */
+  --page-pad-x: 12px;
+  --page-pad-y: 24px;
+  --page-pad-x-sm: 16px;
+  --page-pad-y-sm: 48px;
+
+  --width-content: 1024px;  /* max-w-5xl */
+  --control-height: 40px;
+  --control-height-sm: 32px;
+}

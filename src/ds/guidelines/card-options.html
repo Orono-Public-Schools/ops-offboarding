@@ -1,0 +1,473 @@
+<!-- @dsCard group="Explorations" viewport="1180x900" name="Card options" subtitle="Six card treatments to choose from — all within the dark shell" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Card options</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 34px 30px 60px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 26px; }
+  .opt { display: flex; flex-direction: column; gap: 10px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+    text-transform: uppercase; color: var(--on-dark-faint);
+  }
+  .badge b {
+    color: #fff; font: 600 11px/1 var(--font-sans); letter-spacing: 0.06em;
+    background: var(--on-dark-hover); border: 1px solid var(--on-dark-border);
+    padding: 4px 7px; border-radius: 5px;
+  }
+  .why { font: var(--type-caption); color: var(--on-dark-muted); max-width: 42ch; }
+
+  /* shared card interior */
+  .ch { margin: 0; font: var(--type-card-heading); letter-spacing: var(--tracking-widest);
+        text-transform: uppercase; color: var(--dark); }
+  .title { font: var(--type-value); color: var(--dark); }
+  .sub { font: var(--type-caption); color: var(--text-muted); margin-top: 2px; }
+  .pill { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px;
+          font: var(--type-badge); color: var(--primary); background: rgba(var(--primary-rgb), 0.12); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .body { display: flex; flex-direction: column; gap: 14px; }
+  .dl { display: flex; flex-direction: column; }
+  .dl > div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-top: 1px solid var(--divider); }
+  .dl > div:first-child { border-top: none; padding-top: 0; }
+  .dl > div:last-child { padding-bottom: 0; }
+  .k { font: var(--type-field-label); letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--text-muted); }
+  .v { font: var(--type-body); font-weight: 500; color: var(--dark); }
+
+  .base { background: var(--surface-card); border-radius: var(--radius-card);
+          box-shadow: var(--shadow-card); padding: 20px; }
+
+  /* ---------- Turn 2: hover behaviour on clickable module cards ---------- */
+  .mod {
+    position: relative; display: block; overflow: hidden; cursor: pointer;
+    background: var(--surface-card); border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card); padding: 20px; z-index: 0;
+    border: 1px solid transparent;
+  }
+  .mod h3 { margin: 0 0 8px; font: var(--type-card-heading);
+            letter-spacing: var(--tracking-widest); text-transform: uppercase;
+            color: var(--dark); display: flex; align-items: center; gap: 8px; }
+  .mod p { margin: 0; font: var(--type-body-sm); color: var(--text-muted); max-width: 34ch; }
+  .mod .meta { display: block; margin-top: 16px; font: var(--type-caption); color: var(--text-placeholder); }
+  .mod svg { flex: 0 0 auto; }
+
+  /* corner tab with arrow */
+  .corner {
+    position: absolute; top: 0; right: 0; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--gradient-primary); color: #fff;
+    border-radius: 0 var(--radius-card) 0 26px;
+    opacity: 0.75; transition: opacity var(--dur-fast) var(--ease);
+  }
+  .corner svg { margin: -3px -3px 0 0; }
+
+  /* 2a — corner tab only */
+  .m-corner:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-2px); }
+  .m-corner { transition: box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease); }
+  .m-corner:hover .corner { opacity: 1; }
+
+  /* 2b — flood fill from the corner */
+  .m-flood::before {
+    content: ""; position: absolute; z-index: -1; top: -16px; right: -16px;
+    width: 32px; height: 32px; border-radius: 999px;
+    background: var(--gradient-primary);
+    transform: scale(1); transform-origin: 50% 50%;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+  .m-flood:hover::before { transform: scale(26); }
+  .m-flood h3, .m-flood p, .m-flood .meta { transition: color var(--dur-slow) var(--ease); }
+  .m-flood:hover h3 { color: #fff; }
+  .m-flood:hover p { color: rgba(255, 255, 255, 0.82); }
+  .m-flood:hover .meta { color: rgba(255, 255, 255, 0.6); }
+  .m-flood:hover .corner { opacity: 0; }
+
+  /* 2c — skewed edge slides in */
+  .m-edge .edge {
+    position: absolute; top: -4px; right: 0; height: calc(100% + 8px); width: 18px;
+    background: var(--gradient-primary); transform: skewX(-7deg);
+    margin-right: -34px; display: flex; align-items: flex-start;
+    justify-content: center; padding-top: 18px; color: #fff;
+    transition: margin-right var(--dur-fast) var(--ease);
+  }
+  .m-edge .edge svg { transform: skewX(7deg); opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+  .m-edge:hover .edge { margin-right: -8px; }
+  .m-edge:hover .edge svg { opacity: 1; }
+  .m-edge:hover { box-shadow: var(--shadow-card-hover); }
+  .m-edge { transition: box-shadow var(--dur-fast) var(--ease); }
+
+  /* 2d — inset resting state, lifts to white with a border */
+  .m-lift {
+    background: var(--surface-inset); box-shadow: none;
+    border: 1px solid var(--border-input);
+    transition: background-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease),
+                transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+  .m-lift:hover {
+    background: var(--surface-card); box-shadow: var(--shadow-card-hover);
+    transform: translateY(-4px); border-color: rgba(var(--secondary-rgb), 0.4);
+  }
+  .m-lift .corner { opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+  .m-lift:hover .corner { opacity: 1; }
+
+  .hint { font: var(--type-caption); color: var(--on-dark-faint); margin: 0 0 18px; }
+
+  /* ---------- Turn 3: the open-request row ---------- */
+  .req { position: relative; overflow: hidden; border-radius: var(--radius-card); background: var(--surface-card); }
+  .reqhead { font: var(--type-value); color: var(--dark); }
+  .reqmeta { font: var(--type-caption); color: var(--text-muted); margin-top: 2px; }
+  .rowsweep { position: relative; overflow: hidden; cursor: pointer; padding: 14px 16px; border-radius: 8px; }
+  .rowsweep .sw {
+    position: absolute; inset: 0; left: -6%; width: 112%; z-index: 0;
+    background: var(--surface-inset); transform: translate3d(-102%, 0, 0) skewX(14deg);
+    transition: transform var(--dur-slow) cubic-bezier(0.3, 1, 0.8, 1);
+  }
+  .rowsweep:hover .sw { transform: skewX(14deg); }
+  .rowsweep > *:not(.sw) { position: relative; z-index: 1; }
+
+  .track { display: flex; align-items: center; gap: 0; }
+  .track .node {
+    width: 9px; height: 9px; border-radius: 999px; flex: 0 0 auto;
+    background: var(--tint); box-shadow: inset 0 0 0 1px var(--border-input);
+  }
+  .track .node.on { background: var(--primary); box-shadow: none; }
+  .track .node.now { background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16); }
+  .track .seg { height: 2px; flex: 1 1 auto; background: var(--tint); }
+  .track .seg.on { background: var(--primary); }
+  /* Labels share the nodes' geometry: node i sits at 4.5px + i/(n-1) of the width. */
+  .steps { position: relative; height: 16px; margin-top: 7px; }
+  .steps span { position: absolute; top: 0; white-space: nowrap;
+                font: var(--type-caption); font-size: 11px; color: var(--text-placeholder); }
+  .steps span:nth-child(1) { left: 4.5px; }
+  .steps span:nth-child(2) { left: calc(33.333% + 1.5px); transform: translateX(-50%); }
+  .steps span:nth-child(3) { left: calc(66.667% - 1.5px); transform: translateX(-50%); }
+  .steps span:nth-child(4) { left: calc(100% - 4.5px); transform: translateX(-100%); }
+  .steps span.on { color: var(--primary); font-weight: 500; }
+  .steps span.now { color: var(--accent); font-weight: 600; }
+  .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  h1 { margin: 0 0 6px; font: var(--type-page-title); letter-spacing: var(--tracking-tight); color: #fff; }
+  .lede { margin: 0 0 30px; font: var(--type-page-sub); color: var(--on-dark-muted); max-width: 70ch; }
+  h2.sect { margin: 0 0 18px; font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+            text-transform: uppercase; color: var(--on-dark-faint); }
+</style>
+</head><body>
+<div class="wrap">
+
+  <h1>Card options</h1>
+  <p class="lede">Three rounds. Turn 3 is the open-request card on portal home; turn 2 is how a clickable module card responds to the cursor (2b shipped); turn 1 is the structure of the card itself (1c shipped, now the default). Reference options by id in chat.</p>
+
+  <h2 class="sect" style="margin-bottom:6px">Turn 3 — the open-request row</h2>
+  <p class="hint">The card on portal home where you watch your own requests move. Three ways to answer "where is this?" — hover each.</p>
+  <div style="display:grid; grid-template-columns:1fr; gap:26px; margin-bottom:44px; max-width:760px">
+
+    <div class="opt" id="3a">
+      <div class="badge"><b>3a</b> Row with a next step</div>
+      <div class="base" style="padding:0; overflow:hidden">
+        <div class="row" style="padding:14px 20px; background:var(--surface-inset); border-bottom:1px solid var(--border-input)">
+          <h3 class="ch">Your open requests</h3><span class="pill">2 open</span>
+        </div>
+        <div style="padding:8px">
+          <div class="rowsweep">
+            <span class="sw"></span>
+            <div class="row" style="align-items:flex-start">
+              <div>
+                <div class="reqhead">Leave of absence</div>
+                <div class="reqmeta">Form 30-A · Case 26-0142</div>
+                <div style="margin-top:8px; font:var(--type-body-sm); color:var(--secondary); font-weight:500">Next: benefits confirms your dates — usually 2 business days</div>
+              </div>
+              <span class="pill">Processing</span>
+            </div>
+          </div>
+          <div style="height:1px; background:var(--divider); margin:0 16px"></div>
+          <div class="rowsweep">
+            <span class="sw"></span>
+            <div class="row" style="align-items:flex-start">
+              <div>
+                <div class="reqhead">Lane change — MA +30</div>
+                <div class="reqmeta">Form 44 · Case 26-0121</div>
+                <div style="margin-top:8px; font:var(--type-body-sm); color:var(--secondary); font-weight:500">Next: reviewed at the March 18 board meeting</div>
+              </div>
+              <span class="pill" style="color:var(--secondary); background:rgba(var(--secondary-rgb),.12)">Submitted</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Closest to today's row, plus the one line people actually want: what happens next and roughly when. A tinted panel sweeps in on hover, same skew as the buttons.</p>
+    </div>
+
+    <div class="opt" id="3b">
+      <div class="badge"><b>3b</b> Step tracker</div>
+      <div class="base" style="padding:0; overflow:hidden">
+        <div class="row" style="padding:14px 20px; background:var(--surface-inset); border-bottom:1px solid var(--border-input)">
+          <h3 class="ch">Your open requests</h3><span class="pill">2 open</span>
+        </div>
+        <div style="padding:8px">
+          <div class="rowsweep">
+            <span class="sw"></span>
+            <div class="row" style="align-items:flex-start; margin-bottom:14px">
+              <div><div class="reqhead">Leave of absence</div><div class="reqmeta">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+              <span class="pill">Processing</span>
+            </div>
+            <div class="track">
+              <span class="node on"></span><span class="seg on"></span>
+              <span class="node on"></span><span class="seg on"></span>
+              <span class="node now"></span><span class="seg"></span>
+              <span class="node"></span>
+            </div>
+            <div class="steps"><span class="on">Filed</span><span class="on">Received</span><span class="now">With benefits</span><span>Complete</span></div>
+          </div>
+          <div style="height:1px; background:var(--divider); margin:0 16px"></div>
+          <div class="rowsweep">
+            <span class="sw"></span>
+            <div class="row" style="align-items:flex-start; margin-bottom:14px">
+              <div><div class="reqhead">Lane change — MA +30</div><div class="reqmeta">Form 44 · Case 26-0121 · filed 6 days ago</div></div>
+              <span class="pill" style="color:var(--secondary); background:rgba(var(--secondary-rgb),.12)">Submitted</span>
+            </div>
+            <div class="track">
+              <span class="node on"></span><span class="seg on"></span>
+              <span class="node now"></span><span class="seg"></span>
+              <span class="node"></span><span class="seg"></span>
+              <span class="node"></span>
+            </div>
+            <div class="steps"><span class="on">Filed</span><span class="now">Received</span><span>Board review</span><span>Complete</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Named stages instead of one word. The current stage is the only red dot on the screen — a deliberate exception worth deciding on, or it can be navy. Best when a request genuinely has stages people ask about.</p>
+    </div>
+
+    <div class="opt" id="3c">
+      <div class="badge"><b>3c</b> One card per request</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">
+        <div class="base req" style="padding:0">
+          <span class="spine" style="background:var(--gradient-primary)"></span>
+          <div style="padding:18px 20px 18px 22px">
+            <div class="row" style="align-items:flex-start; margin-bottom:12px">
+              <div><div class="reqhead">Leave of absence</div><div class="reqmeta">Case 26-0142</div></div>
+              <span class="pill">Processing</span>
+            </div>
+            <div class="track">
+              <span class="node on"></span><span class="seg on"></span>
+              <span class="node on"></span><span class="seg on"></span>
+              <span class="node now" style="background:var(--primary); box-shadow:0 0 0 3px rgba(var(--primary-rgb),.16)"></span><span class="seg"></span>
+              <span class="node"></span>
+            </div>
+            <div style="margin-top:12px; font:var(--type-caption); color:var(--text-muted)">With benefits since Friday</div>
+          </div>
+        </div>
+        <div class="base req" style="padding:0">
+          <span class="spine" style="background:linear-gradient(135deg,#4356a9,#5a6dc0)"></span>
+          <div style="padding:18px 20px 18px 22px">
+            <div class="row" style="align-items:flex-start; margin-bottom:12px">
+              <div><div class="reqhead">Lane change — MA +30</div><div class="reqmeta">Case 26-0121</div></div>
+              <span class="pill" style="color:var(--secondary); background:rgba(var(--secondary-rgb),.12)">Submitted</span>
+            </div>
+            <div class="track">
+              <span class="node on"></span><span class="seg on"></span>
+              <span class="node now" style="background:var(--secondary); box-shadow:0 0 0 3px rgba(var(--secondary-rgb),.16)"></span><span class="seg"></span>
+              <span class="node"></span><span class="seg"></span>
+              <span class="node"></span>
+            </div>
+            <div style="margin-top:12px; font:var(--type-caption); color:var(--text-muted)">Board reviews it March 18</div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Each request lifts out as its own card with a status spine (1e from the first round). Reads as "these are mine" — but two cards side by side compete with the module grid below.</p>
+    </div>
+
+  </div>
+
+  <h2 class="sect" style="margin-bottom:6px">Turn 2 — hover behaviour</h2>
+  <p class="hint">Hover each one. Same content, four ways of responding to the cursor. All motion runs on the system's 200/400ms easing, and the flood uses the navy gradient — red stays reserved for submit.</p>
+  <div class="grid" style="margin-bottom:44px">
+
+    <div class="opt" id="2a">
+      <div class="badge"><b>2a</b> Corner tab</div>
+      <a class="mod m-corner" href="#2a" style="text-decoration:none">
+        <span class="corner"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+        <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/></svg>Change of address</h3>
+        <p>Payroll, benefits mail, and the building directory update together.</p>
+        <span class="meta">4 min</span>
+      </a>
+      <p class="why">A clipped navy tab in the corner, at 75% until you hover. Says "this opens something" while resting — the quietest of the four.</p>
+    </div>
+
+    <div class="opt" id="2b">
+      <div class="badge"><b>2b</b> Flood fill</div>
+      <a class="mod m-flood" href="#2b" style="text-decoration:none">
+        <span class="corner"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+        <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>Leave of absence</h3>
+        <p>Medical, parental, family, or personal. We walk the dates with you.</p>
+        <span class="meta">6 min</span>
+      </a>
+      <p class="why">The corner dot scales up and floods the card in navy; text inverts to white. The most expressive — striking on a grid of six, so probably reserve it for one hero card.</p>
+    </div>
+
+    <div class="opt" id="2c">
+      <div class="badge"><b>2c</b> Skewed edge</div>
+      <a class="mod m-edge" href="#2c" style="text-decoration:none">
+        <span class="edge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+        <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><path d="M9 13h6"/></svg>Lane change</h3>
+        <p>Move a lane once your transcript is on file.</p>
+        <span class="meta">3 min</span>
+      </a>
+      <p class="why">A skewed gradient edge slides in from the right and its arrow fades up. Reads as a page turning — the most physical, and it survives on a dense grid.</p>
+    </div>
+
+    <div class="opt" id="2d">
+      <div class="badge"><b>2d</b> Rises off the page</div>
+      <a class="mod m-lift" href="#2d" style="text-decoration:none">
+        <span class="corner"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+        <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.99 5.73a2 2 0 0 1-2.02 0L2 7"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Direct deposit</h3>
+        <p>Change the account your pay lands in.</p>
+        <span class="meta">2 min</span>
+      </a>
+      <p class="why">Rests flat on the inset fill, then lifts 4px to white with a shadow and a tinted border as the corner tab appears. Solves the flat-tiles note from the last round.</p>
+    </div>
+
+  </div>
+
+  <h2 class="sect">Turn 1 — card structure</h2>
+  <div class="grid">
+
+    <!-- 1a -->
+    <div class="opt" id="1a">
+      <div class="badge"><b>1a</b> Plain — current</div>
+      <div class="base">
+        <div class="row" style="margin-bottom:16px">
+          <h3 class="ch">Request</h3>
+          <span class="pill">Processing</span>
+        </div>
+        <div class="body">
+          <div><div class="title">Leave of absence</div><div class="sub">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+          <div class="dl">
+            <div><span class="k">Leave type</span><span class="v">Parental</span></div>
+            <div><span class="k">First day away</span><span class="v">April 13, 2026</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">What's in the system now. Quiet and flexible; heading floats free of the body.</p>
+    </div>
+
+    <!-- 1b -->
+    <div class="opt" id="1b">
+      <div class="badge"><b>1b</b> Ruled heading</div>
+      <div class="base" style="padding:0">
+        <div class="row" style="padding:16px 20px 14px; border-bottom:1px solid var(--divider)">
+          <h3 class="ch">Request</h3>
+          <span class="pill">Processing</span>
+        </div>
+        <div class="body" style="padding:16px 20px 20px">
+          <div><div class="title">Leave of absence</div><div class="sub">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+          <div class="dl">
+            <div><span class="k">Leave type</span><span class="v">Parental</span></div>
+            <div><span class="k">First day away</span><span class="v">April 13, 2026</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">A full-bleed hairline under the heading. Reads as a titled document section — best when cards get long.</p>
+    </div>
+
+    <!-- 1c -->
+    <div class="opt" id="1c">
+      <div class="badge"><b>1c</b> Tinted heading strip</div>
+      <div class="base" style="padding:0; overflow:hidden">
+        <div class="row" style="padding:14px 20px; background:var(--surface-inset); border-bottom:1px solid var(--border-input)">
+          <h3 class="ch">Request</h3>
+          <span class="pill">Processing</span>
+        </div>
+        <div class="body" style="padding:18px 20px 20px">
+          <div><div class="title">Leave of absence</div><div class="sub">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+          <div class="dl">
+            <div><span class="k">Leave type</span><span class="v">Parental</span></div>
+            <div><span class="k">First day away</span><span class="v">April 13, 2026</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Chrome separated from content on #f8f9fb. Most "official" of the six; good for record and detail cards.</p>
+    </div>
+
+    <!-- 1d -->
+    <div class="opt" id="1d">
+      <div class="badge"><b>1d</b> Gradient top edge</div>
+      <div class="base" style="padding:0; overflow:hidden">
+        <div style="height:3px; background:var(--gradient-primary)"></div>
+        <div style="padding:18px 20px 20px">
+          <div class="row" style="margin-bottom:16px">
+            <h3 class="ch">Request</h3>
+            <span class="pill">Processing</span>
+          </div>
+          <div class="body">
+            <div><div class="title">Leave of absence</div><div class="sub">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+            <div class="dl">
+              <div><span class="k">Leave type</span><span class="v">Parental</span></div>
+              <div><span class="k">First day away</span><span class="v">April 13, 2026</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="why">3px brand gradient capping the card. Gives the shell some color without touching the accent — but every card wants one, so it gets noisy at six per screen.</p>
+    </div>
+
+    <!-- 1e -->
+    <div class="opt" id="1e">
+      <div class="badge"><b>1e</b> Status spine</div>
+      <div class="base" style="padding:0; overflow:hidden; display:flex">
+        <div style="width:4px; flex:0 0 auto; background:var(--gradient-primary)"></div>
+        <div style="padding:18px 20px 20px; flex:1; min-width:0">
+          <div class="row" style="margin-bottom:16px">
+            <h3 class="ch">Request</h3>
+            <span class="pill">Processing</span>
+          </div>
+          <div class="body">
+            <div><div class="title">Leave of absence</div><div class="sub">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+            <div class="dl">
+              <div><span class="k">Leave type</span><span class="v">Parental</span></div>
+              <div><span class="k">First day away</span><span class="v">April 13, 2026</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Left spine keyed to status color — a stack of request cards becomes scannable by state. Only for cards that carry a status.</p>
+    </div>
+
+    <!-- 1f -->
+    <div class="opt" id="1f">
+      <div class="badge"><b>1f</b> Translucent, on shell</div>
+      <div style="background:rgba(255,255,255,0.07); border:1px solid var(--on-dark-border); border-radius:var(--radius-card); padding:20px">
+        <div class="row" style="margin-bottom:16px">
+          <h3 class="ch" style="color:#fff">Request</h3>
+          <span class="pill" style="color:#fff; background:rgba(255,255,255,0.16)">Processing</span>
+        </div>
+        <div class="body">
+          <div><div class="title" style="color:#fff">Leave of absence</div><div class="sub" style="color:var(--on-dark-muted)">Form 30-A · Case 26-0142 · filed 4 days ago</div></div>
+          <div class="dl">
+            <div style="border-top-color:var(--on-dark-border)"><span class="k" style="color:var(--on-dark-faint)">Leave type</span><span class="v" style="color:#fff">Parental</span></div>
+            <div style="border-top-color:var(--on-dark-border)"><span class="k" style="color:var(--on-dark-faint)">First day away</span><span class="v" style="color:#fff">April 13, 2026</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Secondary information that shouldn't compete with the white cards — archived records, "after your last day" notes. Breaks the "white cards only" rule, so use sparingly.</p>
+    </div>
+
+  </div>
+
+  <h2 class="sect" style="margin:38px 0 18px">In context — six cards on one screen</h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:18px">
+    <div class="base" style="padding:0; overflow:hidden; display:flex">
+      <div style="width:4px; background:var(--gradient-primary)"></div>
+      <div style="padding:16px"><h3 class="ch" style="margin-bottom:8px">Change of address</h3><p style="font:var(--type-body-sm); color:var(--text-muted); margin:0">Payroll and benefits update together.</p></div>
+    </div>
+    <div class="base" style="padding:0; overflow:hidden; display:flex">
+      <div style="width:4px; background:linear-gradient(135deg,#4356a9,#5a6dc0)"></div>
+      <div style="padding:16px"><h3 class="ch" style="margin-bottom:8px">Leave of absence</h3><p style="font:var(--type-body-sm); color:var(--text-muted); margin:0">We walk the dates with you.</p></div>
+    </div>
+    <div class="base" style="padding:0; overflow:hidden; display:flex">
+      <div style="width:4px; background:linear-gradient(135deg,#94a3b8,#b6c0cc)"></div>
+      <div style="padding:16px"><h3 class="ch" style="margin-bottom:8px">Open enrollment</h3><p style="font:var(--type-body-sm); color:var(--text-muted); margin:0">Closed until October.</p></div>
+    </div>
+  </div>
+  <p class="why" style="max-width:64ch; margin-top:14px">1e at module scale: the spine reads as a category color and stays calm because it is 4px, not a filled header.</p>
+
+</div>
+</body></html>

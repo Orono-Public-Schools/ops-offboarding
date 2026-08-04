@@ -1,46 +1,52 @@
-import { Link, Outlet } from 'react-router';
-import { signOut, useAuth, useIsAdmin } from '../lib/auth';
+import { Outlet, useLocation, useNavigate } from 'react-router';
+import { signOut, useAuth, useIsAdmin, useIsHR } from '../lib/auth';
+import { AppShell } from '../ds/components/navigation/AppShell';
+import { AppBar } from '../ds/components/navigation/AppBar';
+import { TabBar, type TabEntry } from '../ds/components/navigation/TabBar';
+
+const TAB_ROUTES: Record<string, string> = {
+  home: '/',
+  forms: '/forms',
+  offboarding: '/offboarding',
+  inbox: '/hr',
+  admin: '/admin',
+};
+
+function activeTab(pathname: string): string {
+  if (pathname.startsWith('/forms')) return 'forms';
+  if (pathname.startsWith('/offboarding') || pathname.startsWith('/tasks')) return 'offboarding';
+  if (pathname.startsWith('/hr')) return 'inbox';
+  if (pathname.startsWith('/admin')) return 'admin';
+  return 'home';
+}
 
 export function AuthedShell() {
   const { user } = useAuth();
+  const isHR = useIsHR();
   const isAdmin = useIsAdmin();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const tabs: TabEntry[] = [
+    { id: 'home', label: 'Home', icon: 'home' },
+    { id: 'forms', label: 'Forms', icon: 'fileText' },
+    { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
+  ];
+  if (isHR) tabs.push({ id: 'inbox', label: 'HR Inbox', icon: 'inbox' });
+  if (isAdmin) tabs.push({ id: 'admin', label: 'Admin', icon: 'users' });
 
   return (
-    <div className="min-h-screen">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-3 py-4 sm:px-4 sm:py-6">
-        <Link to="/" className="flex items-center gap-2 sm:gap-3">
-          <img src="/orono-offboarding.png" alt="" className="h-8 w-8 sm:h-9 sm:w-9" />
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">OronoHR</h1>
-        </Link>
-        <div className="flex items-center gap-2 text-sm sm:gap-3">
-          <span className="hidden sm:inline" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            {user?.email}
-          </span>
-          <button
-            onClick={() => signOut()}
-            className="rounded-xl border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 sm:px-4 sm:py-2 sm:text-sm"
-            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            Sign out
-          </button>
-          {isAdmin && (
-            <Link
-              to="/admin"
-              className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] sm:px-4 sm:py-2 sm:text-sm"
-              style={{
-                background: 'var(--grad-danger)',
-                boxShadow: 'var(--shadow-danger)',
-              }}
-            >
-              Admin
-            </Link>
-          )}
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-5xl flex-1 px-3 py-6 sm:px-4 sm:py-12">
-        <Outlet />
-      </main>
-    </div>
+    <AppShell>
+      <AppBar
+        person={{ name: user?.displayName ?? 'Staff member', role: user?.email ?? '' }}
+        onSignOut={() => signOut()}
+      />
+      <TabBar
+        tabs={tabs}
+        active={activeTab(location.pathname)}
+        onSelect={(id) => navigate(TAB_ROUTES[id] ?? '/')}
+      />
+      <Outlet />
+    </AppShell>
   );
 }

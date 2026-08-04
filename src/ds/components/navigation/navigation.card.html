@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Navigation — app bar, title, tabs" subtitle="On-dark wordmark, white page title, accent-gradient active tab" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Navigation</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../ds-namespace.js"></script>
+<style>body{padding:20px 24px}#root{max-width:652px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/ds-babel">
+DSResolve({"Icon":"../core/Icon.jsx","Button":"../core/Button.jsx","AppBar":"AppBar.jsx","PageTitle":"PageTitle.jsx","DayHeader":"DayHeader.jsx","TabBar":"TabBar.jsx"}).then(function (NS) {
+const { AppBar, PageTitle, TabBar, Button } = NS;
+function Demo() {
+  const [tab, setTab] = React.useState('inbox');
+  return (
+    <div className="stack" style={{gap:22}}>
+      <AppBar person={{name:'Dana Whitcomb', role:'Benefits Coordinator'}} />
+      <PageTitle eyebrow="Inbox" title="Twelve requests waiting"
+        subtitle="Oldest first. Marisol's leave has been with benefits for four days."
+        actions={<Button variant="secondary" size="sm" icon="download">Export</Button>} />
+      <TabBar active={tab} onSelect={setTab} tabs={[
+        {id:'home',label:'Home',icon:'home'},
+        {id:'forms',label:'Forms',icon:'fileText'},
+        {id:'inbox',label:'Inbox',icon:'inbox',count:12},
+        {id:'people',label:'People',icon:'users'},
+      ]} />
+    </div>
+  );
+}
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+});
+</script></body></html>

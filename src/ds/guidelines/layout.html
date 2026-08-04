@@ -1,0 +1,21 @@
+<!-- @dsCard group="Layout" viewport="700x230" subtitle="max-w-5xl column, 24px between cards, mobile-first padding" name="Layout & spacing" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Layout & spacing</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{padding:20px 22px;font:var(--type-body);color:var(--text-body)}
+.card{background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
+.g{display:grid;gap:14px}
+.sw i{height:48px;display:block;border-radius:8px 8px 0 0}
+.sw b{font:var(--type-caption);font-weight:400;color:var(--text-muted);padding:7px 9px;display:flex;justify-content:space-between;gap:6px;background:#fff;border-radius:0 0 8px 8px}
+.sw{border-radius:8px;overflow:hidden;box-shadow:var(--shadow-card)}
+.lbl{font:var(--type-field-label);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--text-muted)}
+.ondark{font:var(--type-caption);color:var(--on-dark-muted)}
+h3.ch{margin:0 0 14px;font:var(--type-card-heading);letter-spacing:var(--tracking-widest);text-transform:uppercase;color:var(--dark)}
+</style></head><body>
+<div class="g" style="gap:12px">
+ <div style="height:14px;border-radius:4px;background:var(--on-dark-fill);border:1px dashed var(--on-dark-border)"></div>
+ <div class="card" style="padding:14px"><span class="lbl">card · 1.5rem gap below</span></div>
+ <div class="card" style="padding:14px"><span class="lbl">card</span></div>
+ </div>
+ <p class="ondark" style="margin:16px 0 0">Column max 1024px, centered. Page padding 12/24px, rising to 16/48px at <code>sm</code>. 24px between cards, 16px within, 8px tight. Action rows are <code>flex-col-reverse</code> on mobile so Cancel sits above the commit.</p>
+</body></html>

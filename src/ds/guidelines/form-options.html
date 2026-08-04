@@ -1,0 +1,191 @@
+<!-- @dsCard group="Explorations" viewport="1180x900" name="Form options" subtitle="Four ways to treat fields — click into them" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Form options</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 34px 30px 60px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font: var(--type-page-title); letter-spacing: var(--tracking-tight); color: #fff; }
+  .lede { margin: 0 0 30px; font: var(--type-page-sub); color: var(--on-dark-muted); max-width: 72ch; }
+  h2.sect { margin: 0 0 6px; font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+            text-transform: uppercase; color: var(--on-dark-faint); }
+  .hint { font: var(--type-caption); color: var(--on-dark-faint); margin: 0 0 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 26px; }
+  .opt { display: flex; flex-direction: column; gap: 10px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font: var(--type-field-label);
+           letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--on-dark-faint); }
+  .badge b { color: #fff; font: 600 11px/1 var(--font-sans); letter-spacing: 0.06em;
+             background: var(--on-dark-hover); border: 1px solid var(--on-dark-border);
+             padding: 4px 7px; border-radius: 5px; }
+  .why { font: var(--type-caption); color: var(--on-dark-muted); max-width: 44ch; }
+
+  .card { background: var(--surface-card); border-radius: var(--radius-card);
+          box-shadow: var(--shadow-card); overflow: hidden; }
+  .chead { padding: 14px 20px; background: var(--surface-inset); border-bottom: 1px solid var(--border-input);
+           font: var(--type-card-heading); letter-spacing: var(--tracking-widest);
+           text-transform: uppercase; color: var(--dark); }
+  .cbody { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  .lbl { font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+         text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px; }
+  .help { font: var(--type-caption); color: var(--text-muted); margin: 6px 0 0; }
+  input, textarea { font: var(--type-body); color: var(--dark); border: none; outline: none;
+                    background: transparent; width: 100%; font-family: var(--font-sans); }
+  input::placeholder { color: var(--text-placeholder); }
+
+  /* 4a — current: white well, hairline border, soft primary ring on focus */
+  .w-a { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 40px;
+         background: #fff; border: 1px solid var(--border-input); border-radius: var(--radius-input);
+         transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+  .w-a:focus-within { border-color: var(--primary); box-shadow: var(--ring-focus); }
+
+  /* 4b — underline sweep: a navy rule wipes in from the left on focus */
+  .w-b { position: relative; display: flex; align-items: center; gap: 8px; padding: 0 2px; height: 40px;
+         background: transparent; border-bottom: 1px solid var(--border-input); }
+  .w-b i { position: absolute; left: 0; bottom: -1px; height: 2px; width: 100%;
+           background: var(--gradient-primary); transform: scaleX(0); transform-origin: left;
+           transition: transform var(--dur-slow) cubic-bezier(.3,1,.8,1); }
+  .w-b:focus-within i { transform: scaleX(1); }
+
+  /* 4c — inset well: sunken tint, no border until focus */
+  .w-c { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 42px;
+         background: var(--surface-inset); border: 1px solid transparent;
+         border-radius: var(--radius-input);
+         transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+  .w-c:focus-within { background: #fff; border-color: var(--primary); box-shadow: var(--ring-focus); }
+
+  /* 4d — ledger rows: label left, value right, hairline divided, no boxes */
+  .ledger > div { display: flex; align-items: center; gap: 20px; padding: 13px 0;
+                  border-top: 1px solid var(--divider); }
+  .ledger > div:first-child { border-top: none; padding-top: 0; }
+  .ledger > div:last-child { padding-bottom: 0; }
+  .ledger .lbl { margin: 0; flex: 0 0 34%; }
+  .ledger .val { flex: 1; position: relative; }
+  .ledger .val::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px;
+                        background: var(--border-input); opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+  .ledger .val:focus-within::after { opacity: 1; background: var(--primary); height: 2px; }
+
+  .err { color: var(--accent); font: var(--type-caption); font-weight: 500; margin: 6px 0 0; }
+  .ico { color: var(--text-placeholder); display: flex; }
+  svg { display: block; }
+</style>
+</head><body>
+<div class="wrap">
+  <h1>Form options</h1>
+  <p class="lede">Four treatments for the field itself, same three questions in each. Click into them — the difference is mostly in what focus does. 4a is what the system ships today.</p>
+
+  <h2 class="sect">Turn 4 — the field</h2>
+  <p class="hint">Every option keeps the uppercase letterspaced label and the plain-language help text; only the well and its focus behaviour change.</p>
+
+  <div class="grid">
+
+    <div class="opt" id="4a">
+      <div class="badge"><b>4a</b> White well — current</div>
+      <div class="card">
+        <div class="chead">Leave details</div>
+        <div class="cbody">
+          <div>
+            <label class="lbl" for="a1">First day away</label>
+            <div class="w-a">
+              <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span>
+              <input id="a1" value="04 / 13 / 2026">
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="a2">Expected return</label>
+            <div class="w-a" style="border-color:var(--accent)"><input id="a2" value="04 / 02 / 2026"></div>
+            <p class="err">Pick a date after your first day.</p>
+          </div>
+          <div>
+            <label class="lbl" for="a3">Anything we should know?</label>
+            <div class="w-a" style="height:auto; padding:10px 12px"><textarea id="a3" rows="2" placeholder="Only HR reads this."></textarea></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Hairline border, soft primary ring on focus. Reads as a real input at rest — safest on a form people fill on their phone.</p>
+    </div>
+
+    <div class="opt" id="4b">
+      <div class="badge"><b>4b</b> Underline sweep</div>
+      <div class="card">
+        <div class="chead">Leave details</div>
+        <div class="cbody" style="gap:20px">
+          <div>
+            <label class="lbl" for="b1">First day away</label>
+            <div class="w-b">
+              <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span>
+              <input id="b1" value="04 / 13 / 2026"><i></i>
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="b2">Expected return</label>
+            <div class="w-b" style="border-bottom-color:var(--accent)"><input id="b2" value="04 / 02 / 2026"><i style="background:var(--gradient-accent)"></i></div>
+            <p class="err">Pick a date after your first day.</p>
+          </div>
+          <div>
+            <label class="lbl" for="b3">Anything we should know?</label>
+            <div class="w-b" style="height:auto; padding:6px 2px"><textarea id="b3" rows="2" placeholder="Only HR reads this."></textarea><i></i></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">No boxes — a rule under each answer, and a navy line wipes in from the left on focus, the same curve as the buttons. Lightest and most editorial; weakest affordance on mobile.</p>
+    </div>
+
+    <div class="opt" id="4c">
+      <div class="badge"><b>4c</b> Inset well, lifts on focus</div>
+      <div class="card">
+        <div class="chead">Leave details</div>
+        <div class="cbody">
+          <div>
+            <label class="lbl" for="c1">First day away</label>
+            <div class="w-c">
+              <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></span>
+              <input id="c1" value="04 / 13 / 2026">
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="c2">Expected return</label>
+            <div class="w-c" style="background:var(--status-denied-wash); border-color:rgba(var(--accent-rgb),.35)"><input id="c2" value="04 / 02 / 2026"></div>
+            <p class="err">Pick a date after your first day.</p>
+          </div>
+          <div>
+            <label class="lbl" for="c3">Anything we should know?</label>
+            <div class="w-c" style="height:auto; padding:10px 12px"><textarea id="c3" rows="2" placeholder="Only HR reads this."></textarea></div>
+          </div>
+        </div>
+      </div>
+      <p class="why">Fields rest sunken and borderless, then come up to white with the ring when you're in them. Quietest at a glance, and the one you're answering is unmistakable.</p>
+    </div>
+
+    <div class="opt" id="4d">
+      <div class="badge"><b>4d</b> Ledger rows</div>
+      <div class="card">
+        <div class="chead">Leave details</div>
+        <div class="cbody">
+          <div class="ledger">
+            <div>
+              <label class="lbl" for="d1">First day away</label>
+              <span class="val"><input id="d1" value="04 / 13 / 2026"></span>
+            </div>
+            <div>
+              <label class="lbl" for="d2">Expected return</label>
+              <span class="val"><input id="d2" value="04 / 02 / 2026" style="color:var(--accent)"></span>
+            </div>
+            <div>
+              <label class="lbl" for="d3">Leave type</label>
+              <span class="val"><input id="d3" value="Parental"></span>
+            </div>
+            <div>
+              <label class="lbl" for="d4">Building</label>
+              <span class="val"><input id="d4" value="Schumann Elementary"></span>
+            </div>
+          </div>
+          <p class="err" style="margin:0">Expected return must be after your first day.</p>
+        </div>
+      </div>
+      <p class="why">Label left, answer right, hairline between — the same <code>RowList</code> geometry the detail cards use, so filling a form and reading one back look alike. Densest; no room for help text per field.</p>
+    </div>
+
+  </div>
+</div>
+</body></html>

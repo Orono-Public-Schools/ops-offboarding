@@ -1,0 +1,19 @@
+<!-- @dsCard group="Type" viewport="700x230" subtitle="The signature of this style — apply it consistently" name="The uppercase heading" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>The uppercase heading</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{padding:20px 22px;font:var(--type-body);color:var(--text-body)}
+.card{background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
+.g{display:grid;gap:14px}
+.sw i{height:48px;display:block;border-radius:8px 8px 0 0}
+.sw b{font:var(--type-caption);font-weight:400;color:var(--text-muted);padding:7px 9px;display:flex;justify-content:space-between;gap:6px;background:#fff;border-radius:0 0 8px 8px}
+.sw{border-radius:8px;overflow:hidden;box-shadow:var(--shadow-card)}
+.lbl{font:var(--type-field-label);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--text-muted)}
+.ondark{font:var(--type-caption);color:var(--on-dark-muted)}
+h3.ch{margin:0 0 14px;font:var(--type-card-heading);letter-spacing:var(--tracking-widest);text-transform:uppercase;color:var(--dark)}
+</style></head><body>
+<div class="g" style="grid-template-columns:1fr 1fr;gap:16px">
+ <div class="card"><h3 class="ch">Request details</h3><p style="font:var(--type-body-sm);color:var(--text-muted);margin:0">Correct: 13px, 600, uppercase, 0.14em tracking, dark anchor color.</p></div>
+ <div class="card"><h3 style="margin:0 0 14px;font:600 18px/1.3 var(--font-sans);color:var(--dark)">Request details</h3><p style="font:var(--type-body-sm);color:var(--text-muted);margin:0">Wrong: size inflation. Hierarchy comes from case and tracking, not point size.</p></div>
+ </div>
+</body></html>

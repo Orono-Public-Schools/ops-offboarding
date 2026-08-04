@@ -1,9 +1,19 @@
 @import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* OronoHR design-system tokens (vendored handoff — src/ds). base.css and
+ * fonts.css are intentionally NOT imported: base's global element styles
+ * would bleed into legacy screens, and Inter is already loaded above. */
+@import './ds/tokens/colors.css';
+@import './ds/tokens/typography.css';
+@import './ds/tokens/spacing.css';
+@import './ds/tokens/surfaces.css';
+@import './ds/tokens/motion.css';
+
 /*
- * Orono design system tokens (source: .claude/skills/style/SKILL.md).
- * Brand hexes live here only — components reference the utilities or CSS vars.
+ * Legacy tokens — kept while the offboarding/admin screens still reference
+ * them. New code uses the ds tokens above. Remove when those screens are
+ * migrated to the design system.
  */
 @theme {
   --color-ops-navy: #1d2a5d;
@@ -17,13 +27,10 @@
 }
 
 :root {
-  /* Gradients & shadows (not expressible as single-color utilities) */
   --grad-primary: linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%);
   --grad-danger: linear-gradient(135deg, #ad2122 0%, #c9393a 100%);
   --grad-progress: linear-gradient(90deg, #1d2a5d 0%, #4356a9 100%);
-  --shadow-primary: 0 2px 10px rgba(29, 42, 93, 0.45);
   --shadow-danger: 0 2px 10px rgba(173, 33, 34, 0.35);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
   --border-muted: rgba(180, 185, 195, 0.25);
   --inset-bg: #f8f9fb;
 }
@@ -35,15 +42,12 @@ body,
 }
 
 body {
-  background: linear-gradient(160deg, #0a1230 0%, #131f45 40%, #172550 100%);
+  background: var(--gradient-page);
   background-attachment: fixed;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
-  color: var(--color-ink);
+  font-family: var(--font-sans);
+  color: var(--text-body);
   -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
 }
 
 /* Tailwind v4 preflight removes cursor: pointer from buttons; restore it here. */
@@ -52,7 +56,7 @@ a[href] {
   cursor: pointer;
 }
 
-/* Form inputs on white cards (Orono design system .input-neu pattern). */
+/* Legacy form inputs (pre-ds screens). New code uses the ds Field component. */
 .input-form {
   width: 100%;
   background: #ffffff;

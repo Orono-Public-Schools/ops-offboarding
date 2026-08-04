@@ -1,0 +1,20 @@
+<!-- @dsCard group="Surfaces" viewport="700x220" subtitle="12px radius, no border, layered soft shadow" name="Cards & shadows" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Cards & shadows</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{padding:20px 22px;font:var(--type-body);color:var(--text-body)}
+.card{background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
+.g{display:grid;gap:14px}
+.sw i{height:48px;display:block;border-radius:8px 8px 0 0}
+.sw b{font:var(--type-caption);font-weight:400;color:var(--text-muted);padding:7px 9px;display:flex;justify-content:space-between;gap:6px;background:#fff;border-radius:0 0 8px 8px}
+.sw{border-radius:8px;overflow:hidden;box-shadow:var(--shadow-card)}
+.lbl{font:var(--type-field-label);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--text-muted)}
+.ondark{font:var(--type-caption);color:var(--on-dark-muted)}
+h3.ch{margin:0 0 14px;font:var(--type-card-heading);letter-spacing:var(--tracking-widest);text-transform:uppercase;color:var(--dark)}
+</style></head><body>
+<div class="g" style="grid-template-columns:1fr 1fr;gap:18px">
+ <div><div class="card" style="height:76px"></div><div class="ondark" style="margin-top:8px">at rest — 0 1px 3px /.08 + 0 8px 24px /.06</div></div>
+ <div><div class="card" style="height:76px;box-shadow:var(--shadow-card-hover);transform:translateY(-2px)"></div><div class="ondark" style="margin-top:8px">hover — deeper, lifts 2px</div></div>
+ </div>
+ <p class="ondark" style="margin:16px 0 0">Never a border on a card. No neumorphism, no heavy drops, no colored glows except the accent tab.</p>
+</body></html>

@@ -1,0 +1,14 @@
+:root {
+  --radius-input: 8px;
+  --radius-card: 12px;
+  --radius-button: 12px;
+  --radius-pill: 999px;
+
+  /* Cards have NO border; layered soft shadow does the separation. */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.1), 0 14px 32px rgba(0, 0, 0, 0.1);
+  --shadow-primary: 0 2px 8px rgba(var(--dark-rgb), 0.25);
+  --shadow-accent: 0 2px 8px rgba(var(--accent-rgb), 0.25);
+  --shadow-accent-glow: 0 4px 14px rgba(var(--accent-rgb), 0.35);
+  --ring-focus: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}

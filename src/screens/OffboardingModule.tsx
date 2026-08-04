@@ -3,37 +3,20 @@ import { computeProgress } from '../lib/admin';
 import { useAuth } from '../lib/auth';
 import { useOffboarding, type OffboardingDoc } from '../lib/offboarding';
 import { WelcomeScreen } from './WelcomeScreen';
+import { Card } from '../ds/components/core/Card';
+import { ProgressBar } from '../ds/components/core/ProgressBar';
 
-function ProgressBar({ doc }: { doc: OffboardingDoc }) {
-  const { done, total, percent } = computeProgress(doc);
+function OffboardingProgress({ doc }: { doc: OffboardingDoc }) {
+  const { done, total } = computeProgress(doc);
   const allDone = total > 0 && done >= total;
   return (
-    <div className="mb-6">
-      <div className="mb-2 flex items-baseline justify-between">
-        <span
-          className="text-[11px] font-semibold tracking-wider uppercase"
-          style={{ color: 'rgba(255,255,255,0.55)' }}
-        >
-          {allDone ? 'All done' : 'Offboarding progress'}
-        </span>
-        <span className="text-xs font-semibold text-white/85">
-          {done} of {total} · {percent}%
-        </span>
-      </div>
-      <div
-        className="h-2.5 overflow-hidden rounded-full"
-        style={{ background: 'rgba(255,255,255,0.08)' }}
-      >
-        <div
-          className="h-full rounded-full transition-all duration-700 ease-out"
-          style={{
-            width: `${percent}%`,
-            background: 'var(--grad-progress)',
-            boxShadow: '0 0 12px rgba(67,86,169,0.45)',
-          }}
-        />
-      </div>
-    </div>
+    <Card
+      eyebrow="Offboarding"
+      heading={allDone ? 'Everything is handed back' : 'Your last weeks, in order'}
+      pad={16}
+    >
+      <ProgressBar total={total} done={done} />
+    </Card>
   );
 }
 
@@ -70,7 +53,7 @@ export function OffboardingModule() {
 
   return (
     <>
-      <ProgressBar doc={state.data} />
+      <OffboardingProgress doc={state.data} />
       <Outlet context={{ doc: state.data }} />
     </>
   );

@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x380" name="Core — buttons, badges, progress, cards" subtitle="Gradient primary, red submit, pill badges, segmented progress" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Core</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../ds-namespace.js"></script>
+<style>body{padding:20px 24px}#root{max-width:652px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/ds-babel">
+DSResolve({"Icon":"Icon.jsx","Button":"Button.jsx","StatusBadge":"StatusBadge.jsx","ProgressBar":"ProgressBar.jsx","Card":"Card.jsx","QuietLink":"QuietLink.jsx"}).then(function (NS) {
+const { Button, StatusBadge, ProgressBar, Card } = NS;
+function Demo() {
+  return (
+    <div className="stack">
+      <Card heading="Buttons" headingRight={<StatusBadge state="draft" icon={false} label="5 variants" />}>
+        <div className="row">
+          <Button variant="submit" icon="send">Submit request</Button>
+          <Button variant="primary" iconRight="arrowRight">Continue</Button>
+          <Button variant="secondary" icon="save">Save draft</Button>
+          <Button variant="destructive" size="sm">Deny</Button>
+          <Button variant="ghost" size="sm">Cancel</Button>
+          <Button size="sm" disabled>Submitted</Button>
+        </div>
+      </Card>
+      <Card heading="Status">
+        <div className="row" style={{gap:8}}>
+          <StatusBadge state="draft" />
+          <StatusBadge state="submitted" />
+          <StatusBadge state="processing" />
+          <StatusBadge state="completed" />
+          <StatusBadge state="denied" />
+          <StatusBadge state="paid" />
+        </div>
+        <div style={{marginTop:18,display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+          <ProgressBar total={6} done={2} />
+          <ProgressBar total={4} done={4} label="All steps complete" />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+});
+</script></body></html>

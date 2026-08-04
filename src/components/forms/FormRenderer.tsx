@@ -7,6 +7,10 @@ import {
   type FormDefinition,
   type FormField,
 } from '../../lib/forms';
+import { Button } from '../../ds/components/core/Button';
+import { Field } from '../../ds/components/forms/Field';
+import { ChoiceRow } from '../../ds/components/forms/ChoiceRow';
+import { FormSection } from '../../ds/components/forms/FormSection';
 
 const DRAFT_PREFIX = 'oronohr:draft:';
 
@@ -22,22 +26,17 @@ function loadDraft(formId: string): FormData {
   return {};
 }
 
-function FieldLabel({ field }: { field: FormField }) {
-  return (
-    <label
-      htmlFor={field.id}
-      className="mb-1 block text-xs font-semibold tracking-wider uppercase"
-      style={{ color: 'var(--color-ink-muted)' }}
-    >
-      {field.label}
-      {field.required && (
-        <span aria-hidden style={{ color: 'var(--color-ops-red)' }}>
-          {' '}
-          *
-        </span>
-      )}
-    </label>
-  );
+function inputType(field: FormField): string {
+  switch (field.type) {
+    case 'date':
+      return 'date';
+    case 'email':
+      return 'email';
+    case 'phone':
+      return 'tel';
+    default:
+      return 'text';
+  }
 }
 
 function FieldControl({
@@ -51,113 +50,103 @@ function FieldControl({
   error?: string;
   onChange: (v: string | boolean) => void;
 }) {
-  const invalid = Boolean(error);
-
   if (field.type === 'checkbox') {
     return (
-      <label
-        className="flex cursor-pointer items-center gap-2 text-sm"
-        style={{ color: 'var(--color-ink)' }}
-      >
-        <input
-          id={field.id}
+      <div>
+        <ChoiceRow
           type="checkbox"
+          title={field.label}
+          description={field.helper}
           checked={value === true}
           onChange={(e) => onChange(e.target.checked)}
-          className="h-4 w-4 cursor-pointer accent-[#4356a9]"
         />
-        {field.label}
-      </label>
+        {error && (
+          <p style={{ font: 'var(--type-caption)', color: 'var(--accent)', margin: '4px 0 0' }}>
+            {error}
+          </p>
+        )}
+      </div>
     );
   }
 
   if (field.type === 'radio') {
     return (
       <div>
-        <FieldLabel field={field} />
-        <div className="flex flex-col gap-1.5">
+        <p
+          style={{
+            font: 'var(--type-field-label)',
+            letterSpacing: 'var(--tracking-wider)',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            margin: '0 0 8px',
+          }}
+        >
+          {field.label}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {field.options?.map((o) => (
-            <label
+            <ChoiceRow
               key={o.value}
-              className="flex cursor-pointer items-center gap-2 text-sm"
-              style={{ color: 'var(--color-ink)' }}
-            >
-              <input
-                type="radio"
-                name={field.id}
-                value={o.value}
-                checked={value === o.value}
-                onChange={() => onChange(o.value)}
-                className="h-4 w-4 cursor-pointer accent-[#4356a9]"
-              />
-              {o.label}
-            </label>
+              type="radio"
+              name={field.id}
+              title={o.label}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+            />
           ))}
         </div>
+        {error && (
+          <p style={{ font: 'var(--type-caption)', color: 'var(--accent)', margin: '4px 0 0' }}>
+            {error}
+          </p>
+        )}
       </div>
     );
   }
 
   if (field.type === 'select') {
     return (
-      <div>
-        <FieldLabel field={field} />
-        <select
-          id={field.id}
-          value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
-          aria-invalid={invalid}
-          className="input-form"
-        >
-          <option value="">Select…</option>
-          {field.options?.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Field
+        label={field.label}
+        as="select"
+        options={field.options?.map((o) => ({ value: o.value, label: o.label }))}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+        help={error ? undefined : field.helper}
+        error={error}
+        optional={!field.required}
+      />
     );
   }
 
   if (field.type === 'textarea') {
     return (
-      <div>
-        <FieldLabel field={field} />
-        <textarea
-          id={field.id}
-          value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={field.placeholder}
-          aria-invalid={invalid}
-          rows={4}
-          className="input-form resize-none"
-        />
-      </div>
+      <Field
+        label={field.label}
+        as="textarea"
+        rows={4}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        help={error ? undefined : field.helper}
+        error={error}
+        optional={!field.required}
+      />
     );
   }
 
-  const inputType =
-    field.type === 'date'
-      ? 'date'
-      : field.type === 'email'
-        ? 'email'
-        : field.type === 'phone'
-          ? 'tel'
-          : 'text';
   return (
-    <div>
-      <FieldLabel field={field} />
-      <input
-        id={field.id}
-        type={inputType}
-        value={typeof value === 'string' ? value : ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={field.placeholder}
-        aria-invalid={invalid}
-        className="input-form"
-      />
-    </div>
+    <Field
+      label={field.label}
+      type={inputType(field)}
+      icon={field.type === 'date' ? 'calendar' : undefined}
+      value={typeof value === 'string' ? value : ''}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={field.placeholder}
+      help={error ? undefined : field.helper}
+      error={error}
+      optional={!field.required}
+    />
   );
 }
 
@@ -232,62 +221,43 @@ export function FormRenderer({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {def.sections.map((section, i) => {
         const visibleFields = section.fields.filter((f) => isFieldVisible(f, data));
         if (visibleFields.length === 0) return null;
         return (
-          <div
+          <FormSection
             key={i}
-            className="rounded-xl p-4 sm:p-5"
-            style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
+            step={i + 1}
+            title={section.title ?? ''}
+            description={section.description}
           >
-            {section.title && (
-              <h2
-                className="mb-4 text-sm font-semibold tracking-widest uppercase"
-                style={{ color: 'var(--color-ops-navy)' }}
-              >
-                {section.title}
-              </h2>
-            )}
-            {section.description && (
-              <p className="mb-4 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
-                {section.description}
-              </p>
-            )}
-            <div className="flex flex-col gap-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {visibleFields.map((field) => (
-                <div key={field.id}>
-                  <FieldControl
-                    field={field}
-                    value={data[field.id]}
-                    error={errors[field.id]}
-                    onChange={(v) => setField(field.id, v)}
-                  />
-                  {field.helper && !errors[field.id] && (
-                    <p className="mt-1 text-xs" style={{ color: 'var(--color-ink-faint)' }}>
-                      {field.helper}
-                    </p>
-                  )}
-                  {errors[field.id] && (
-                    <p
-                      className="mt-1 text-xs font-semibold"
-                      style={{ color: 'var(--color-ops-red)' }}
-                    >
-                      {errors[field.id]}
-                    </p>
-                  )}
-                </div>
+                <FieldControl
+                  key={field.id}
+                  field={field}
+                  value={data[field.id]}
+                  error={errors[field.id]}
+                  onChange={(v) => setField(field.id, v)}
+                />
               ))}
             </div>
-          </div>
+          </FormSection>
         );
       })}
 
       {submitError && (
         <p
-          className="rounded-lg px-3 py-2 text-center text-xs"
-          style={{ background: 'rgba(173,33,34,0.08)', color: 'var(--color-ops-red)' }}
+          style={{
+            font: 'var(--type-body-sm)',
+            color: 'var(--accent)',
+            background: 'rgba(var(--accent-rgb), 0.08)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            textAlign: 'center',
+            margin: 0,
+          }}
         >
           {submitError}
         </p>
@@ -295,24 +265,13 @@ export function FormRenderer({
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {hasDraft && (
-          <button
-            type="button"
-            onClick={clearDraft}
-            disabled={submitting}
-            className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            Clear form
-          </button>
+          <Button type="button" variant="ghost" onClick={clearDraft} disabled={submitting}>
+            Clear the form
+          </Button>
         )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-          style={{ background: 'var(--grad-danger)', boxShadow: 'var(--shadow-danger)' }}
-        >
-          {submitting ? 'Submitting…' : 'Submit to HR'}
-        </button>
+        <Button type="submit" variant="submit" icon="send" disabled={submitting}>
+          {submitting ? 'Sending…' : 'Send to HR'}
+        </Button>
       </div>
     </form>
   );

@@ -1,117 +1,143 @@
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 import { useIsHR } from '../../lib/auth';
-import { STATUS_BADGES, useAllSubmissions, type SubmissionStatus } from '../../lib/forms';
+import { useAllSubmissions, type SubmissionStatus } from '../../lib/forms';
+import { Card } from '../../ds/components/core/Card';
+import { StatusBadge } from '../../ds/components/core/StatusBadge';
+import { Button } from '../../ds/components/core/Button';
+import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { EmptyState } from '../../ds/components/records/EmptyState';
+import { InboxRow } from '../../ds/components/records/InboxRow';
+import { PersonPlate } from '../../ds/components/records/PersonPlate';
+import { RowList } from '../../ds/components/forms/RowList';
 
-const FILTERS: Array<{ key: SubmissionStatus | 'all' | 'open'; label: string }> = [
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+type FilterKey = 'open' | 'all' | 'completed' | 'denied';
+const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: 'open', label: 'Open' },
   { key: 'all', label: 'All' },
   { key: 'completed', label: 'Completed' },
   { key: 'denied', label: 'Denied' },
 ];
 
+function ago(ms: number | undefined): string {
+  if (!ms) return '';
+  const days = Math.floor((Date.now() - ms) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return '1d';
+  return `${days}d`;
+}
+
 export function HRInbox() {
+  const navigate = useNavigate();
   const isHR = useIsHR();
   const state = useAllSubmissions(isHR);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('open');
+  const [filter, setFilter] = useState<FilterKey>('open');
 
   if (!isHR) return <Navigate to="/" replace />;
 
-  const filtered = state.submissions?.filter((s) => {
+  const all = state.submissions ?? [];
+  const isOpen = (s: { status: SubmissionStatus }) =>
+    s.status === 'submitted' || s.status === 'processing';
+  const openCount = all.filter(isOpen).length;
+  const filtered = all.filter((s) => {
     if (filter === 'all') return true;
-    if (filter === 'open') return s.status === 'submitted' || s.status === 'processing';
+    if (filter === 'open') return isOpen(s);
     return s.status === filter;
   });
 
+  const now = new Date();
+  const monthPct = Math.round((now.getDate() / 31) * 100);
+
   return (
-    <div>
-      <Link
-        to="/"
-        className="mb-5 inline-flex items-center gap-1 rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
-        style={{ borderColor: 'rgba(255,255,255,0.3)' }}
+    <>
+      <DayHeader
+        weekday={WEEKDAYS[now.getDay()]}
+        day={now.getDate()}
+        month={MONTHS[now.getMonth()]}
+        title={
+          openCount === 0
+            ? 'The inbox is clear'
+            : openCount === 1
+              ? 'One request is waiting on you'
+              : `${openCount} requests are waiting on you`
+        }
+        subtitle="Open one to see the details and make the call."
+        railPct={monthPct}
+        railLeft={`${MONTHS[now.getMonth()]} queue`}
+        railRight={`${all.length} filed all-time`}
+      />
+
+      <Card
+        eyebrow="Inbox"
+        heading={filter === 'open' ? 'Waiting on a decision' : `Showing ${filter}`}
+        headingRight={
+          <div style={{ display: 'flex', gap: 6 }}>
+            {FILTERS.map((f) => (
+              <Button
+                key={f.key}
+                size="sm"
+                variant={filter === f.key ? 'primary' : 'ghost'}
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+        }
+        pad={16}
       >
-        ← Back to portal
-      </Link>
-
-      <h1 className="text-xl font-bold text-white sm:text-2xl">HR Inbox</h1>
-      <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-        Form submissions from staff. Open one to process it.
-      </p>
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          return (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
-              style={
-                active
-                  ? { background: '#ffffff', color: 'var(--color-ops-navy)' }
-                  : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }
-              }
-            >
-              {f.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-4 flex flex-col gap-2">
-        {state.loading && (
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        {state.loading ? (
+          <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
             Loading…
           </p>
-        )}
-        {state.error && (
-          <p className="text-sm" style={{ color: '#fecaca' }}>
+        ) : state.error ? (
+          <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
             {state.error}
           </p>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            on="card"
+            icon="inbox"
+            line={filter === 'open' ? 'Nothing needs you' : 'Nothing here'}
+            note={
+              filter === 'open'
+                ? 'New submissions land here the moment staff file them.'
+                : undefined
+            }
+          />
+        ) : (
+          <RowList>
+            {filtered.map((s) => (
+              <InboxRow
+                key={s.id}
+                person={<PersonPlate size="sm" name={s.submitterName} role={s.submitterEmail} />}
+                request={s.formTitle}
+                kind={`${s.id} · ${s.summary}`}
+                status={<StatusBadge state={s.status} />}
+                time={ago(s.createdAt?.toMillis())}
+                unread={s.status === 'submitted'}
+                onClick={() => navigate(`/forms/submissions/${s.id}`)}
+              />
+            ))}
+          </RowList>
         )}
-        {filtered?.length === 0 && (
-          <div
-            className="rounded-xl px-4 py-8 text-center text-sm"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px dashed rgba(255,255,255,0.15)',
-              color: 'rgba(255,255,255,0.55)',
-            }}
-          >
-            Nothing here.
-          </div>
-        )}
-        {filtered?.map((s) => {
-          const badge = STATUS_BADGES[s.status];
-          return (
-            <Link
-              key={s.id}
-              to={`/forms/submissions/${s.id}`}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:-translate-y-px"
-              style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold" style={{ color: 'var(--color-ops-navy)' }}>
-                  {s.formTitle}
-                  <span className="ml-2 font-normal" style={{ color: 'var(--color-ink-faint)' }}>
-                    {s.id}
-                  </span>
-                </p>
-                <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--color-ink-muted)' }}>
-                  {s.submitterName} · {s.summary} ·{' '}
-                  {s.createdAt ? s.createdAt.toDate().toLocaleDateString() : ''}
-                </p>
-              </div>
-              <span
-                className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-                style={{ background: badge.bg, color: badge.color }}
-              >
-                {badge.label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
+      </Card>
+    </>
   );
 }
