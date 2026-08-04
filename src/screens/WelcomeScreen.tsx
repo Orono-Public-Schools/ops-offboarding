@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
-import { useAuth } from '../lib/auth';
+import { useNavigate } from 'react-router';
 import { startOffboarding } from '../lib/functions';
+import { Button } from '../ds/components/core/Button';
+import { Card } from '../ds/components/core/Card';
+import { QuietLink } from '../ds/components/core/QuietLink';
 
 export function WelcomeScreen() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,53 +23,33 @@ export function WelcomeScreen() {
   };
 
   return (
-    <div className="flex justify-center px-0 py-4 sm:py-8">
-      <div
-        className="w-full max-w-xl rounded-xl p-6 sm:p-8"
-        style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
-      >
-        <img src="/OronoIcon.png" alt="" className="mb-3 h-14 w-14" />
+    <Card
+      eyebrow="Offboarding"
+      heading="We walk every handoff with you"
+      footer={
+        <QuietLink icon="home" onClick={() => navigate('/')}>
+          Not leaving the district? Back to the portal home
+        </QuietLink>
+      }
+    >
+      <p style={{ margin: 0, font: 'var(--type-body)', color: 'var(--text-body)' }}>
+        Leaving Orono? We'll walk you through transferring your Drive files, handing off group
+        ownership, setting an out-of-office reply, returning your devices, and the rest. Nothing
+        happens until you say so, and progress saves automatically — stop anytime and pick up where
+        you left off.
+      </p>
 
-        <h1
-          className="text-2xl font-bold tracking-tight"
-          style={{ color: 'var(--color-ops-navy)' }}
-        >
-          Welcome, {user?.displayName?.split(' ')[0] ?? 'there'}.
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-ink)' }}>
-          Let's get you offboarded smoothly. We'll walk you through transferring your Drive files,
-          handing off group ownership, setting an out-of-office reply, returning your devices, and
-          the rest. Progress saves automatically — come back any time to pick up where you left off.
-        </p>
-
-        <button
-          onClick={handleStart}
-          disabled={pending}
-          className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:opacity-60"
-          style={{
-            background: 'var(--grad-primary)',
-            boxShadow: '0 2px 8px rgba(29,42,93,0.25)',
-          }}
-        >
-          {pending ? 'Starting…' : 'Start my offboarding checklist'}
-        </button>
-
-        {error && (
-          <p
-            className="mt-4 rounded-lg px-3 py-2 text-center text-xs"
-            style={{ background: 'rgba(173,33,34,0.08)', color: 'var(--color-ops-red)' }}
-          >
-            {error}
-          </p>
-        )}
-
-        <p className="mt-6 text-center text-xs" style={{ color: 'var(--color-ink-faint)' }}>
-          Not leaving the district?{' '}
-          <Link to="/" className="font-semibold" style={{ color: 'var(--color-ops-blue)' }}>
-            Back to the portal home
-          </Link>
-        </p>
+      <div className="mt-5">
+        <Button variant="primary" icon="arrowRight" onClick={handleStart} disabled={pending}>
+          {pending ? 'Starting…' : 'Start my checklist'}
+        </Button>
       </div>
-    </div>
+
+      {error && (
+        <p style={{ margin: '16px 0 0', font: 'var(--type-caption)', color: 'var(--accent)' }}>
+          {error}
+        </p>
+      )}
+    </Card>
   );
 }

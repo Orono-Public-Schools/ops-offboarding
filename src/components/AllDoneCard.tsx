@@ -1,4 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
+import { Card } from '../ds/components/core/Card';
+import { Icon } from '../ds/components/core/Icon';
+import { QuietLink } from '../ds/components/core/QuietLink';
 
 type Props = {
   flow: 'leaving' | 'returning';
@@ -22,58 +25,47 @@ export function AllDoneCard({ flow, lastDay, buildingLabel }: Props) {
   const body =
     flow === 'leaving' ? (
       <>
-        <p>
+        <p style={{ margin: 0 }}>
           Your checklist is complete. Thanks for taking the time to wrap things up cleanly
           {lastDay ? ` before ${formatLastDay(lastDay)}` : ''}.
         </p>
-        <p className="mt-2">
+        <p style={{ margin: '8px 0 0' }}>
           Your account stays active through your last day. After that, sign-in is disabled and any
           forwarding you set up takes over.
         </p>
       </>
     ) : (
-      <p>
+      <p style={{ margin: 0 }}>
         {buildingLabel ? `${buildingLabel} checklist complete. ` : 'Checklist complete. '}
         Have a great break — we'll see you in the fall.
       </p>
     );
 
   return (
-    <div
-      className="rounded-r-xl p-6 sm:p-8"
-      style={{ background: '#ffffff', borderLeft: '4px solid #4356a9' }}
+    <Card
+      eyebrow="All done"
+      heading={headline}
+      footer={
+        <QuietLink icon="mail" href="mailto:support@orono.k12.mn.us">
+          If something changes or you have follow-up questions, email us
+        </QuietLink>
+      }
     >
       <div className="flex items-start gap-3">
         <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base font-bold text-white"
-          style={{ background: '#4356a9' }}
           aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'var(--tint)', color: 'var(--primary)' }}
         >
-          ✓
+          <Icon name="check" size={18} />
         </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold sm:text-2xl" style={{ color: '#1d2a5d' }}>
-            {headline}
-          </h2>
-          <div
-            className="mt-3 text-sm leading-relaxed font-medium sm:text-base"
-            style={{ color: '#475569' }}
-          >
-            {body}
-          </div>
-          <p className="mt-4 text-sm font-medium" style={{ color: '#475569' }}>
-            If something changes or you have follow-up questions, email{' '}
-            <a
-              href="mailto:support@orono.k12.mn.us"
-              className="font-semibold underline underline-offset-2"
-              style={{ color: '#4356a9' }}
-            >
-              support@orono.k12.mn.us
-            </a>
-            .
-          </p>
+        <div
+          className="min-w-0 flex-1"
+          style={{ font: 'var(--type-body)', color: 'var(--text-body)' }}
+        >
+          {body}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

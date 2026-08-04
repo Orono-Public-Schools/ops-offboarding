@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { setSupervisor } from '../lib/functions';
 import type { StaffRecord } from '../lib/staff';
 import { SupervisorPicker } from './SupervisorPicker';
+import { Button } from '../ds/components/core/Button';
 
 type Props = {
   supervisorEmail: string | null;
   supervisorName: string | null | undefined;
 };
 
+/** Row inside the "Your details" card: the saved supervisor, or an invitation
+ *  to add one. The picker itself is the shared PersonPicker dialog. */
 export function SupervisorBanner({ supervisorEmail, supervisorName }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -15,68 +18,53 @@ export function SupervisorBanner({ supervisorEmail, supervisorName }: Props) {
     await setSupervisor({ email: person.email, displayName: person.displayName });
   };
 
-  if (!supervisorEmail) {
-    return (
-      <>
-        <div
-          className="mb-6 flex flex-col gap-2 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-          style={{ background: 'rgba(255,255,255,0.04)' }}
-        >
-          <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
-            <span className="font-semibold text-white">Add your supervisor</span> (optional) — used
-            to pre-fill OOO templates and as a fallback contact.
-          </p>
-          <button
-            onClick={() => setOpen(true)}
-            className="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            Add
-          </button>
-        </div>
-        <SupervisorPicker
-          open={open}
-          currentEmail={null}
-          onClose={() => setOpen(false)}
-          onConfirm={handleConfirm}
-        />
-      </>
-    );
-  }
-
   return (
     <>
-      <div
-        className="mb-6 flex flex-col items-start gap-2 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-        style={{ background: 'rgba(255,255,255,0.04)' }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p
-            className="text-[11px] font-semibold tracking-wider uppercase"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
+            style={{
+              margin: 0,
+              font: 'var(--type-field-label)',
+              letterSpacing: 'var(--tracking-wider)',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+            }}
           >
             Supervisor
           </p>
-          <p className="mt-0.5 truncate text-sm font-semibold text-white">
-            {supervisorName ?? supervisorEmail}
-          </p>
-          {supervisorName && (
-            <p className="truncate text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {supervisorEmail}
+          {supervisorEmail ? (
+            <>
+              <p
+                className="truncate"
+                style={{ margin: '3px 0 0', font: 'var(--type-strong)', color: 'var(--dark)' }}
+              >
+                {supervisorName ?? supervisorEmail}
+              </p>
+              {supervisorName && (
+                <p
+                  className="truncate"
+                  style={{ margin: 0, font: 'var(--type-caption)', color: 'var(--text-muted)' }}
+                >
+                  {supervisorEmail}
+                </p>
+              )}
+            </>
+          ) : (
+            <p
+              style={{ margin: '3px 0 0', font: 'var(--type-caption)', color: 'var(--text-muted)' }}
+            >
+              Optional — pre-fills your out-of-office and gives IT a fallback contact.
             </p>
           )}
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          className="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-          style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-        >
-          Change
-        </button>
+        <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+          {supervisorEmail ? 'Change' : 'Add'}
+        </Button>
       </div>
       <SupervisorPicker
         open={open}
-        currentEmail={supervisorEmail}
+        currentEmail={supervisorEmail ?? null}
         onClose={() => setOpen(false)}
         onConfirm={handleConfirm}
       />

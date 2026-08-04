@@ -3,12 +3,16 @@ import { useOutletContext } from 'react-router';
 import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
+  InsetPanel,
   StepCard,
   StepError,
   StepHeader,
   StepLabel,
   StepTextarea,
 } from '../../components/TaskStep';
+import { Button } from '../../ds/components/core/Button';
+import { StatusBadge } from '../../ds/components/core/StatusBadge';
+import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import {
   CalendarTokenError,
   calendarSettingsUrl,
@@ -104,15 +108,11 @@ export function CalendarTransferTask() {
 
   return (
     <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          Calendar handoff
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          We pull calendars you own or manage (other than your primary) so you can hand off the ones
-          that need it.
-        </p>
-      </div>
+      <PageTitle
+        title="Calendar handoff"
+        subtitle="We pull calendars you own or manage (other than your primary) so you can hand off the ones that need it."
+        className="mb-5 sm:mb-8"
+      />
 
       <div className="space-y-4">
         <StepCard>
@@ -142,12 +142,12 @@ export function CalendarTransferTask() {
           {!scanning && calendars && (
             <>
               {calendars.length === 0 ? (
-                <p className="text-sm text-white/65">
-                  You don’t own or manage any calendars besides your primary. Nothing to do here. ✓
+                <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
+                  You don’t own or manage any calendars besides your primary. Nothing to do here.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {calendars.map((c) => {
+                <div>
+                  {calendars.map((c, i) => {
                     const isOwner = c.accessRole === 'owner';
                     return (
                       <a
@@ -155,35 +155,45 @@ export function CalendarTransferTask() {
                         href={calendarSettingsUrl(c.id)}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-3 rounded-lg p-3 transition hover:bg-white/5"
-                        style={{ background: 'rgba(255,255,255,0.08)' }}
+                        className="flex items-center gap-3 py-3 transition hover:bg-black/[0.03]"
+                        style={{ borderTop: i > 0 ? '1px solid var(--divider)' : undefined }}
                       >
                         <span
                           className="h-9 w-2 shrink-0 rounded-full"
-                          style={{ background: c.backgroundColor ?? '#94a3b8' }}
+                          style={{ background: c.backgroundColor ?? 'var(--text-placeholder)' }}
                         />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-white">
+                          <span
+                            className="block truncate"
+                            style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}
+                          >
                             {c.summary}
                           </span>
                           {c.description && (
-                            <span className="block truncate text-xs text-white/60">
+                            <span
+                              className="block truncate"
+                              style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}
+                            >
                               {c.description}
                             </span>
                           )}
                         </span>
+                        <StatusBadge
+                          state={isOwner ? 'processing' : 'draft'}
+                          label={isOwner ? 'Owner' : 'Manager'}
+                          icon={false}
+                          size="sm"
+                          className="shrink-0"
+                        />
                         <span
-                          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{
-                            background: isOwner
-                              ? 'rgba(255,255,255,0.22)'
-                              : 'rgba(255,255,255,0.1)',
-                            color: '#ffffff',
+                            font: 'var(--type-caption)',
+                            fontWeight: 600,
+                            color: 'var(--secondary)',
                           }}
                         >
-                          {isOwner ? 'Owner' : 'Manager'}
+                          Open ↗
                         </span>
-                        <span className="text-xs font-semibold text-white/80">Open ↗</span>
                       </a>
                     );
                   })}
@@ -197,14 +207,15 @@ export function CalendarTransferTask() {
           <StepHeader step="Step 2" title="What to do" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {TIPS.map((tip) => (
-              <div
-                key={tip.title}
-                className="rounded-lg p-3"
-                style={{ background: 'rgba(255,255,255,0.08)' }}
-              >
-                <p className="text-sm font-semibold text-white">{tip.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/75">{tip.body}</p>
-              </div>
+              <InsetPanel key={tip.title}>
+                <p style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}>{tip.title}</p>
+                <p
+                  className="mt-1 leading-relaxed"
+                  style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}
+                >
+                  {tip.body}
+                </p>
+              </InsetPanel>
             ))}
           </div>
         </StepCard>
@@ -232,15 +243,15 @@ export function CalendarTransferTask() {
           {(isComplete || isSkipped) && (
             <div className="mb-4 space-y-2">
               {taskState.notes && (
-                <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
-                    Your note
+                <InsetPanel>
+                  <StepLabel>Your note</StepLabel>
+                  <p style={{ font: 'var(--type-body)', color: 'var(--text-body)' }}>
+                    {taskState.notes}
                   </p>
-                  <p className="mt-1 text-sm text-white/85">{taskState.notes}</p>
-                </div>
+                </InsetPanel>
               )}
               {taskState.completedAt && isComplete && (
-                <p className="text-xs text-white/60">
+                <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
                   Marked complete{' '}
                   {taskState.completedAt
                     .toDate()
@@ -263,38 +274,32 @@ export function CalendarTransferTask() {
             </>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isComplete || isSkipped ? (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => handleStatus('in_progress')}
                 disabled={pending !== null}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
               >
                 {pending === 'reopen' ? 'Saving…' : 'Reopen'}
-              </button>
+              </Button>
             ) : (
               <>
-                <button
+                <Button
+                  variant="submit"
+                  icon="check"
                   onClick={() => handleStatus('completed')}
                   disabled={pending !== null}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
-                  style={{
-                    background: '#ffffff',
-                    color: '#1d2a5d',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  }}
                 >
                   {pending === 'complete' ? 'Saving…' : "I'm done — mark complete"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => handleStatus('skipped')}
                   disabled={pending !== null}
-                  className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                  style={{ borderColor: 'rgba(255,255,255,0.4)' }}
                 >
                   {pending === 'skip' ? 'Saving…' : "Doesn't apply — skip"}
-                </button>
+                </Button>
               </>
             )}
             <NextTaskButton currentKey="calendarTransfer" />

@@ -21,32 +21,57 @@ import {
   useEoySettings,
   useStaffRosterSyncStatus,
 } from '../../lib/settings';
+import { Button } from '../../ds/components/core/Button';
+import { Card } from '../../ds/components/core/Card';
+import { StatusBadge } from '../../ds/components/core/StatusBadge';
+import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { EmptyState } from '../../ds/components/records/EmptyState';
+import { Field } from '../../ds/components/forms/Field';
+import { RowList, DetailRow } from '../../ds/components/forms/RowList';
 
 type FilterType = 'all' | 'returning' | 'leaving';
 
 const BUILDING_LABEL_BY_KEY = new Map(BUILDING_CHECKLISTS.map((b) => [b.key, b.label]));
 
-const STATUS_STYLES: Record<string, { label: string; cardBg: string; cardGlow: string }> = {
-  in_progress: {
-    label: 'In progress',
-    cardBg: 'linear-gradient(135deg, #4356a9 0%, #5a6fbf 100%)',
-    cardGlow: 'rgba(67,86,169,0.3)',
-  },
-  completed: {
-    label: 'Completed',
-    cardBg: 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)',
-    cardGlow: 'rgba(29,42,93,0.3)',
-  },
-  archived: {
-    label: 'Archived',
-    cardBg: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
-    cardGlow: 'rgba(100,116,139,0.2)',
-  },
-};
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
-function urgencyHint(days: number | null, status: string): string {
-  if (status === 'completed') return 'Completed';
-  if (status === 'archived') return 'Archived';
+/** School-year rail: Sep 1 – Jun 10. Returns null over the summer. */
+function schoolYearRail(now: Date): { pct: number; left: string; right: string } | null {
+  const y = now.getFullYear();
+  const start = now.getMonth() >= 8 ? new Date(y, 8, 1) : new Date(y - 1, 8, 1);
+  const end = now.getMonth() >= 8 ? new Date(y + 1, 5, 10) : new Date(y, 5, 10);
+  if (now > end || now < start) return null;
+  const day = Math.ceil((now.getTime() - start.getTime()) / 86_400_000);
+  const total = Math.ceil((end.getTime() - start.getTime()) / 86_400_000);
+  return {
+    pct: Math.round((day / total) * 100),
+    left: `Day ${day} of the school year`,
+    right: `${total - day} days to June 10`,
+  };
+}
+
+function badgeFor(status: string): { state: 'processing' | 'completed' | 'draft'; label?: string } {
+  if (status === 'in_progress') return { state: 'processing', label: 'In progress' };
+  if (status === 'completed') return { state: 'completed' };
+  if (status === 'archived') return { state: 'draft', label: 'Archived' };
+  return { state: 'draft', label: status };
+}
+
+function urgencyHint(days: number | null): string {
   if (days === null) return 'No last day set';
   if (days < 0) return `${Math.abs(days)}d past last day`;
   if (days === 0) return 'Last day is today';
@@ -55,68 +80,52 @@ function urgencyHint(days: number | null, status: string): string {
 }
 
 function Row({ offboarding }: { offboarding: OffboardingSummary }) {
-  const style = STATUS_STYLES[offboarding.status] ?? STATUS_STYLES.in_progress;
-  const { done, total, percent } = computeProgress(offboarding);
+  const { done, total } = computeProgress(offboarding);
   const days = daysUntilLastDay(offboarding.lastDay);
-  // Default legacy docs (no type field) to "leaving" so badge matches the filter.
+  // Default legacy docs (no type field) to "leaving" so the label matches the filter.
   const effectiveType = offboarding.type ?? 'leaving';
   const isLeaving = effectiveType === 'leaving';
-  const isReturning = effectiveType === 'returning';
-  const urgent = days !== null && days <= 7 && offboarding.status === 'in_progress';
+  const badge = badgeFor(offboarding.status);
   const buildingLabel = offboarding.buildingChecklist
     ? BUILDING_LABEL_BY_KEY.get(offboarding.buildingChecklist)
     : null;
 
+  const meta = [offboarding.email];
+  if (!isLeaving && buildingLabel) meta.push(buildingLabel);
+  if (isLeaving && offboarding.supervisorName)
+    meta.push(`supervisor ${offboarding.supervisorName}`);
+
   return (
     <Link
       to={`/admin/offboardings/${offboarding.uid}`}
-      className="flex flex-col gap-3 rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center sm:gap-5 sm:p-5"
-      style={{ background: style.cardBg, boxShadow: `0 2px 12px ${style.cardGlow}` }}
+      className="flex flex-col gap-2 no-underline transition-colors duration-200 sm:flex-row sm:items-center sm:gap-4"
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-white">
+        <p
+          className="truncate"
+          style={{ font: 'var(--type-body)', fontWeight: 600, color: 'var(--dark)', margin: 0 }}
+        >
           {offboarding.displayName || offboarding.email}
         </p>
-        <p className="truncate text-xs text-white/65">
-          {offboarding.email}
-          {isReturning && buildingLabel && <> · {buildingLabel}</>}
-          {isLeaving && offboarding.supervisorName && (
-            <> · supervisor {offboarding.supervisorName}</>
-          )}
+        <p
+          className="truncate"
+          style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: 0 }}
+        >
+          {meta.join(' · ')}
         </p>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
-        <span
-          className="rounded-full px-2.5 py-1 text-xs font-semibold"
-          style={{
-            background: isLeaving ? 'rgba(173,33,34,0.4)' : 'rgba(255,255,255,0.18)',
-            color: '#ffffff',
-          }}
-        >
-          {isLeaving ? 'Leaving' : 'Returning'}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end">
+        <span style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
+          {done} of {total}
         </span>
-        <span
-          className="rounded-full px-2.5 py-1 text-xs font-semibold"
-          style={{ background: 'rgba(255,255,255,0.18)', color: '#ffffff' }}
-        >
-          {style.label}
-        </span>
-        {isLeaving && (
-          <span
-            className="rounded-full px-2.5 py-1 text-xs font-semibold"
-            style={{
-              background: urgent ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
-              color: '#ffffff',
-            }}
-          >
-            {urgencyHint(days, offboarding.status)}
+        <StatusBadge state={badge.state} label={badge.label} size="sm" />
+        {isLeaving && offboarding.status === 'in_progress' && (
+          <span style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
+            {urgencyHint(days)}
           </span>
         )}
-        <span className="text-sm font-bold text-white">
-          {percent}%{' '}
-          <span className="text-xs font-normal text-white/70">
-            ({done}/{total})
-          </span>
+        <span style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
+          {isLeaving ? 'Leaving' : 'Returning'}
         </span>
       </div>
     </Link>
@@ -237,46 +246,73 @@ export function AdminDashboard() {
     }
   };
 
+  const now = new Date();
+  const rail = schoolYearRail(now);
+  const inMotion = allOffboardings.filter((o) => o.status === 'in_progress').length;
+  const headline =
+    inMotion === 0
+      ? 'Nothing in motion'
+      : inMotion === 1
+        ? 'One offboarding in motion'
+        : `${inMotion} offboardings in motion`;
+
+  const messageStyle = (kind: 'ok' | 'error'): React.CSSProperties => ({
+    font: 'var(--type-body-sm)',
+    color: kind === 'ok' ? 'var(--primary)' : 'var(--accent)',
+    background: kind === 'ok' ? 'var(--tint)' : 'rgba(var(--accent-rgb), 0.08)',
+    borderRadius: 8,
+    padding: '8px 12px',
+    margin: '12px 0 0',
+  });
+
   return (
-    <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          IT admin dashboard
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Everyone with an active year-end checklist or offboarding. Click in to see per-task status
-          and the audit log.
-        </p>
-      </div>
+    <>
+      <DayHeader
+        weekday={WEEKDAYS[now.getDay()]}
+        day={now.getDate()}
+        month={MONTHS[now.getMonth()]}
+        title={headline}
+        subtitle="Everyone with an active checklist shows here. Open a row for per-task status and the audit trail."
+        railPct={rail?.pct}
+        railLeft={rail?.left}
+        railRight={rail?.right}
+      />
 
       {openHelpRequests.length > 0 && (
-        <CollapsibleSection
-          label={`🚩 Open help requests (${openHelpRequests.length})`}
-          defaultOpen
+        <Card
+          eyebrow="Help"
+          heading={
+            openHelpRequests.length === 1
+              ? 'One task is waiting on a hand'
+              : `${openHelpRequests.length} tasks are waiting on a hand`
+          }
+          pad={16}
         >
-          <div className="space-y-2">
+          <RowList>
             {openHelpRequests.map((req) => (
               <Link
                 key={`${req.uid}-${req.taskKey}`}
                 to={`/admin/offboardings/${req.uid}`}
-                className="flex flex-col gap-1 rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-start sm:gap-5 sm:p-5"
-                style={{
-                  background: 'rgba(245,158,11,0.14)',
-                  border: '1px solid rgba(245,158,11,0.4)',
-                  boxShadow: '0 2px 12px rgba(245,158,11,0.15)',
-                }}
+                className="flex flex-col gap-1 no-underline sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold" style={{ color: '#fde68a' }}>
+                  <p
+                    style={{
+                      font: 'var(--type-body)',
+                      fontWeight: 600,
+                      color: 'var(--dark)',
+                      margin: 0,
+                    }}
+                  >
                     {req.displayName} · {req.taskLabel}
                   </p>
-                  <p className="mt-1 text-xs" style={{ color: 'rgba(253,230,138,0.85)' }}>
-                    "{req.reason}"
+                  <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: 0 }}>
+                    “{req.reason}”
                   </p>
                 </div>
-                <p
-                  className="shrink-0 text-[11px] font-semibold tracking-wider uppercase"
-                  style={{ color: 'rgba(253,230,138,0.7)' }}
+                <span
+                  className="shrink-0"
+                  style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}
                 >
                   {req.requestedAt
                     ? req.requestedAt.toLocaleDateString('en-US', {
@@ -284,204 +320,170 @@ export function AdminDashboard() {
                         day: 'numeric',
                       })
                     : ''}
-                </p>
+                </span>
               </Link>
             ))}
-          </div>
-        </CollapsibleSection>
+          </RowList>
+        </Card>
       )}
 
-      <CollapsibleSection label="Progress tracker" defaultOpen>
-        {state.loading && (
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+      <Card
+        eyebrow="Offboardings"
+        heading={
+          filter === 'all'
+            ? 'Everyone with a checklist'
+            : filter === 'leaving'
+              ? 'People leaving the district'
+              : 'People coming back in fall'
+        }
+        headingRight={
+          allOffboardings.length > 0 ? (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {(
+                [
+                  { key: 'all', label: 'All', count: counts.all },
+                  { key: 'returning', label: 'Returning', count: counts.returning },
+                  { key: 'leaving', label: 'Leaving', count: counts.leaving },
+                ] as const
+              ).map((opt) => (
+                <Button
+                  key={opt.key}
+                  size="sm"
+                  variant={filter === opt.key ? 'primary' : 'ghost'}
+                  onClick={() => setFilter(opt.key)}
+                >
+                  {opt.label} ({opt.count})
+                </Button>
+              ))}
+            </div>
+          ) : undefined
+        }
+        pad={16}
+      >
+        {state.loading ? (
+          <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
             Loading…
           </p>
-        )}
-
-        {!state.loading && 'error' in state && (
-          <div
-            className="rounded-xl p-4 text-sm"
-            style={{ background: 'rgba(173,33,34,0.12)', color: '#fecaca' }}
-          >
+        ) : 'error' in state ? (
+          <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
             Couldn't load offboardings: {state.error.message}
-          </div>
-        )}
-
-        {!state.loading && 'offboardings' in state && state.offboardings.length > 0 && (
-          <div
-            className="mb-4 flex flex-wrap gap-1 rounded-xl p-1"
-            style={{ background: 'rgba(255,255,255,0.06)' }}
-          >
-            {(
-              [
-                { key: 'all', label: 'All', count: counts.all },
-                { key: 'returning', label: 'Returning', count: counts.returning },
-                { key: 'leaving', label: 'Leaving', count: counts.leaving },
-              ] as const
-            ).map((opt) => {
-              const active = filter === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => setFilter(opt.key)}
-                  className="flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-                  style={
-                    active
-                      ? { background: 'rgba(255,255,255,0.18)', color: '#ffffff' }
-                      : { color: 'rgba(255,255,255,0.55)' }
-                  }
-                >
-                  {opt.label}{' '}
-                  <span className="font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    ({opt.count})
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {!state.loading && 'offboardings' in state && filtered.length === 0 && (
-          <div
-            className="rounded-xl p-6 text-center"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px dashed rgba(255,255,255,0.15)',
-            }}
-          >
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              {state.offboardings.length === 0
-                ? 'No checklists yet.'
-                : `No ${filter} checklists right now.`}
-            </p>
-          </div>
-        )}
-
-        {!state.loading && 'offboardings' in state && filtered.length > 0 && (
-          <div className="space-y-3">
+          </p>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            on="card"
+            icon="users"
+            line={
+              state.offboardings.length === 0
+                ? 'No checklists yet'
+                : `No ${filter} checklists right now`
+            }
+            note={
+              state.offboardings.length === 0
+                ? 'Checklists appear here the moment staff start one.'
+                : undefined
+            }
+          />
+        ) : (
+          <RowList>
             {filtered.map((o) => (
               <Row key={o.uid} offboarding={o} />
             ))}
-          </div>
+          </RowList>
         )}
-      </CollapsibleSection>
+      </Card>
 
       <CollapsibleSection label="Settings">
-        <div
-          className="mb-3 rounded-xl p-4 sm:p-5"
-          style={{ background: 'rgba(255,255,255,0.04)' }}
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <p
-                className="text-[11px] font-semibold tracking-wider uppercase"
-                style={{ color: 'rgba(255,255,255,0.5)' }}
-              >
-                Summer responder return date
-              </p>
-              <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Date staff will reference in their summer vacation responder. Secondary buildings
-                auto-shift one day later (matches OPS's historical pattern).
-              </p>
-            </div>
-            <div className="flex items-end gap-2">
-              <input
-                type="date"
-                value={returnDateInput}
-                onChange={(e) => setReturnDateInput(e.target.value)}
-                disabled={settingsState.loading || savingSettings}
-                className="rounded-lg px-3 py-2 text-sm transition outline-none disabled:opacity-60"
-                style={{
-                  background: 'rgba(255,255,255,0.95)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  color: '#1d2a5d',
-                }}
-              />
-              <button
-                onClick={handleSaveSettings}
-                disabled={settingsState.loading || savingSettings}
-                className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 sm:text-sm"
-                style={{
-                  background: '#ffffff',
-                  color: '#1d2a5d',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}
-              >
-                {savingSettings ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-          {settingsMessage && (
+        <div className="flex flex-col gap-6">
+          <Card eyebrow="Settings" heading="What the summer responder promises" pad={16}>
             <p
-              className="mt-3 rounded-lg px-3 py-2 text-xs"
               style={{
-                background:
-                  settingsMessage.kind === 'ok' ? 'rgba(255,255,255,0.08)' : 'rgba(173,33,34,0.12)',
-                color: settingsMessage.kind === 'ok' ? '#ffffff' : '#fecaca',
+                font: 'var(--type-caption)',
+                color: 'var(--text-muted)',
+                margin: '0 0 12px',
               }}
             >
-              {settingsMessage.kind === 'ok' ? '✓ ' : '✕ '}
-              {settingsMessage.text}
+              The return date staff reference in their summer vacation responder. Secondary
+              buildings auto-shift one day later — that matches OPS's historical pattern.
             </p>
-          )}
-        </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Field
+                  label="Return date"
+                  type="date"
+                  value={returnDateInput}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setReturnDateInput(e.target.value)
+                  }
+                  disabled={settingsState.loading || savingSettings}
+                />
+              </div>
+              <Button
+                variant="primary"
+                icon="save"
+                disabled={settingsState.loading || savingSettings}
+                onClick={() => void handleSaveSettings()}
+              >
+                {savingSettings ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+            {settingsMessage && (
+              <p style={messageStyle(settingsMessage.kind)}>{settingsMessage.text}</p>
+            )}
+          </Card>
 
-        <AdminListCard />
+          <AdminListCard />
+        </div>
       </CollapsibleSection>
 
       <CollapsibleSection label="Roster">
-        <div className="rounded-xl p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <p
-                className="text-[11px] font-semibold tracking-wider uppercase"
-                style={{ color: 'rgba(255,255,255,0.5)' }}
-              >
-                Staff roster
-              </p>
-              {!syncState.loading && syncState.status?.lastSyncedAt ? (
-                <p className="mt-1 text-sm font-semibold text-white">
-                  {syncState.status.synced ?? '?'} staff · last synced{' '}
-                  {formatRelativeTime(syncState.status.lastSyncedAt)}
-                  {syncState.status.source && (
-                    <span className="font-normal text-white/55"> ({syncState.status.source})</span>
-                  )}
-                </p>
-              ) : (
-                <p className="mt-1 text-sm font-semibold text-white">
-                  {syncState.loading ? 'Loading…' : 'Never synced'}
-                </p>
-              )}
-              <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Auto-syncs daily at 3:00 AM Central. Use Sync now if you’ve just edited the roster
-                sheet and need staff to show up immediately.
-              </p>
-            </div>
-            <button
-              onClick={handleSyncStaff}
+        <Card
+          eyebrow="Roster"
+          heading="Synced nightly at 3:00 AM Central"
+          headingRight={
+            <Button
+              variant="primary"
+              size="sm"
               disabled={syncing}
-              className="shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-60 sm:text-sm"
-              style={{ borderColor: 'rgba(255,255,255,0.3)' }}
+              onClick={() => void handleSyncStaff()}
             >
               {syncing ? 'Syncing…' : 'Sync now'}
-            </button>
-          </div>
-
-          {syncMessage && (
-            <p
-              className="mt-3 rounded-lg px-3 py-2 text-xs"
-              style={{
-                background:
-                  syncMessage.kind === 'ok' ? 'rgba(255,255,255,0.08)' : 'rgba(173,33,34,0.18)',
-                color: syncMessage.kind === 'ok' ? '#ffffff' : '#fecaca',
-              }}
-            >
-              {syncMessage.kind === 'ok' ? '✓ ' : '✕ '}
-              {syncMessage.text}
-            </p>
-          )}
-        </div>
+            </Button>
+          }
+          pad={16}
+        >
+          <RowList>
+            <DetailRow
+              label="Staff"
+              value={
+                syncState.loading
+                  ? 'Loading…'
+                  : syncState.status?.lastSyncedAt
+                    ? `${syncState.status.synced ?? '?'} people`
+                    : '—'
+              }
+            />
+            <DetailRow
+              label="Last synced"
+              value={
+                syncState.loading
+                  ? 'Loading…'
+                  : syncState.status?.lastSyncedAt
+                    ? `${formatRelativeTime(syncState.status.lastSyncedAt)}${
+                        syncState.status.source ? ` (${syncState.status.source})` : ''
+                      }`
+                    : 'Never'
+              }
+            />
+          </RowList>
+          <p
+            style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '12px 0 0' }}
+          >
+            Use Sync now if you’ve just edited the roster sheet and need staff to show up
+            immediately.
+          </p>
+          {syncMessage && <p style={messageStyle(syncMessage.kind)}>{syncMessage.text}</p>}
+        </Card>
       </CollapsibleSection>
-    </div>
+    </>
   );
 }
