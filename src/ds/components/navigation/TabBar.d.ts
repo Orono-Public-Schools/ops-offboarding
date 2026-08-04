@@ -17,5 +17,8 @@ export interface TabBarProps extends React.HTMLAttributes<HTMLElement> {
   tabs?: TabEntry[];
   active?: string;
   onSelect?: (id: string) => void;
+  /** "accent" (default) — red-gradient active, for the main nav only.
+   *  "inverse" — white active pill with navy text, for secondary tab rows. */
+  tone?: 'accent' | 'inverse';
 }
 export declare function TabBar(props: TabBarProps): JSX.Element;
