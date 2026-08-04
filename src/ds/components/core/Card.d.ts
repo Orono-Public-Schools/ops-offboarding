@@ -25,6 +25,11 @@ export interface CardProps extends React.HTMLAttributes<HTMLElement> {
   variant?: 'strip' | 'plain';
   /** Adds hover lift — pair with onClick. */
   interactive?: boolean;
+  /** Strip-variant cards only: the heading strip toggles the body, with the
+   *  ModuleCard corner-arrow tab as the affordance. */
+  collapsible?: boolean;
+  /** Collapsible cards start closed unless this is set. */
+  defaultOpen?: boolean;
   bodyStyle?: React.CSSProperties;
 }
 export declare function Card(props: CardProps): JSX.Element;
