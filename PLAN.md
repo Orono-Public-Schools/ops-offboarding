@@ -46,6 +46,9 @@ Approval-flow state machine + `resolveRoutingChain` (chain frozen at submit), `R
 ### Design system ✅ (done 2026-08-04)
 - [x] Generated with claude.ai/design, handed off, vendored verbatim at `src/ds/` (its `readme.md` is the style spec)
 - [x] Entire app migrated: shell/nav, sign-in (on-dark minimal), home (DayHeader + StatusTrack + ModuleCards), forms module, HR inbox, offboarding dashboard (ChecklistItem rows with working toggle + Open buttons + hover sweep, working-days-left rail), all task screens (white cards, one red commitment per screen), admin panel
+- [x] Admin organized into sub-tabs (Staff & access default → Onboarding → Forms → Offboarding), URL-persisted, via new `TabBar tone="inverse"` (white active pill so red stays the main nav's)
+- [x] Collapsible ds Cards (heading strip toggles, ModuleCard corner-arrow affordance, collapsed by default in admin; help-requests card auto-opens)
+- [x] Rendering fixes in the vendored kit: single-layer card corners (no double-painted antialias sliver), ModuleCard flood seed rests at scale(0), Forms page brought onto the DayHeader pattern
 - [ ] **Later — styling button-up pass:** sweep for rough edges once real usage surfaces them (mobile nav collapse, custom date picker per the handoff's open asks, remove now-unused legacy tokens from `src/index.css`, empty-state/copy polish)
 
 ### Phase 2 — HR side
