@@ -22,9 +22,9 @@ import {
 } from '../../lib/settings';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
-import { Icon, type IconName } from '../../ds/components/core/Icon';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { TabBar, type TabEntry } from '../../ds/components/navigation/TabBar';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
 import { RowList, DetailRow } from '../../ds/components/forms/RowList';
@@ -32,7 +32,7 @@ import { RowList, DetailRow } from '../../ds/components/forms/RowList';
 type FilterType = 'all' | 'returning' | 'leaving';
 
 type AdminTab = 'staff' | 'onboarding' | 'forms' | 'offboarding';
-const ADMIN_TABS: Array<{ id: AdminTab; label: string; icon: IconName }> = [
+const ADMIN_TABS: TabEntry[] = [
   { id: 'staff', label: 'Staff & access', icon: 'key' },
   { id: 'onboarding', label: 'Onboarding', icon: 'users' },
   { id: 'forms', label: 'Forms', icon: 'fileText' },
@@ -40,44 +40,6 @@ const ADMIN_TABS: Array<{ id: AdminTab; label: string; icon: IconName }> = [
 ];
 function isAdminTab(v: string | null): v is AdminTab {
   return v === 'offboarding' || v === 'onboarding' || v === 'forms' || v === 'staff';
-}
-
-/** Quieter sub-navigation than the shell's TabBar: no container fill, smaller
- *  type, and a white active pill instead of the accent gradient — so the one
- *  red "you are here" on screen stays the main nav's. */
-function SubTabs({ active, onSelect }: { active: AdminTab; onSelect: (t: AdminTab) => void }) {
-  return (
-    <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }} aria-label="Admin sections">
-      {ADMIN_TABS.map((t) => {
-        const on = t.id === active;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onSelect(t.id)}
-            aria-current={on ? 'page' : undefined}
-            className="transition hover:-translate-y-px active:scale-[0.98]"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 7,
-              padding: '7px 13px',
-              border: 'none',
-              borderRadius: 'var(--radius-pill)',
-              font: '600 12.5px/1 var(--font-sans)',
-              background: on ? 'var(--surface-card)' : 'transparent',
-              color: on ? 'var(--dark)' : 'var(--on-dark-faint)',
-              boxShadow: on ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <Icon name={t.icon} size={14} />
-            {t.label}
-          </button>
-        );
-      })}
-    </nav>
-  );
 }
 
 const BUILDING_LABEL_BY_KEY = new Map(BUILDING_CHECKLISTS.map((b) => [b.key, b.label]));
@@ -349,7 +311,13 @@ export function AdminDashboard() {
         railRight={rail?.right}
       />
 
-      <SubTabs active={tab} onSelect={(id) => navigate(`/admin?tab=${id}`, { replace: true })} />
+      <TabBar
+        tone="inverse"
+        tabs={ADMIN_TABS}
+        active={tab}
+        aria-label="Admin sections"
+        onSelect={(id) => navigate(`/admin?tab=${id}`, { replace: true })}
+      />
 
       {tab === 'offboarding' && openHelpRequests.length > 0 && (
         <Card
