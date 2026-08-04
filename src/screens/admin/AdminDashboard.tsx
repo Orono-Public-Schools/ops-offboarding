@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AdminListCard } from '../../components/AdminListCard';
-import { CollapsibleSection } from '../../components/CollapsibleSection';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -25,11 +24,23 @@ import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { TabBar, type TabEntry } from '../../ds/components/navigation/TabBar';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
 import { RowList, DetailRow } from '../../ds/components/forms/RowList';
 
 type FilterType = 'all' | 'returning' | 'leaving';
+
+type AdminTab = 'offboarding' | 'onboarding' | 'forms' | 'staff';
+const ADMIN_TABS: TabEntry[] = [
+  { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
+  { id: 'onboarding', label: 'Onboarding', icon: 'users' },
+  { id: 'forms', label: 'Forms', icon: 'fileText' },
+  { id: 'staff', label: 'Staff & access', icon: 'key' },
+];
+function isAdminTab(v: string | null): v is AdminTab {
+  return v === 'offboarding' || v === 'onboarding' || v === 'forms' || v === 'staff';
+}
 
 const BUILDING_LABEL_BY_KEY = new Map(BUILDING_CHECKLISTS.map((b) => [b.key, b.label]));
 
@@ -134,6 +145,10 @@ function Row({ offboarding }: { offboarding: OffboardingSummary }) {
 
 export function AdminDashboard() {
   const state = useAllOffboardings();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: AdminTab = isAdminTab(tabParam) ? tabParam : 'offboarding';
   const [filter, setFilter] = useState<FilterType>('all');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{
@@ -249,12 +264,30 @@ export function AdminDashboard() {
   const now = new Date();
   const rail = schoolYearRail(now);
   const inMotion = allOffboardings.filter((o) => o.status === 'in_progress').length;
+
+  const staffCount = !syncState.loading ? syncState.status?.synced : undefined;
   const headline =
-    inMotion === 0
-      ? 'Nothing in motion'
-      : inMotion === 1
-        ? 'One offboarding in motion'
-        : `${inMotion} offboardings in motion`;
+    tab === 'staff'
+      ? staffCount
+        ? `${staffCount} people on the roster`
+        : 'Staff & access'
+      : tab === 'onboarding'
+        ? 'Onboarding has no settings yet'
+        : tab === 'forms'
+          ? 'Forms run themselves for now'
+          : inMotion === 0
+            ? 'Nothing in motion'
+            : inMotion === 1
+              ? 'One offboarding in motion'
+              : `${inMotion} offboardings in motion`;
+  const subtitle =
+    tab === 'staff'
+      ? 'The roster sync and who can work this dashboard.'
+      : tab === 'onboarding'
+        ? 'When onboarding opens, new-hire settings and checklists will live here.'
+        : tab === 'forms'
+          ? 'Submissions land in the HR inbox; routing settings arrive with the next batch of forms.'
+          : 'Everyone with an active checklist shows here. Open a row for per-task status and the audit trail.';
 
   const messageStyle = (kind: 'ok' | 'error'): React.CSSProperties => ({
     font: 'var(--type-body-sm)',
@@ -272,13 +305,19 @@ export function AdminDashboard() {
         day={now.getDate()}
         month={MONTHS[now.getMonth()]}
         title={headline}
-        subtitle="Everyone with an active checklist shows here. Open a row for per-task status and the audit trail."
+        subtitle={subtitle}
         railPct={rail?.pct}
         railLeft={rail?.left}
         railRight={rail?.right}
       />
 
-      {openHelpRequests.length > 0 && (
+      <TabBar
+        tabs={ADMIN_TABS}
+        active={tab}
+        onSelect={(id) => navigate(`/admin?tab=${id}`, { replace: true })}
+      />
+
+      {tab === 'offboarding' && openHelpRequests.length > 0 && (
         <Card
           eyebrow="Help"
           heading={
@@ -327,115 +366,134 @@ export function AdminDashboard() {
         </Card>
       )}
 
-      <Card
-        eyebrow="Offboardings"
-        heading={
-          filter === 'all'
-            ? 'Everyone with a checklist'
-            : filter === 'leaving'
-              ? 'People leaving the district'
-              : 'People coming back in fall'
-        }
-        headingRight={
-          allOffboardings.length > 0 ? (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {(
-                [
-                  { key: 'all', label: 'All', count: counts.all },
-                  { key: 'returning', label: 'Returning', count: counts.returning },
-                  { key: 'leaving', label: 'Leaving', count: counts.leaving },
-                ] as const
-              ).map((opt) => (
-                <Button
-                  key={opt.key}
-                  size="sm"
-                  variant={filter === opt.key ? 'primary' : 'ghost'}
-                  onClick={() => setFilter(opt.key)}
-                >
-                  {opt.label} ({opt.count})
-                </Button>
-              ))}
-            </div>
-          ) : undefined
-        }
-        pad={16}
-      >
-        {state.loading ? (
-          <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
-            Loading…
-          </p>
-        ) : 'error' in state ? (
-          <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
-            Couldn't load offboardings: {state.error.message}
-          </p>
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            on="card"
-            icon="users"
-            line={
-              state.offboardings.length === 0
-                ? 'No checklists yet'
-                : `No ${filter} checklists right now`
-            }
-            note={
-              state.offboardings.length === 0
-                ? 'Checklists appear here the moment staff start one.'
-                : undefined
-            }
-          />
-        ) : (
-          <RowList>
-            {filtered.map((o) => (
-              <Row key={o.uid} offboarding={o} />
-            ))}
-          </RowList>
-        )}
-      </Card>
-
-      <CollapsibleSection label="Settings">
-        <div className="flex flex-col gap-6">
-          <Card eyebrow="Settings" heading="What the summer responder promises" pad={16}>
-            <p
-              style={{
-                font: 'var(--type-caption)',
-                color: 'var(--text-muted)',
-                margin: '0 0 12px',
-              }}
-            >
-              The return date staff reference in their summer vacation responder. Secondary
-              buildings auto-shift one day later — that matches OPS's historical pattern.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex-1">
-                <Field
-                  label="Return date"
-                  type="date"
-                  value={returnDateInput}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setReturnDateInput(e.target.value)
-                  }
-                  disabled={settingsState.loading || savingSettings}
-                />
+      {tab === 'offboarding' && (
+        <Card
+          eyebrow="Offboardings"
+          heading={
+            filter === 'all'
+              ? 'Everyone with a checklist'
+              : filter === 'leaving'
+                ? 'People leaving the district'
+                : 'People coming back in fall'
+          }
+          headingRight={
+            allOffboardings.length > 0 ? (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(
+                  [
+                    { key: 'all', label: 'All', count: counts.all },
+                    { key: 'returning', label: 'Returning', count: counts.returning },
+                    { key: 'leaving', label: 'Leaving', count: counts.leaving },
+                  ] as const
+                ).map((opt) => (
+                  <Button
+                    key={opt.key}
+                    size="sm"
+                    variant={filter === opt.key ? 'primary' : 'ghost'}
+                    onClick={() => setFilter(opt.key)}
+                  >
+                    {opt.label} ({opt.count})
+                  </Button>
+                ))}
               </div>
-              <Button
-                variant="primary"
-                icon="save"
+            ) : undefined
+          }
+          pad={16}
+        >
+          {state.loading ? (
+            <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
+              Loading…
+            </p>
+          ) : 'error' in state ? (
+            <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
+              Couldn't load offboardings: {state.error.message}
+            </p>
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              on="card"
+              icon="users"
+              line={
+                state.offboardings.length === 0
+                  ? 'No checklists yet'
+                  : `No ${filter} checklists right now`
+              }
+              note={
+                state.offboardings.length === 0
+                  ? 'Checklists appear here the moment staff start one.'
+                  : undefined
+              }
+            />
+          ) : (
+            <RowList>
+              {filtered.map((o) => (
+                <Row key={o.uid} offboarding={o} />
+              ))}
+            </RowList>
+          )}
+        </Card>
+      )}
+
+      {tab === 'offboarding' && (
+        <Card eyebrow="Settings" heading="What the summer responder promises" pad={16}>
+          <p
+            style={{
+              font: 'var(--type-caption)',
+              color: 'var(--text-muted)',
+              margin: '0 0 12px',
+            }}
+          >
+            The return date staff reference in their summer vacation responder. Secondary buildings
+            auto-shift one day later — that matches OPS's historical pattern.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <Field
+                label="Return date"
+                type="date"
+                value={returnDateInput}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setReturnDateInput(e.target.value)
+                }
                 disabled={settingsState.loading || savingSettings}
-                onClick={() => void handleSaveSettings()}
-              >
-                {savingSettings ? 'Saving…' : 'Save'}
-              </Button>
+              />
             </div>
-            {settingsMessage && (
-              <p style={messageStyle(settingsMessage.kind)}>{settingsMessage.text}</p>
-            )}
-          </Card>
+            <Button
+              variant="primary"
+              icon="save"
+              disabled={settingsState.loading || savingSettings}
+              onClick={() => void handleSaveSettings()}
+            >
+              {savingSettings ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+          {settingsMessage && (
+            <p style={messageStyle(settingsMessage.kind)}>{settingsMessage.text}</p>
+          )}
+        </Card>
+      )}
 
-          <AdminListCard />
-        </div>
-      </CollapsibleSection>
+      {tab === 'onboarding' && (
+        <EmptyState
+          icon="users"
+          line="Nothing to set up yet"
+          note="Onboarding ships in a later phase — new-hire checklists and settings will live on this tab."
+        />
+      )}
 
-      <CollapsibleSection label="Roster">
+      {tab === 'forms' && (
+        <EmptyState
+          icon="fileText"
+          line="No form settings yet"
+          note="Staff submissions land in the HR inbox. Per-form routing and visibility settings arrive with the next batch of forms."
+          action={
+            <Button variant="secondary" onClick={() => navigate('/hr')}>
+              Open the HR inbox
+            </Button>
+          }
+        />
+      )}
+
+      {tab === 'staff' && (
         <Card
           eyebrow="Roster"
           heading="Synced nightly at 3:00 AM Central"
@@ -483,7 +541,9 @@ export function AdminDashboard() {
           </p>
           {syncMessage && <p style={messageStyle(syncMessage.kind)}>{syncMessage.text}</p>}
         </Card>
-      </CollapsibleSection>
+      )}
+
+      {tab === 'staff' && <AdminListCard />}
     </>
   );
 }
