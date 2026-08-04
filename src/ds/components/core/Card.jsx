@@ -23,9 +23,15 @@ export function Card({
   const canCollapse = !!collapsible && strip;
   const open = canCollapse ? openState : true;
 
+  const surface = inset ? 'var(--surface-inset)' : 'var(--surface-card)';
+  const stripBg = inset ? 'var(--surface-card)' : 'var(--surface-inset)';
   const shell = {
     position: 'relative',
-    background: inset ? 'var(--surface-inset)' : 'var(--surface-card)',
+    /* Strip cards paint NO section background: the header owns the top and the
+       body/footer own the bottom, so every corner is a single antialiased
+       curve. A section background underneath peeks out a sub-pixel past the
+       strip's curve — visible as light pixels beside the corner tab. */
+    background: strip ? 'transparent' : surface,
     borderRadius: 'var(--radius-card)',
     boxShadow: hot ? 'var(--shadow-card-hover)' : 'var(--shadow-card)',
     /* No overflow clipping — an open Select panel has to escape the card. */
@@ -83,7 +89,7 @@ export function Card({
             paddingRight: canCollapse ? Math.max(padding, 40) : padding,
             borderRadius: open ? 'var(--radius-card) var(--radius-card) 0 0' : 'var(--radius-card)',
             /* On an inset card the strip inverts to white so it still reads as chrome. */
-            background: inset ? 'var(--surface-card)' : 'var(--surface-inset)',
+            background: stripBg,
             borderBottom: open ? '1px solid var(--border-input)' : 'none',
             cursor: canCollapse ? 'pointer' : 'inherit',
             userSelect: canCollapse ? 'none' : undefined,
@@ -124,7 +130,22 @@ export function Card({
         </header>
       ) : null}
 
-      {open ? <div style={strip ? { padding, ...bodyStyle } : bodyStyle}>{children}</div> : null}
+      {open ? (
+        <div
+          style={
+            strip
+              ? {
+                  padding,
+                  background: surface,
+                  borderRadius: footer ? 0 : '0 0 var(--radius-card) var(--radius-card)',
+                  ...bodyStyle,
+                }
+              : bodyStyle
+          }
+        >
+          {children}
+        </div>
+      ) : null}
 
       {/* Footer: hangs off a hairline, no strip weight — for minor navigation
           that would read as a fourth call to action in its own card. */}
@@ -132,6 +153,8 @@ export function Card({
         <div style={{
           padding: `${Math.max(12, padding - 4)}px ${padding}px`,
           borderTop: '1px solid var(--divider)',
+          background: strip ? surface : undefined,
+          borderRadius: strip ? '0 0 var(--radius-card) var(--radius-card)' : undefined,
         }}>{footer}</div>
       ) : null}
     </section>
