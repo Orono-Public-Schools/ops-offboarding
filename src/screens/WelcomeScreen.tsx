@@ -26,7 +26,7 @@ export function WelcomeScreen() {
         className="w-full max-w-xl rounded-xl p-6 sm:p-8"
         style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
       >
-        <img src="/orono-offboarding-blue.png" alt="" className="mb-3 h-14 w-14" />
+        <img src="/OronoIcon.png" alt="" className="mb-3 h-14 w-14" />
 
         <h1
           className="text-2xl font-bold tracking-tight"

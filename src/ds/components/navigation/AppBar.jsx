@@ -13,11 +13,14 @@ export function AppBar({ person, onSignOut, style, ...rest }) {
   const [down, setDown] = React.useState(false);
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, ...style }} {...rest}>
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ font: '700 17px/1 var(--font-sans)', letterSpacing: '-0.01em', color: '#fff' }}>
-          Orono<span style={{ color: '#e98b8b' }}>HR</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <img src="/OronoIcon.png" alt="" style={{ height: 26, width: 26 }} />
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ font: '700 17px/1 var(--font-sans)', letterSpacing: '-0.01em', color: '#fff' }}>
+            Orono<span style={{ color: '#e98b8b' }}>HR</span>
+          </span>
+          <span style={{ font: 'var(--type-caption)', color: 'var(--on-dark-faint)' }}>Independent District 278</span>
         </span>
-        <span style={{ font: 'var(--type-caption)', color: 'var(--on-dark-faint)' }}>Independent District 278</span>
       </span>
       {person ? (
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
