@@ -83,6 +83,7 @@ export function AdminListCard() {
 
   return (
     <Card
+      collapsible
       eyebrow="Access"
       heading="Who can work this dashboard"
       headingRight={
