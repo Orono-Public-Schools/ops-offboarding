@@ -44,7 +44,9 @@ export function ModuleCard({
             position: 'absolute', zIndex: -1, top: -16, right: -16,
             width: 32, height: 32, borderRadius: 999,
             background: 'var(--gradient-primary)',
-            transform: flooded ? 'scale(26)' : 'scale(1)',
+            /* Rest at scale(0): parked at scale(1) the seed circle peeks out
+               around (and through) the 75%-opacity corner tab. */
+            transform: flooded ? 'scale(26)' : 'scale(0)',
             transformOrigin: '50% 50%',
             transition: 'transform var(--dur-slow) var(--ease)',
           }}
