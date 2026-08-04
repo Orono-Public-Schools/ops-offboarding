@@ -72,10 +72,12 @@ export function ModuleCard({
         color: flooded ? '#fff' : hot && live ? 'var(--primary)' : 'var(--secondary)',
         transition: 'color var(--dur-slow) var(--ease)',
       }}>
-        {icon ? <Icon name={icon} size={16} /> : null}
+        {icon ? <Icon name={icon} size={17} /> : null}
+        {/* Sentence case, not the uppercase strip: tile titles are content
+            headings, and per the voice rules uppercase stays on category
+            labels. */}
         <h3 style={{
-          margin: 0, font: 'var(--type-card-heading)', letterSpacing: 'var(--tracking-widest)',
-          textTransform: 'uppercase',
+          margin: 0, font: 'var(--type-card-title)', letterSpacing: 'var(--tracking-tight)',
           color: flooded ? '#fff' : 'var(--dark)',
           transition: 'color var(--dur-slow) var(--ease)',
         }}>{title}</h3>
@@ -83,7 +85,7 @@ export function ModuleCard({
 
       {description ? (
         <p style={{
-          margin: 0, font: 'var(--type-body-sm)', paddingRight: live ? 14 : 0,
+          margin: 0, font: 'var(--type-body-sm)', lineHeight: 1.55, paddingRight: live ? 14 : 0,
           color: flooded ? 'rgba(255, 255, 255, 0.82)' : 'var(--text-muted)',
           transition: 'color var(--dur-slow) var(--ease)',
         }}>{description}</p>

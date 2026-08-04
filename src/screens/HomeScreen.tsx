@@ -70,13 +70,16 @@ export function HomeScreen() {
   );
   const offbStarted = !offb.loading && !('error' in offb) && offb.exists;
   const offbProgress = offbStarted ? computeProgress(offb.data) : null;
+  // A record with zero tasks done is likely exploratory — don't let it
+  // dominate the portal until the person actually works the checklist.
+  const offbUnderway = offbProgress !== null && offbProgress.done > 0;
 
   const title =
     open.length === 1
       ? 'One of your requests is moving'
       : open.length > 1
         ? `${['Two', 'Three', 'Four', 'Five'][open.length - 2] ?? open.length} of your requests are moving`
-        : offbProgress && offbProgress.done < offbProgress.total
+        : offbUnderway && offbProgress.done < offbProgress.total
           ? `Your offboarding is ${offbProgress.done} of ${offbProgress.total} done`
           : 'Your record is quiet today';
 
@@ -144,7 +147,14 @@ export function HomeScreen() {
             meta="4 min"
             onClick={() => navigate('/forms')}
           />
-          {offbProgress ? (
+          <ModuleCard
+            icon="users"
+            title="Onboarding"
+            description="A first-days checklist for new hires. Not open yet."
+            meta="Soon"
+            disabled
+          />
+          {offbUnderway ? (
             <ModuleCard
               icon="logOut"
               title="Your offboarding"
@@ -161,13 +171,6 @@ export function HomeScreen() {
               onClick={() => navigate('/offboarding')}
             />
           )}
-          <ModuleCard
-            icon="users"
-            title="Onboarding"
-            description="A first-days checklist for new hires. Not open yet."
-            meta="Soon"
-            disabled
-          />
           {isHR && (
             <ModuleCard
               icon="inbox"
