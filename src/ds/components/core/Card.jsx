@@ -66,28 +66,6 @@ export function Card({
       style={shell}
       {...rest}
     >
-      {canCollapse ? (
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'absolute', top: 0, right: 0, width: 30, height: 30, zIndex: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--gradient-primary)', color: '#fff',
-            borderRadius: '0 var(--radius-card) 0 26px',
-            opacity: headerHot ? 1 : 0.75, pointerEvents: 'none',
-            transition: 'opacity var(--dur-fast) var(--ease)',
-          }}
-        >
-          <span style={{
-            margin: '-3px -3px 0 0', display: 'flex',
-            transform: open ? 'rotate(180deg)' : 'none',
-            transition: 'transform var(--dur-slow) var(--ease)',
-          }}>
-            <Icon name="chevronDown" size={13} strokeWidth={2.5} />
-          </span>
-        </span>
-      ) : null}
-
       {strip ? (
         <header
           onClick={canCollapse ? () => setOpenState((o) => !o) : undefined}
@@ -97,6 +75,10 @@ export function Card({
           aria-expanded={canCollapse ? open : undefined}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            /* The corner tab lives inside the clipped header so the tab and the
+               strip share one rounded edge — two separately antialiased curves
+               on the same corner leave a light sliver. */
+            position: 'relative', overflow: 'hidden',
             padding: `${Math.max(12, padding - 6)}px ${padding}px`,
             paddingRight: canCollapse ? Math.max(padding, 40) : padding,
             borderRadius: open ? 'var(--radius-card) var(--radius-card) 0 0' : 'var(--radius-card)',
@@ -107,6 +89,27 @@ export function Card({
             userSelect: canCollapse ? 'none' : undefined,
           }}
         >
+          {canCollapse ? (
+            <span
+              aria-hidden="true"
+              style={{
+                position: 'absolute', top: 0, right: 0, width: 30, height: 30, zIndex: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--gradient-primary)', color: '#fff',
+                borderRadius: '0 0 0 26px',
+                opacity: headerHot ? 1 : 0.75, pointerEvents: 'none',
+                transition: 'opacity var(--dur-fast) var(--ease)',
+              }}
+            >
+              <span style={{
+                margin: '-3px -3px 0 0', display: 'flex',
+                transform: open ? 'rotate(180deg)' : 'none',
+                transition: 'transform var(--dur-slow) var(--ease)',
+              }}>
+                <Icon name="chevronDown" size={13} strokeWidth={2.5} />
+              </span>
+            </span>
+          ) : null}
           {title}
           {headingRight ? (
             <span onClick={canCollapse ? (e) => e.stopPropagation() : undefined}>
