@@ -35,15 +35,18 @@ Approval-flow state machine + `resolveRoutingChain` (chain frozen at submit), `R
 
 ## Phases
 
-### Phase 1 — Foundations (in progress)
+### Phase 1 — Foundations ✅ (done 2026-08-04)
 - [x] `oronohr` hosting site + multi-site targets (`app`/`legacy`)
-- [x] Theme tokens in `src/index.css`; sweep inline red → navy/blue system
-- [x] Rebrand: OronoHR name in shell/sign-in/title; package name
+- [x] Rebrand: OronoHR name in shell/sign-in/title; package name; district icons (`OronoIcon.png` / `OronoBlueIcon.png`)
 - [x] Shell decomposition: portal `HomeScreen` at `/`, offboarding as module under `/offboarding` (+ legacy `/tasks/*` redirects); app no longer gated on an offboarding doc existing
 - [x] Roles: `hr` claim + `useIsHR()` + generalized grant script
 - [x] Split `functions/src/index.ts` into domain modules
-- [ ] Logo/icon assets for OronoHR (current PNGs are offboarding-era)
-- [ ] Cutover: custom domain, auth domains, consent screen name, legacy redirect
+- [ ] Cutover (deliberately deferred): custom domain `hr.orono.k12.mn.us`, `authDomain` swap, consent-screen app name (console), legacy-site redirect
+
+### Design system ✅ (done 2026-08-04)
+- [x] Generated with claude.ai/design, handed off, vendored verbatim at `src/ds/` (its `readme.md` is the style spec)
+- [x] Entire app migrated: shell/nav, sign-in (on-dark minimal), home (DayHeader + StatusTrack + ModuleCards), forms module, HR inbox, offboarding dashboard (ChecklistItem rows with working toggle + Open buttons + hover sweep, working-days-left rail), all task screens (white cards, one red commitment per screen), admin panel
+- [ ] **Later — styling button-up pass:** sweep for rough edges once real usage surfaces them (mobile nav collapse, custom date picker per the handoff's open asks, remove now-unused legacy tokens from `src/index.css`, empty-state/copy polish)
 
 ### Phase 2 — HR side
 - [ ] Capture the real sheet's tabs/columns → design `employees` schema
