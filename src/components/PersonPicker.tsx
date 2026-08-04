@@ -11,17 +11,17 @@ type Props = {
   onConfirm: (person: StaffRecord) => Promise<void>;
 };
 
-function Avatar({ person }: { person: StaffRecord }) {
-  const initials =
-    (person.givenName?.[0] ?? '') + (person.familyName?.[0] ?? '') ||
-    person.displayName.slice(0, 1).toUpperCase();
+/* Hatched photo slot per the design system — initials-in-a-circle is
+   deliberately not offered (see src/ds readme, "People"). */
+function PersonSlot() {
   return (
     <div
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-      style={{ background: '#eaecf5', color: '#1d2a5d' }}
-    >
-      {initials.toUpperCase()}
-    </div>
+      className="h-9 w-9 shrink-0 rounded-lg"
+      style={{
+        background: 'repeating-linear-gradient(45deg, var(--tint) 0 4px, #f6f7fb 4px 8px)',
+        border: '1px solid var(--border-input)',
+      }}
+    />
   );
 }
 
@@ -99,9 +99,23 @@ export function PersonPicker({
           style={{ borderColor: '#e2e5ea' }}
         >
           <div>
+            <div
+              style={{
+                font: 'var(--type-card-eyebrow)',
+                letterSpacing: 'var(--tracking-widest)',
+                textTransform: 'uppercase',
+                color: 'var(--secondary)',
+              }}
+            >
+              Directory
+            </div>
             <h2
-              className="text-sm font-semibold tracking-widest uppercase"
-              style={{ color: '#1d2a5d' }}
+              style={{
+                margin: '5px 0 0',
+                font: 'var(--type-card-title)',
+                letterSpacing: 'var(--tracking-tight)',
+                color: 'var(--dark)',
+              }}
             >
               {title}
             </h2>
@@ -198,7 +212,7 @@ export function PersonPicker({
                       padding: '0.5rem 0.75rem',
                     }}
                   >
-                    <Avatar person={person} />
+                    <PersonSlot />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold" style={{ color: '#1d2a5d' }}>
                         {person.displayName}

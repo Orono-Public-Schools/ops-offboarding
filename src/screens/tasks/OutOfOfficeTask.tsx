@@ -10,6 +10,9 @@ import {
   StepLabel,
   StepTextarea,
 } from '../../components/TaskStep';
+import { Button } from '../../ds/components/core/Button';
+import { Icon } from '../../ds/components/core/Icon';
+import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { getGoogleAccessToken } from '../../lib/auth';
 import { setOutOfOffice } from '../../lib/functions';
 import type { OutletCtx } from '../../App';
@@ -117,15 +120,11 @@ export function OutOfOfficeTask() {
 
   return (
     <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          Out-of-office responder
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Set the automatic reply people will get after you leave. Runs until you turn it off in
-          Gmail or your account is deactivated.
-        </p>
-      </div>
+      <PageTitle
+        title="Out-of-office responder"
+        subtitle="Set the automatic reply people will get after you leave. Runs until you turn it off in Gmail or your account is deactivated."
+        className="mb-5 sm:mb-8"
+      />
 
       <div className="space-y-4">
         <StepCard>
@@ -142,10 +141,13 @@ export function OutOfOfficeTask() {
                 <button
                   key={id}
                   onClick={() => applyTemplate(id)}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
                   style={{
-                    background: active ? 'rgba(255,255,255,0.18)' : 'transparent',
-                    borderColor: active ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.4)',
+                    color: active ? 'var(--secondary)' : 'var(--text-body)',
+                    background: active ? 'rgba(var(--secondary-rgb), 0.1)' : 'transparent',
+                    border: active
+                      ? '1px solid rgba(var(--secondary-rgb), 0.45)'
+                      : '1px solid var(--border-input)',
                   }}
                 >
                   {templates[id].label}
@@ -154,7 +156,7 @@ export function OutOfOfficeTask() {
             })}
           </div>
           {!doc.supervisor && templateId !== 'custom' && (
-            <p className="mt-3 text-xs text-white/60">
+            <p className="mt-3" style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
               Tip: add your supervisor on the dashboard and the template will include them as a
               fallback contact.
             </p>
@@ -205,24 +207,18 @@ export function OutOfOfficeTask() {
             <div className="flex items-start gap-3">
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                style={{ background: 'rgba(255,255,255,0.18)' }}
+                style={{ background: 'rgba(var(--dark-rgb), 0.1)', color: 'var(--dark)' }}
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ color: '#ffffff' }}
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <Icon name="check" size={18} strokeWidth={2.5} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">Your responder is live.</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/80">
+                <p style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}>
+                  Your responder is live.
+                </p>
+                <p
+                  className="mt-1 leading-relaxed"
+                  style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}
+                >
                   Anyone who emails you will get this message right away. You can update it from
                   this page or turn it off in Gmail settings anytime.
                 </p>
@@ -231,35 +227,35 @@ export function OutOfOfficeTask() {
           </StepCard>
         )}
 
-        {error && <StepError>{error}</StepError>}
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Link
-            to="/offboarding"
-            className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
-            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            {savedOk ? 'Done' : 'Cancel'}
-          </Link>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-            style={{
-              background: '#ffffff',
-              color: '#1d2a5d',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            {saving
-              ? 'Saving…'
-              : taskState.status === 'completed' || savedOk
-                ? 'Update responder'
-                : 'Activate responder'}
-          </button>
-          <NextTaskButton currentKey="outOfOffice" className="order-first sm:order-last" />
-          <HelpFlagSection currentKey="outOfOffice" className="order-first sm:order-last" />
-        </div>
+        <StepCard>
+          {error && (
+            <div className="mb-3">
+              <StepError>{error}</StepError>
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <Link
+              to="/offboarding"
+              className="inline-flex h-10 items-center justify-center px-4 transition hover:bg-black/5"
+              style={{
+                font: 'var(--type-button)',
+                color: 'var(--text-muted)',
+                borderRadius: 'var(--radius-button)',
+              }}
+            >
+              {savedOk ? 'Done' : 'Cancel'}
+            </Link>
+            <Button variant="submit" icon="send" onClick={handleSave} disabled={saving}>
+              {saving
+                ? 'Saving…'
+                : taskState.status === 'completed' || savedOk
+                  ? 'Update responder'
+                  : 'Activate responder'}
+            </Button>
+            <NextTaskButton currentKey="outOfOffice" className="order-first sm:order-last" />
+            <HelpFlagSection currentKey="outOfOffice" className="order-first sm:order-last" />
+          </div>
+        </StepCard>
       </div>
     </div>
   );

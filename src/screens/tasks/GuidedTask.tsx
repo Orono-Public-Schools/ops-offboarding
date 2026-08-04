@@ -3,12 +3,15 @@ import { useOutletContext } from 'react-router';
 import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
+  InsetPanel,
   StepCard,
   StepError,
   StepHeader,
   StepLabel,
   StepTextarea,
 } from '../../components/TaskStep';
+import { Button } from '../../ds/components/core/Button';
+import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { markTaskComplete } from '../../lib/functions';
 import type { TaskKey } from '../../lib/offboarding';
 import type { OutletCtx } from '../../App';
@@ -23,6 +26,14 @@ export type GuidedTaskConfig = {
 };
 
 type Props = { taskKey: TaskKey; config: GuidedTaskConfig };
+
+const OUTLINE_LINK_STYLE: React.CSSProperties = {
+  font: 'var(--type-button)',
+  color: 'var(--secondary)',
+  background: 'rgba(var(--secondary-rgb), 0.1)',
+  border: '1px solid rgba(var(--secondary-rgb), 0.3)',
+  borderRadius: 'var(--radius-button)',
+};
 
 export function GuidedTask({ taskKey, config }: Props) {
   const { doc } = useOutletContext<OutletCtx>();
@@ -57,14 +68,7 @@ export function GuidedTask({ taskKey, config }: Props) {
 
   return (
     <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          {config.title}
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          {config.description}
-        </p>
-      </div>
+      <PageTitle title={config.title} subtitle={config.description} className="mb-5 sm:mb-8" />
 
       <div className="space-y-4">
         <StepCard>
@@ -78,28 +82,19 @@ export function GuidedTask({ taskKey, config }: Props) {
               href={config.primaryLink.url}
               target="_blank"
               rel="noreferrer"
-              className="mb-4 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-              style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              className="mb-4 inline-flex h-10 items-center gap-2 px-4 transition hover:-translate-y-px"
+              style={OUTLINE_LINK_STYLE}
             >
               {config.primaryLink.label} ↗
             </a>
           )}
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {config.tips.map((tip) => (
-              <div
-                key={tip.title}
-                className="rounded-r-xl p-3"
-                style={{
-                  background: '#ffffff',
-                  borderLeft: '4px solid #4356a9',
-                }}
-              >
-                <p className="text-base font-bold" style={{ color: '#1d2a5d' }}>
-                  {tip.title}
-                </p>
+              <InsetPanel key={tip.title}>
+                <p style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}>{tip.title}</p>
                 <p
-                  className="mt-1 text-sm leading-relaxed font-medium"
-                  style={{ color: '#475569' }}
+                  className="mt-1 leading-relaxed"
+                  style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}
                 >
                   {tip.body}
                 </p>
@@ -108,13 +103,17 @@ export function GuidedTask({ taskKey, config }: Props) {
                     href={tip.link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold underline underline-offset-2"
-                    style={{ color: '#4356a9' }}
+                    className="mt-2 inline-flex items-center gap-1 underline underline-offset-2"
+                    style={{
+                      font: 'var(--type-caption)',
+                      fontWeight: 600,
+                      color: 'var(--secondary)',
+                    }}
                   >
                     {tip.link.label} ↗
                   </a>
                 )}
-              </div>
+              </InsetPanel>
             ))}
           </div>
         </StepCard>
@@ -142,15 +141,15 @@ export function GuidedTask({ taskKey, config }: Props) {
           {(isComplete || isSkipped) && (
             <div className="mb-4 space-y-2">
               {taskState.notes && (
-                <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
-                    Your note
+                <InsetPanel>
+                  <StepLabel>Your note</StepLabel>
+                  <p style={{ font: 'var(--type-body)', color: 'var(--text-body)' }}>
+                    {taskState.notes}
                   </p>
-                  <p className="mt-1 text-sm text-white/85">{taskState.notes}</p>
-                </div>
+                </InsetPanel>
               )}
               {taskState.completedAt && isComplete && (
-                <p className="text-xs text-white/60">
+                <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
                   Marked complete{' '}
                   {taskState.completedAt
                     .toDate()
@@ -173,38 +172,32 @@ export function GuidedTask({ taskKey, config }: Props) {
             </>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isComplete || isSkipped ? (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => handle('in_progress')}
                 disabled={pending !== null}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
               >
                 {pending === 'reopen' ? 'Saving…' : 'Reopen'}
-              </button>
+              </Button>
             ) : (
               <>
-                <button
+                <Button
+                  variant="submit"
+                  icon="check"
                   onClick={() => handle('completed')}
                   disabled={pending !== null}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
-                  style={{
-                    background: '#ffffff',
-                    color: '#1d2a5d',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  }}
                 >
                   {pending === 'complete' ? 'Saving…' : "I'm done — mark complete"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => handle('skipped')}
                   disabled={pending !== null}
-                  className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                  style={{ borderColor: 'rgba(255,255,255,0.4)' }}
                 >
                   {pending === 'skip' ? 'Saving…' : "Doesn't apply — skip"}
-                </button>
+                </Button>
               </>
             )}
             <NextTaskButton currentKey={taskKey} />

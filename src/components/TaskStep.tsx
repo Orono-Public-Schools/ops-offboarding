@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
+import { Button } from '../ds/components/core/Button';
 
-const NAVY_GRADIENT = 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)';
-const NAVY_GLOW = '0 2px 12px rgba(29,42,93,0.3)';
-
+/** White floating card — the only content surface for task steps. */
 export function StepCard({ children }: { children: ReactNode }) {
   return (
     <div
-      className="rounded-xl p-4 sm:p-5"
-      style={{ background: NAVY_GRADIENT, boxShadow: NAVY_GLOW }}
+      className="p-4 sm:p-5"
+      style={{
+        background: 'var(--surface-card)',
+        borderRadius: 'var(--radius-card)',
+        boxShadow: 'var(--shadow-card)',
+      }}
     >
       {children}
     </div>
@@ -27,37 +30,51 @@ export function StepHeader({
   status?: { label: string; tone?: 'pending' | 'done' };
   action?: { label: string; onClick: () => void; disabled?: boolean };
 }) {
+  const done = status?.tone === 'done';
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
       <div className="min-w-0">
         {step && (
-          <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">{step}</p>
+          <p
+            className="uppercase"
+            style={{
+              font: 'var(--type-card-eyebrow)',
+              letterSpacing: 'var(--tracking-widest)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            {step}
+          </p>
         )}
-        <h2 className="mt-0.5 text-base font-semibold text-white sm:text-lg">{title}</h2>
-        {description && <p className="mt-1 text-sm leading-relaxed text-white/75">{description}</p>}
+        <h2 className="mt-1" style={{ font: 'var(--type-card-title)', color: 'var(--dark)' }}>
+          {title}
+        </h2>
+        {description && (
+          <p
+            className="mt-1 leading-relaxed"
+            style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}
+          >
+            {description}
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
         {status && (
           <span
-            className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
+            className="rounded-full px-2.5 py-1 whitespace-nowrap"
             style={{
-              background:
-                status.tone === 'done' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)',
-              color: '#ffffff',
+              font: 'var(--type-badge)',
+              color: done ? 'var(--dark)' : 'var(--secondary)',
+              background: done ? 'rgba(var(--dark-rgb), 0.12)' : 'rgba(var(--secondary-rgb), 0.12)',
             }}
           >
             {status.label}
           </span>
         )}
         {action && (
-          <button
-            onClick={action.onClick}
-            disabled={action.disabled}
-            className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-50"
-            style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-          >
+          <Button variant="secondary" size="sm" onClick={action.onClick} disabled={action.disabled}>
             {action.label}
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -66,7 +83,14 @@ export function StepHeader({
 
 export function StepLabel({ children }: { children: ReactNode }) {
   return (
-    <label className="mb-1 block text-[11px] font-semibold tracking-wider text-white/60 uppercase">
+    <label
+      className="mb-1 block uppercase"
+      style={{
+        font: 'var(--type-field-label)',
+        letterSpacing: 'var(--tracking-wider)',
+        color: 'var(--text-muted)',
+      }}
+    >
       {children}
     </label>
   );
@@ -77,15 +101,26 @@ export function StepInput(
     style?: React.CSSProperties;
   },
 ) {
-  const { className = '', style, ...rest } = props;
+  const { className = '', style, onFocus, onBlur, ...rest } = props;
   return (
     <input
       {...rest}
-      className={`w-full rounded-lg px-3 py-2 text-sm transition outline-none ${className}`}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = 'var(--primary)';
+        e.currentTarget.style.boxShadow = 'var(--ring-focus)';
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border-input)';
+        e.currentTarget.style.boxShadow = 'none';
+        onBlur?.(e);
+      }}
+      className={`w-full px-3 py-2 text-sm transition outline-none ${className}`}
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        color: '#1d2a5d',
+        background: rest.disabled ? 'var(--surface-inset)' : 'var(--surface-card)',
+        border: '1px solid var(--border-input)',
+        borderRadius: 'var(--radius-input)',
+        color: 'var(--dark)',
         ...style,
       }}
     />
@@ -97,26 +132,33 @@ export function StepTextarea(
     style?: React.CSSProperties;
   },
 ) {
-  const { className = '', style, ...rest } = props;
+  const { className = '', style, onFocus, onBlur, ...rest } = props;
   return (
     <textarea
       {...rest}
-      className={`w-full resize-none rounded-lg px-3 py-2 text-sm transition outline-none ${className}`}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = 'var(--primary)';
+        e.currentTarget.style.boxShadow = 'var(--ring-focus)';
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border-input)';
+        e.currentTarget.style.boxShadow = 'none';
+        onBlur?.(e);
+      }}
+      className={`w-full resize-none px-3 py-2 text-sm transition outline-none ${className}`}
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        color: '#1d2a5d',
+        background: rest.disabled ? 'var(--surface-inset)' : 'var(--surface-card)',
+        border: '1px solid var(--border-input)',
+        borderRadius: 'var(--radius-input)',
+        color: 'var(--dark)',
         ...style,
       }}
     />
   );
 }
 
-/**
- * Primary action button for use on the navy StepCard surface: white fill with
- * navy text so it stands out against the gradient (same treatment as
- * NextTaskButton).
- */
+/** Primary action on a step card — passthrough to the ds primary button. */
 export function StepPrimaryButton({
   onClick,
   disabled,
@@ -127,25 +169,13 @@ export function StepPrimaryButton({
   children: ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="rounded-lg px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
-      style={{
-        background: '#ffffff',
-        color: '#1d2a5d',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      }}
-    >
+    <Button variant="primary" onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 
-/**
- * Quieter outline button for secondary actions on a navy gradient surface
- * (e.g. external links, "edit", etc.).
- */
+/** Quieter outline button for secondary actions — ds secondary formula. */
 export function StepOutlineButton({
   onClick,
   disabled,
@@ -156,22 +186,22 @@ export function StepOutlineButton({
   children: ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-      style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-    >
+    <Button variant="secondary" onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 
 export function StepError({ children }: { children: ReactNode }) {
   return (
     <p
-      className="mt-3 rounded-lg px-3 py-2 text-xs"
-      style={{ background: 'rgba(255,255,255,0.12)', color: '#fecaca' }}
+      className="mt-3 px-3 py-2"
+      style={{
+        font: 'var(--type-caption)',
+        color: 'var(--accent)',
+        background: 'rgba(var(--accent-rgb), 0.08)',
+        borderRadius: 8,
+      }}
     >
       {children}
     </p>
@@ -186,7 +216,10 @@ export function InsetPanel({
   className?: string;
 }) {
   return (
-    <div className={`rounded-lg p-3 ${className}`} style={{ background: 'rgba(255,255,255,0.08)' }}>
+    <div
+      className={`p-3 ${className}`}
+      style={{ background: 'var(--surface-inset)', borderRadius: 8 }}
+    >
       {children}
     </div>
   );

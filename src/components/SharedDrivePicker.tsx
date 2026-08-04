@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Button } from '../ds/components/core/Button';
+import { Icon } from '../ds/components/core/Icon';
 import { getGoogleAccessToken } from '../lib/auth';
 import { listSharedDrives } from '../lib/functions';
+import { StepError, StepInput } from './TaskStep';
 
 export type SharedDrive = { id: string; name: string };
 
@@ -64,107 +67,120 @@ export function SharedDrivePicker({ open, onClose, onConfirm }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: 'rgba(0,0,0,0.5)' }}
+      style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-lg flex-col rounded-xl"
+        className="flex w-full max-w-lg flex-col"
         style={{
-          background: '#ffffff',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+          background: 'var(--surface-card)',
+          borderRadius: 'var(--radius-card)',
+          boxShadow: 'var(--shadow-card-hover)',
           maxHeight: '85vh',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex items-start justify-between gap-4 border-b p-5"
-          style={{ borderColor: '#e2e5ea' }}
+          className="flex items-start justify-between gap-4 p-5"
+          style={{ borderBottom: '1px solid var(--divider)' }}
         >
           <div>
-            <h2
-              className="text-sm font-semibold tracking-widest uppercase"
-              style={{ color: '#1d2a5d' }}
+            <p
+              className="uppercase"
+              style={{
+                font: 'var(--type-card-eyebrow)',
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--text-muted)',
+              }}
             >
+              Shared drives
+            </p>
+            <h2 className="mt-1" style={{ font: 'var(--type-card-title)', color: 'var(--dark)' }}>
               Move to a shared drive
             </h2>
-            <p className="mt-1 text-sm" style={{ color: '#64748b' }}>
+            <p className="mt-1" style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
               Pick a shared drive you're a member of. The file's ownership transfers to the shared
               drive itself, so it stays accessible after you leave.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-2 py-1 text-sm font-semibold"
-            style={{ color: '#64748b' }}
+            aria-label="Close"
+            className="rounded-lg p-1.5 transition hover:bg-black/5"
+            style={{ color: 'var(--text-muted)' }}
           >
-            ✕
+            <Icon name="x" size={16} />
           </button>
         </div>
 
         <div className="p-5 pb-3">
-          <input
+          <StepInput
             type="search"
             placeholder="Filter shared drives…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             autoComplete="off"
-            className="w-full rounded-lg px-3 py-2 text-sm transition outline-none"
-            style={{ background: '#ffffff', border: '1px solid #e2e5ea', color: '#1d2a5d' }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#2d3f89';
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,63,137,0.1)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = '#e2e5ea';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
           />
         </div>
 
         <div className="flex-1 overflow-y-auto px-5">
           {loading && (
-            <p className="py-6 text-center text-sm" style={{ color: '#94a3b8' }}>
+            <p
+              className="py-6 text-center"
+              style={{ font: 'var(--type-body-sm)', color: 'var(--text-placeholder)' }}
+            >
               Loading shared drives…
             </p>
           )}
           {!loading && drives?.length === 0 && (
-            <p className="py-6 text-center text-sm" style={{ color: '#94a3b8' }}>
+            <p
+              className="py-6 text-center"
+              style={{ font: 'var(--type-body-sm)', color: 'var(--text-placeholder)' }}
+            >
               You're not a member of any shared drives. Ask IT to add you to one, or pick a
               different action.
             </p>
           )}
           {!loading && drives && drives.length > 0 && visible.length === 0 && (
-            <p className="py-6 text-center text-sm" style={{ color: '#94a3b8' }}>
+            <p
+              className="py-6 text-center"
+              style={{ font: 'var(--type-body-sm)', color: 'var(--text-placeholder)' }}
+            >
               No drives match "{filter}".
             </p>
           )}
           {!loading && visible.length > 0 && (
-            <div className="divide-y" style={{ borderColor: 'rgba(180,185,195,0.25)' }}>
-              {visible.map((drive) => {
+            <div>
+              {visible.map((drive, i) => {
                 const isSelected = selected?.id === drive.id;
                 return (
                   <button
                     key={drive.id}
                     onClick={() => setSelected(drive)}
-                    className="flex w-full items-center gap-3 py-3 text-left transition"
+                    className="flex w-full items-center gap-3 px-3 py-3 text-left transition"
                     style={{
-                      background: isSelected ? 'rgba(45,63,137,0.08)' : 'transparent',
-                      borderRadius: 8,
-                      padding: '0.5rem 0.75rem',
+                      borderTop: i > 0 ? '1px solid var(--divider)' : undefined,
+                      background: isSelected ? 'rgba(var(--secondary-rgb), 0.08)' : 'transparent',
+                      borderRadius: isSelected ? 8 : 0,
                     }}
                   >
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
-                      style={{ background: '#eaecf5', color: '#1d2a5d' }}
+                    <span
+                      className="flex h-9 w-12 shrink-0 items-center justify-center uppercase"
+                      style={{
+                        font: 'var(--type-micro)',
+                        background: 'var(--tint)',
+                        color: 'var(--dark)',
+                        borderRadius: 6,
+                      }}
                     >
                       Drive
-                    </div>
-                    <p
-                      className="min-w-0 flex-1 truncate text-sm font-semibold"
-                      style={{ color: '#1d2a5d' }}
+                    </span>
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}
                     >
                       {drive.name}
-                    </p>
+                    </span>
                   </button>
                 );
               })}
@@ -173,37 +189,21 @@ export function SharedDrivePicker({ open, onClose, onConfirm }: Props) {
         </div>
 
         {error && (
-          <p
-            className="mx-5 mt-3 rounded-lg px-3 py-2 text-xs"
-            style={{ background: 'rgba(173,33,34,0.08)', color: '#ad2122' }}
-          >
-            {error}
-          </p>
+          <div className="mx-5">
+            <StepError>{error}</StepError>
+          </div>
         )}
 
         <div
-          className="flex flex-col-reverse gap-3 border-t p-5 sm:flex-row sm:justify-end"
-          style={{ borderColor: '#e2e5ea' }}
+          className="mt-3 flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end"
+          style={{ borderTop: '1px solid var(--divider)' }}
         >
-          <button
-            onClick={onClose}
-            disabled={confirming}
-            className="rounded-xl border px-4 py-2 text-sm font-semibold transition hover:bg-slate-50 disabled:opacity-60"
-            style={{ borderColor: '#cbd5e1', color: '#475569' }}
-          >
+          <Button variant="ghost" onClick={onClose} disabled={confirming}>
             Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={!selected || confirming}
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
-            style={{
-              background: 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)',
-              boxShadow: '0 2px 8px rgba(29,42,93,0.25)',
-            }}
-          >
+          </Button>
+          <Button variant="primary" onClick={handleConfirm} disabled={!selected || confirming}>
             {confirming ? 'Moving…' : selected ? `Move to ${selected.name}` : 'Move to drive'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

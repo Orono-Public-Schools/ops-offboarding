@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { listAdmins, setAdminClaim, type AdminRecord } from '../lib/functions';
 import type { StaffRecord } from '../lib/staff';
+import { Button } from '../ds/components/core/Button';
+import { Card } from '../ds/components/core/Card';
+import { RowList } from '../ds/components/forms/RowList';
 import { PersonPicker } from './PersonPicker';
 
 type Message = { kind: 'ok' | 'error'; text: string };
@@ -79,63 +82,57 @@ export function AdminListCard() {
   };
 
   return (
-    <div className="mb-6 rounded-xl p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-[11px] font-semibold tracking-wider uppercase"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
-          >
-            IT admins
-          </p>
-          <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            People who can see this dashboard, sync the roster, reset users, and manage admins. New
-            admins must sign out and sign in again before the change takes effect.
-          </p>
-        </div>
-        <button
-          onClick={() => setPickerOpen(true)}
-          className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition hover:-translate-y-px active:scale-[0.98] sm:text-sm"
-          style={{
-            background: '#ffffff',
-            color: '#1d2a5d',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          }}
-        >
+    <Card
+      eyebrow="Access"
+      heading="Who can work this dashboard"
+      headingRight={
+        <Button variant="primary" size="sm" icon="plus" onClick={() => setPickerOpen(true)}>
           Add admin
-        </button>
-      </div>
+        </Button>
+      }
+      pad={16}
+    >
+      <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+        Admins see this dashboard, sync the roster, reset users, and manage who else gets in.
+        Changes take effect after the person signs out and back in.
+      </p>
 
-      <div className="mt-4 space-y-2">
-        {loading && (
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Loading…
-          </p>
-        )}
-        {!loading && admins.length === 0 && (
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            No admins yet.
-          </p>
-        )}
-        {!loading &&
-          admins.map((admin) => {
+      {loading ? (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
+          Loading…
+        </p>
+      ) : admins.length === 0 ? (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
+          No admins yet.
+        </p>
+      ) : (
+        <RowList>
+          {admins.map((admin) => {
             const isSelf = admin.uid === user?.uid;
             const isPending = pendingEmail === admin.email;
             return (
-              <div
-                key={admin.uid}
-                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
-              >
+              <div key={admin.uid} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">
+                  <p
+                    className="truncate"
+                    style={{
+                      font: 'var(--type-body)',
+                      fontWeight: 600,
+                      color: 'var(--dark)',
+                      margin: 0,
+                    }}
+                  >
                     {admin.displayName ?? admin.email}
                     {isSelf && (
                       <span
-                        className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                         style={{
-                          background: 'rgba(255,255,255,0.18)',
-                          color: '#ffffff',
+                          marginLeft: 8,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-pill)',
+                          font: 'var(--type-badge)',
+                          fontSize: 11,
+                          color: 'var(--primary)',
+                          background: 'rgba(var(--primary-rgb), 0.12)',
                         }}
                       >
                         You
@@ -143,35 +140,41 @@ export function AdminListCard() {
                     )}
                   </p>
                   {admin.displayName && (
-                    <p className="truncate text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                    <p
+                      className="truncate"
+                      style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: 0 }}
+                    >
                       {admin.email}
                     </p>
                   )}
                 </div>
                 {!isSelf && (
-                  <button
-                    onClick={() => void handleRevoke(admin)}
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     disabled={isPending}
-                    className="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                    style={{ borderColor: 'rgba(255,255,255,0.3)' }}
+                    onClick={() => void handleRevoke(admin)}
                   >
                     {isPending ? 'Removing…' : 'Remove'}
-                  </button>
+                  </Button>
                 )}
               </div>
             );
           })}
-      </div>
+        </RowList>
+      )}
 
       {message && (
         <p
-          className="mt-3 rounded-lg px-3 py-2 text-xs"
           style={{
-            background: message.kind === 'ok' ? 'rgba(255,255,255,0.08)' : 'rgba(173,33,34,0.18)',
-            color: message.kind === 'ok' ? '#ffffff' : '#fecaca',
+            font: 'var(--type-body-sm)',
+            color: message.kind === 'ok' ? 'var(--primary)' : 'var(--accent)',
+            background: message.kind === 'ok' ? 'var(--tint)' : 'rgba(var(--accent-rgb), 0.08)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            margin: '12px 0 0',
           }}
         >
-          {message.kind === 'ok' ? '✓ ' : '✕ '}
           {message.text}
         </p>
       )}
@@ -186,6 +189,6 @@ export function AdminListCard() {
         onClose={() => setPickerOpen(false)}
         onConfirm={handleAdd}
       />
-    </div>
+    </Card>
   );
 }

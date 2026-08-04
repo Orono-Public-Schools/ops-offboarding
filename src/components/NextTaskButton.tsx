@@ -1,9 +1,11 @@
 import { Link, useOutletContext } from 'react-router';
+import { Icon } from '../ds/components/core/Icon';
 import { taskKeysForDoc, type TaskKey } from '../lib/offboarding';
 import type { OutletCtx } from '../App';
 
 type Props = { currentKey: TaskKey; className?: string };
 
+/** ds primary button rendered as a Link — skips completed and skipped tasks. */
 export function NextTaskButton({ currentKey, className = '' }: Props) {
   const { doc } = useOutletContext<OutletCtx>();
   const keys = taskKeysForDoc(doc);
@@ -22,14 +24,17 @@ export function NextTaskButton({ currentKey, className = '' }: Props) {
   return (
     <Link
       to={`/offboarding/tasks/${nextKey}`}
-      className={`inline-flex items-center gap-1 rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-md active:scale-[0.98] ${className}`.trim()}
+      className={`inline-flex h-10 items-center justify-center gap-2 px-4 transition hover:-translate-y-px active:scale-[0.98] ${className}`.trim()}
       style={{
-        background: '#ffffff',
-        color: '#1d2a5d',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        font: 'var(--type-button)',
+        color: '#fff',
+        background: 'var(--gradient-primary)',
+        borderRadius: 'var(--radius-button)',
+        boxShadow: 'var(--shadow-primary)',
       }}
     >
-      Next task →
+      Next task
+      <Icon name="arrowRight" size={16} />
     </Link>
   );
 }

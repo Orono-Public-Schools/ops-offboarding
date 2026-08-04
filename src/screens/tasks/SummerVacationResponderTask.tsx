@@ -10,6 +10,9 @@ import {
   StepLabel,
   StepTextarea,
 } from '../../components/TaskStep';
+import { Button } from '../../ds/components/core/Button';
+import { Icon } from '../../ds/components/core/Icon';
+import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { getGoogleAccessToken } from '../../lib/auth';
 import { markTaskComplete, setOutOfOffice } from '../../lib/functions';
 import type { BuildingChecklist } from '../../lib/offboarding';
@@ -141,15 +144,11 @@ export function SummerVacationResponderTask() {
 
   return (
     <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          Summer vacation responder
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Set the automatic reply people will get over summer break. Activates today and runs until
-          you turn it off (you can stop it any time from Gmail).
-        </p>
-      </div>
+      <PageTitle
+        title="Summer vacation responder"
+        subtitle="Set the automatic reply people will get over summer break. Activates today and runs until you turn it off (you can stop it any time from Gmail)."
+        className="mb-5 sm:mb-8"
+      />
 
       <div className="space-y-4">
         <StepCard>
@@ -166,10 +165,13 @@ export function SummerVacationResponderTask() {
                 <button
                   key={id}
                   onClick={() => applyTemplate(id)}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
                   style={{
-                    background: active ? 'rgba(255,255,255,0.18)' : 'transparent',
-                    borderColor: active ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.4)',
+                    color: active ? 'var(--secondary)' : 'var(--text-body)',
+                    background: active ? 'rgba(var(--secondary-rgb), 0.1)' : 'transparent',
+                    border: active
+                      ? '1px solid rgba(var(--secondary-rgb), 0.45)'
+                      : '1px solid var(--border-input)',
                   }}
                 >
                   {templates[id].label}
@@ -223,24 +225,18 @@ export function SummerVacationResponderTask() {
             <div className="flex items-start gap-3">
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                style={{ background: 'rgba(255,255,255,0.18)' }}
+                style={{ background: 'rgba(var(--dark-rgb), 0.1)', color: 'var(--dark)' }}
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ color: '#ffffff' }}
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <Icon name="check" size={18} strokeWidth={2.5} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">Your summer responder is live.</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/80">
+                <p style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}>
+                  Your summer responder is live.
+                </p>
+                <p
+                  className="mt-1 leading-relaxed"
+                  style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}
+                >
                   Anyone who emails you will get this message. Update it from this page or turn it
                   off in Gmail settings anytime.
                 </p>
@@ -249,67 +245,72 @@ export function SummerVacationResponderTask() {
           </StepCard>
         )}
 
-        {error && <StepError>{error}</StepError>}
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Link
-            to="/offboarding"
-            className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
-            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            {savedOk ? 'Done' : 'Cancel'}
-          </Link>
-          {isComplete || isSkipped ? (
-            <button
-              onClick={() => handleManual('in_progress')}
-              disabled={manualPending !== null || saving}
-              className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-              style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-            >
-              {manualPending === 'reopen' ? 'Reopening…' : 'Reopen'}
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => handleManual('skipped')}
-                disabled={manualPending !== null || saving}
-                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-              >
-                {manualPending === 'skip' ? 'Saving…' : 'Skip'}
-              </button>
-              <button
-                onClick={() => handleManual('completed')}
-                disabled={manualPending !== null || saving}
-                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-              >
-                {manualPending === 'complete' ? 'Saving…' : 'Mark complete'}
-              </button>
-            </>
+        <StepCard>
+          {error && (
+            <div className="mb-3">
+              <StepError>{error}</StepError>
+            </div>
           )}
-          <button
-            onClick={handleSave}
-            disabled={saving || manualPending !== null}
-            className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-            style={{
-              background: '#ffffff',
-              color: '#1d2a5d',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            {saving
-              ? 'Saving…'
-              : taskState.status === 'completed' || savedOk
-                ? 'Update responder'
-                : 'Activate responder'}
-          </button>
-          <NextTaskButton currentKey="eoyVacationResponder" className="order-first sm:order-last" />
-          <HelpFlagSection
-            currentKey="eoyVacationResponder"
-            className="order-first sm:order-last"
-          />
-        </div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <Link
+              to="/offboarding"
+              className="inline-flex h-10 items-center justify-center px-4 transition hover:bg-black/5"
+              style={{
+                font: 'var(--type-button)',
+                color: 'var(--text-muted)',
+                borderRadius: 'var(--radius-button)',
+              }}
+            >
+              {savedOk ? 'Done' : 'Cancel'}
+            </Link>
+            {isComplete || isSkipped ? (
+              <Button
+                variant="ghost"
+                onClick={() => handleManual('in_progress')}
+                disabled={manualPending !== null || saving}
+              >
+                {manualPending === 'reopen' ? 'Reopening…' : 'Reopen'}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => handleManual('skipped')}
+                  disabled={manualPending !== null || saving}
+                >
+                  {manualPending === 'skip' ? 'Saving…' : 'Skip'}
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => handleManual('completed')}
+                  disabled={manualPending !== null || saving}
+                >
+                  {manualPending === 'complete' ? 'Saving…' : 'Mark complete'}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="submit"
+              icon="send"
+              onClick={handleSave}
+              disabled={saving || manualPending !== null}
+            >
+              {saving
+                ? 'Saving…'
+                : taskState.status === 'completed' || savedOk
+                  ? 'Update responder'
+                  : 'Activate responder'}
+            </Button>
+            <NextTaskButton
+              currentKey="eoyVacationResponder"
+              className="order-first sm:order-last"
+            />
+            <HelpFlagSection
+              currentKey="eoyVacationResponder"
+              className="order-first sm:order-last"
+            />
+          </div>
+        </StepCard>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router';
 import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import {
+  InsetPanel,
   StepCard,
   StepError,
   StepHeader,
@@ -10,6 +11,8 @@ import {
   StepLabel,
   StepTextarea,
 } from '../../components/TaskStep';
+import { Button } from '../../ds/components/core/Button';
+import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { markTaskComplete, requestGmailForwarding } from '../../lib/functions';
 import type { OutletCtx } from '../../App';
 
@@ -63,15 +66,11 @@ export function GmailForwardingTask() {
 
   return (
     <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          Gmail forwarding
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Want incoming mail forwarded after you leave? Tell us where, and IT will set it up before
-          your account is deactivated. Skip this if you don't need forwarding.
-        </p>
-      </div>
+      <PageTitle
+        title="Gmail forwarding"
+        subtitle="Want incoming mail forwarded after you leave? Tell us where, and IT will set it up before your account is deactivated. Skip this if you don't need forwarding."
+        className="mb-5 sm:mb-8"
+      />
 
       <div className="space-y-4">
         <StepCard>
@@ -122,62 +121,63 @@ export function GmailForwardingTask() {
               }
             />
             {isComplete && savedNote && (
-              <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
-                  Your note
-                </p>
-                <p className="mt-1 text-sm text-white/85">{savedNote}</p>
-              </div>
+              <InsetPanel>
+                <StepLabel>Your note</StepLabel>
+                <p style={{ font: 'var(--type-body)', color: 'var(--text-body)' }}>{savedNote}</p>
+              </InsetPanel>
             )}
           </StepCard>
         )}
 
-        {error && <StepError>{error}</StepError>}
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Link
-            to="/offboarding"
-            className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98]"
-            style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            {isComplete || isSkipped ? 'Done' : 'Cancel'}
-          </Link>
-          {isComplete || isSkipped ? (
-            <button
-              onClick={() => handleStatus('in_progress')}
-              disabled={pending !== null || submitting}
-              className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-              style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-            >
-              {pending === 'reopen' ? 'Reopening…' : 'Reopen'}
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => handleStatus('skipped')}
-                disabled={pending !== null || submitting}
-                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-white/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
-              >
-                {pending === 'skip' ? 'Saving…' : "I don't need forwarding — skip"}
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || pending !== null}
-                className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-lg active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-                style={{
-                  background: '#ffffff',
-                  color: '#1d2a5d',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}
-              >
-                {submitting ? 'Submitting…' : 'Submit request'}
-              </button>
-            </>
+        <StepCard>
+          {error && (
+            <div className="mb-3">
+              <StepError>{error}</StepError>
+            </div>
           )}
-          <NextTaskButton currentKey="gmailForwarding" className="order-first sm:order-last" />
-          <HelpFlagSection currentKey="gmailForwarding" className="order-first sm:order-last" />
-        </div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <Link
+              to="/offboarding"
+              className="inline-flex h-10 items-center justify-center px-4 transition hover:bg-black/5"
+              style={{
+                font: 'var(--type-button)',
+                color: 'var(--text-muted)',
+                borderRadius: 'var(--radius-button)',
+              }}
+            >
+              {isComplete || isSkipped ? 'Done' : 'Cancel'}
+            </Link>
+            {isComplete || isSkipped ? (
+              <Button
+                variant="ghost"
+                onClick={() => handleStatus('in_progress')}
+                disabled={pending !== null || submitting}
+              >
+                {pending === 'reopen' ? 'Reopening…' : 'Reopen'}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => handleStatus('skipped')}
+                  disabled={pending !== null || submitting}
+                >
+                  {pending === 'skip' ? 'Saving…' : "I don't need forwarding — skip"}
+                </Button>
+                <Button
+                  variant="submit"
+                  icon="send"
+                  onClick={handleSubmit}
+                  disabled={submitting || pending !== null}
+                >
+                  {submitting ? 'Submitting…' : 'Submit request'}
+                </Button>
+              </>
+            )}
+            <NextTaskButton currentKey="gmailForwarding" className="order-first sm:order-last" />
+            <HelpFlagSection currentKey="gmailForwarding" className="order-first sm:order-last" />
+          </div>
+        </StepCard>
       </div>
     </div>
   );

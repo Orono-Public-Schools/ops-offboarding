@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Button } from '../ds/components/core/Button';
+import { Icon } from '../ds/components/core/Icon';
 import { getGoogleAccessToken, useAuth } from '../lib/auth';
 import {
   createDriveFolder,
@@ -6,6 +8,7 @@ import {
   setDriveDestinations,
   type DriveDestination,
 } from '../lib/functions';
+import { StepError, StepInput } from './TaskStep';
 
 type SharedDrive = { id: string; name: string };
 
@@ -130,90 +133,97 @@ export function DriveDestinationsSetup({ open, initialDestinations, onClose, onS
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: 'rgba(0,0,0,0.5)' }}
+      style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-lg flex-col rounded-xl"
+        className="flex w-full max-w-lg flex-col"
         style={{
-          background: '#ffffff',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+          background: 'var(--surface-card)',
+          borderRadius: 'var(--radius-card)',
+          boxShadow: 'var(--shadow-card-hover)',
           maxHeight: '85vh',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex items-start justify-between gap-4 border-b p-5"
-          style={{ borderColor: '#e2e5ea' }}
+          className="flex items-start justify-between gap-4 p-5"
+          style={{ borderBottom: '1px solid var(--divider)' }}
         >
           <div>
-            <h2
-              className="text-sm font-semibold tracking-widest uppercase"
-              style={{ color: '#1d2a5d' }}
+            <p
+              className="uppercase"
+              style={{
+                font: 'var(--type-card-eyebrow)',
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--text-muted)',
+              }}
             >
+              Drive destinations
+            </p>
+            <h2 className="mt-1" style={{ font: 'var(--type-card-title)', color: 'var(--dark)' }}>
               Where will you be sending things?
             </h2>
-            <p className="mt-1 text-sm" style={{ color: '#64748b' }}>
+            <p className="mt-1" style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
               Pick the shared drives you'll move work into, and optionally create a personal staging
               folder to download before you leave. You can change these anytime.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-2 py-1 text-sm font-semibold"
-            style={{ color: '#64748b' }}
+            aria-label="Close"
+            className="rounded-lg p-1.5 transition hover:bg-black/5"
+            style={{ color: 'var(--text-muted)' }}
           >
-            ✕
+            <Icon name="x" size={16} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
           <div className="mb-6">
             <h3
-              className="mb-2 text-xs font-semibold tracking-wider uppercase"
-              style={{ color: '#64748b' }}
+              className="mb-2 uppercase"
+              style={{
+                font: 'var(--type-field-label)',
+                letterSpacing: 'var(--tracking-wider)',
+                color: 'var(--text-muted)',
+              }}
             >
               Shared drives
             </h3>
-            {loadError && (
-              <p
-                className="rounded-lg px-3 py-2 text-xs"
-                style={{ background: 'rgba(173,33,34,0.08)', color: '#ad2122' }}
-              >
-                {loadError}
-              </p>
-            )}
+            {loadError && <StepError>{loadError}</StepError>}
             {!drives && !loadError && (
-              <p className="text-sm" style={{ color: '#94a3b8' }}>
+              <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-placeholder)' }}>
                 Loading…
               </p>
             )}
             {drives && drives.length === 0 && (
-              <p className="text-sm" style={{ color: '#94a3b8' }}>
+              <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-placeholder)' }}>
                 You're not a member of any shared drives.
               </p>
             )}
             {drives && drives.length > 0 && (
-              <div className="space-y-2">
-                {drives.map((drive) => {
+              <div>
+                {drives.map((drive, i) => {
                   const checked = selectedDriveIds.has(drive.id);
                   return (
                     <label
                       key={drive.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-slate-50"
+                      className="flex cursor-pointer items-center gap-3 px-2 py-3 transition"
                       style={{
-                        border: '1px solid',
-                        borderColor: checked ? '#2d3f89' : '#e2e5ea',
-                        background: checked ? 'rgba(45,63,137,0.04)' : '#ffffff',
+                        borderTop: i > 0 ? '1px solid var(--divider)' : undefined,
+                        background: checked ? 'rgba(var(--secondary-rgb), 0.08)' : 'transparent',
+                        borderRadius: checked ? 8 : 0,
                       }}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleDrive(drive.id)}
-                        className="h-4 w-4 cursor-pointer accent-[#4356a9]"
+                        className="h-4 w-4 cursor-pointer"
+                        style={{ accentColor: 'var(--secondary)' }}
                       />
-                      <span className="text-sm font-semibold" style={{ color: '#1d2a5d' }}>
+                      <span style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}>
                         {drive.name}
                       </span>
                     </label>
@@ -225,46 +235,44 @@ export function DriveDestinationsSetup({ open, initialDestinations, onClose, onS
 
           <div>
             <h3
-              className="mb-2 text-xs font-semibold tracking-wider uppercase"
-              style={{ color: '#64748b' }}
+              className="mb-2 uppercase"
+              style={{
+                font: 'var(--type-field-label)',
+                letterSpacing: 'var(--tracking-wider)',
+                color: 'var(--text-muted)',
+              }}
             >
               Personal staging folder
             </h3>
             <label
               className="mb-3 flex cursor-pointer items-start gap-3"
-              style={{ color: '#334155' }}
+              style={{ color: 'var(--text-body)' }}
             >
               <input
                 type="checkbox"
                 checked={createPersonal}
                 onChange={(e) => setCreatePersonal(e.target.checked)}
-                className="mt-0.5 h-4 w-4 cursor-pointer accent-[#4356a9]"
+                className="mt-0.5 h-4 w-4 cursor-pointer"
+                style={{ accentColor: 'var(--secondary)' }}
               />
-              <span className="text-sm">
+              <span style={{ font: 'var(--type-body)' }}>
                 Create a folder in my personal Drive where I can collect things to download before
                 my account is deactivated.
               </span>
             </label>
             {createPersonal && (
-              <input
+              <StepInput
                 type="text"
                 value={personalFolderName}
                 onChange={(e) => setPersonalFolderName(e.target.value)}
                 placeholder="Folder name"
-                className="w-full rounded-lg px-3 py-2 text-sm transition outline-none"
-                style={{ background: '#ffffff', border: '1px solid #e2e5ea', color: '#1d2a5d' }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#2d3f89';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,63,137,0.1)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#e2e5ea';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
               />
             )}
             {existingPersonalFolder && createPersonal && (
-              <p className="mt-2 text-xs" style={{ color: '#94a3b8' }}>
+              <p
+                className="mt-2"
+                style={{ font: 'var(--type-caption)', color: 'var(--text-placeholder)' }}
+              >
                 Already created. Renaming will create a new folder; the old one stays in your Drive.
               </p>
             )}
@@ -272,37 +280,21 @@ export function DriveDestinationsSetup({ open, initialDestinations, onClose, onS
         </div>
 
         {saveError && (
-          <p
-            className="mx-5 mb-3 rounded-lg px-3 py-2 text-xs"
-            style={{ background: 'rgba(173,33,34,0.08)', color: '#ad2122' }}
-          >
-            {saveError}
-          </p>
+          <div className="mx-5 mb-3">
+            <StepError>{saveError}</StepError>
+          </div>
         )}
 
         <div
-          className="flex flex-col-reverse gap-3 border-t p-5 sm:flex-row sm:justify-end"
-          style={{ borderColor: '#e2e5ea' }}
+          className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end"
+          style={{ borderTop: '1px solid var(--divider)' }}
         >
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-xl border px-4 py-2 text-sm font-semibold transition hover:bg-slate-50 disabled:opacity-60"
-            style={{ borderColor: '#cbd5e1', color: '#475569' }}
-          >
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
-            style={{
-              background: 'linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%)',
-              boxShadow: '0 2px 8px rgba(29,42,93,0.25)',
-            }}
-          >
+          </Button>
+          <Button variant="primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save destinations'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

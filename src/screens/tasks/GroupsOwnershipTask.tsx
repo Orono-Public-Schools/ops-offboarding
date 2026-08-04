@@ -4,12 +4,16 @@ import { HelpFlagSection } from '../../components/HelpFlagSection';
 import { NextTaskButton } from '../../components/NextTaskButton';
 import { PersonPicker } from '../../components/PersonPicker';
 import {
+  InsetPanel,
   StepCard,
   StepError,
   StepHeader,
   StepLabel,
   StepTextarea,
 } from '../../components/TaskStep';
+import { Button } from '../../ds/components/core/Button';
+import { StatusBadge } from '../../ds/components/core/StatusBadge';
+import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { getGoogleAccessToken, useAuth } from '../../lib/auth';
 import { markTaskComplete, promoteGroupOwner } from '../../lib/functions';
 import {
@@ -133,14 +137,11 @@ export function GroupsOwnershipTask() {
 
   return (
     <div>
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-xl font-bold sm:text-2xl" style={{ color: '#ffffff' }}>
-          Google Groups
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          We pull groups where you're an Owner or Manager so you can hand off the ones you run.
-        </p>
-      </div>
+      <PageTitle
+        title="Google Groups"
+        subtitle="We pull groups where you're an Owner or Manager so you can hand off the ones you run."
+        className="mb-5 sm:mb-8"
+      />
 
       <div className="space-y-4">
         <StepCard>
@@ -170,33 +171,49 @@ export function GroupsOwnershipTask() {
           {!scanning && groups && (
             <>
               {groups.length === 0 ? (
-                <p className="text-sm text-white/65">
-                  You don't own or manage any groups. Nothing to do here. ✓
+                <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
+                  You don't own or manage any groups. Nothing to do here.
                 </p>
               ) : (
                 <>
-                  <p className="mb-3 text-xs text-white/65">
+                  <p
+                    className="mb-1"
+                    style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}
+                  >
                     {groups.length} group{groups.length === 1 ? '' : 's'} — {ownerCount} owner,{' '}
                     {managerCount} manager
                   </p>
-                  <div className="space-y-2">
-                    {groups.map((g) => {
+                  <div>
+                    {groups.map((g, i) => {
                       const isOwner = g.role === 'OWNER';
                       return (
                         <div
                           key={g.id}
-                          className="flex items-center gap-3 rounded-lg p-3"
-                          style={{ background: 'rgba(255,255,255,0.08)' }}
+                          className="flex flex-wrap items-center gap-3 py-3"
+                          style={{ borderTop: i > 0 ? '1px solid var(--divider)' : undefined }}
                         >
                           <span
-                            className="flex h-9 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
-                            style={{ background: 'rgba(255,255,255,0.15)' }}
+                            className="flex h-9 w-12 shrink-0 items-center justify-center uppercase"
+                            style={{
+                              font: 'var(--type-micro)',
+                              background: 'var(--tint)',
+                              color: 'var(--dark)',
+                              borderRadius: 6,
+                            }}
                           >
                             Group
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-white">{g.name}</p>
-                            <p className="truncate text-xs text-white/60">
+                            <p
+                              className="truncate"
+                              style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}
+                            >
+                              {g.name}
+                            </p>
+                            <p
+                              className="truncate"
+                              style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}
+                            >
                               {g.email}
                               {typeof g.directMembersCount === 'number' && (
                                 <>
@@ -207,36 +224,34 @@ export function GroupsOwnershipTask() {
                               )}
                             </p>
                           </div>
-                          <span
-                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                            style={{
-                              background: isOwner
-                                ? 'rgba(255,255,255,0.22)'
-                                : 'rgba(255,255,255,0.1)',
-                              color: '#ffffff',
-                            }}
-                          >
-                            {isOwner ? 'Owner' : 'Manager'}
-                          </span>
-                          <button
+                          <StatusBadge
+                            state={isOwner ? 'processing' : 'draft'}
+                            label={isOwner ? 'Owner' : 'Manager'}
+                            icon={false}
+                            size="sm"
+                            className="shrink-0"
+                          />
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="shrink-0"
                             onClick={() => {
                               setPromoteSuccess(null);
                               setPromoteFor(g);
                             }}
-                            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:-translate-y-px active:scale-[0.98]"
-                            style={{
-                              background: '#ffffff',
-                              color: '#1d2a5d',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                            }}
                           >
                             Promote owner
-                          </button>
+                          </Button>
                           <a
                             href={groupManageUrl(g)}
                             target="_blank"
                             rel="noreferrer"
-                            className="shrink-0 text-xs font-semibold text-white/70 transition hover:text-white"
+                            className="shrink-0 transition"
+                            style={{
+                              font: 'var(--type-caption)',
+                              fontWeight: 600,
+                              color: 'var(--secondary)',
+                            }}
                           >
                             Open ↗
                           </a>
@@ -246,10 +261,15 @@ export function GroupsOwnershipTask() {
                   </div>
                   {promoteSuccess && (
                     <p
-                      className="mt-3 rounded-lg px-3 py-2 text-xs"
-                      style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff' }}
+                      className="mt-3 px-3 py-2"
+                      style={{
+                        font: 'var(--type-caption)',
+                        color: 'var(--dark)',
+                        background: 'rgba(var(--dark-rgb), 0.08)',
+                        borderRadius: 8,
+                      }}
                     >
-                      ✓ {promoteSuccess}
+                      {promoteSuccess}
                     </p>
                   )}
                 </>
@@ -262,14 +282,15 @@ export function GroupsOwnershipTask() {
           <StepHeader step="Step 2" title="What to do" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {TIPS.map((tip) => (
-              <div
-                key={tip.title}
-                className="rounded-lg p-3"
-                style={{ background: 'rgba(255,255,255,0.08)' }}
-              >
-                <p className="text-sm font-semibold text-white">{tip.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/75">{tip.body}</p>
-              </div>
+              <InsetPanel key={tip.title}>
+                <p style={{ font: 'var(--type-strong)', color: 'var(--dark)' }}>{tip.title}</p>
+                <p
+                  className="mt-1 leading-relaxed"
+                  style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}
+                >
+                  {tip.body}
+                </p>
+              </InsetPanel>
             ))}
           </div>
         </StepCard>
@@ -297,15 +318,15 @@ export function GroupsOwnershipTask() {
           {(isComplete || isSkipped) && (
             <div className="mb-4 space-y-2">
               {taskState.notes && (
-                <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[11px] font-semibold tracking-wider text-white/60 uppercase">
-                    Your note
+                <InsetPanel>
+                  <StepLabel>Your note</StepLabel>
+                  <p style={{ font: 'var(--type-body)', color: 'var(--text-body)' }}>
+                    {taskState.notes}
                   </p>
-                  <p className="mt-1 text-sm text-white/85">{taskState.notes}</p>
-                </div>
+                </InsetPanel>
               )}
               {taskState.completedAt && isComplete && (
-                <p className="text-xs text-white/60">
+                <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)' }}>
                   Marked complete{' '}
                   {taskState.completedAt
                     .toDate()
@@ -328,38 +349,32 @@ export function GroupsOwnershipTask() {
             </>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isComplete || isSkipped ? (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => handleStatus('in_progress')}
                 disabled={pending !== null}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                style={{ borderColor: 'rgba(255,255,255,0.4)' }}
               >
                 {pending === 'reopen' ? 'Saving…' : 'Reopen'}
-              </button>
+              </Button>
             ) : (
               <>
-                <button
+                <Button
+                  variant="submit"
+                  icon="check"
                   onClick={() => handleStatus('completed')}
                   disabled={pending !== null}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
-                  style={{
-                    background: '#ffffff',
-                    color: '#1d2a5d',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  }}
                 >
                   {pending === 'complete' ? 'Saving…' : "I'm done — mark complete"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => handleStatus('skipped')}
                   disabled={pending !== null}
-                  className="rounded-lg border px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-                  style={{ borderColor: 'rgba(255,255,255,0.4)' }}
                 >
                   {pending === 'skip' ? 'Saving…' : "Doesn't apply — skip"}
-                </button>
+                </Button>
               </>
             )}
             <NextTaskButton currentKey="groupsOwnership" />
