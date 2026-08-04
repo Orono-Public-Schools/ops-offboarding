@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
 import { AllDoneCard } from '../components/AllDoneCard';
 import { LastDayBanner } from '../components/LastDayBanner';
 import { SupervisorBanner } from '../components/SupervisorBanner';
+import { markTaskComplete } from '../lib/functions';
+import { Button } from '../ds/components/core/Button';
 import { Card } from '../ds/components/core/Card';
 import { RowList } from '../ds/components/forms/RowList';
 import { ChecklistItem } from '../ds/components/records/ChecklistItem';
@@ -25,6 +27,22 @@ type RowState = 'todo' | 'waiting' | 'done';
 export function DashboardScreen() {
   const { doc } = useOutletContext<OutletCtx>();
   const navigate = useNavigate();
+  const [toggling, setToggling] = useState<TaskKey | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
+
+  const toggleTask = async (key: TaskKey, currentlyDone: boolean) => {
+    if (toggling) return;
+    setToggleError(null);
+    setToggling(key);
+    try {
+      await markTaskComplete({ taskKey: key, status: currentlyDone ? 'not_started' : 'completed' });
+    } catch (err) {
+      console.error(err);
+      setToggleError('Could not update that task. Please try again.');
+    } finally {
+      setToggling(null);
+    }
+  };
 
   const isLeaving = doc.type === 'leaving';
   const buildingLabel = useMemo(() => {
@@ -89,7 +107,9 @@ export function DashboardScreen() {
       );
     }
 
-    const go = () => navigate(`/offboarding/tasks/${task.key}`);
+    // The box toggles done/undone in place; tasks sitting with IT stay
+    // untoggleable so nobody un-files a request that's already in motion.
+    const canToggle = rowState !== 'waiting' && toggling === null;
     return (
       <ChecklistItem
         key={task.key}
@@ -97,17 +117,18 @@ export function DashboardScreen() {
         title={task.label}
         description={task.description}
         owner={owner}
-        due={due}
-        role="link"
-        tabIndex={0}
-        onClick={go}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            go();
-          }
-        }}
-        style={{ cursor: 'pointer' }}
+        due={toggling === task.key ? 'Saving…' : due}
+        onToggle={canToggle ? () => toggleTask(task.key, rowState === 'done') : undefined}
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            iconRight="arrowRight"
+            onClick={() => navigate(`/offboarding/tasks/${task.key}`)}
+          >
+            Open
+          </Button>
+        }
       />
     );
   };
@@ -145,6 +166,19 @@ export function DashboardScreen() {
           }
           pad={16}
         >
+          {toggleError && (
+            <p
+              className="mb-3 px-3 py-2"
+              style={{
+                font: 'var(--type-caption)',
+                color: 'var(--accent)',
+                background: 'rgba(var(--accent-rgb), 0.08)',
+                borderRadius: 8,
+              }}
+            >
+              {toggleError}
+            </p>
+          )}
           <RowList>{visibleTasks.map(renderRow)}</RowList>
         </Card>
       ) : (
