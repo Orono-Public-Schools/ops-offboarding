@@ -3,11 +3,27 @@ import { useAuth } from '../../lib/auth';
 import { FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
-import { PageTitle } from '../../ds/components/navigation/PageTitle';
+import { DayHeader } from '../../ds/components/navigation/DayHeader';
 import { ModuleCard } from '../../ds/components/records/ModuleCard';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { RowList } from '../../ds/components/forms/RowList';
 import { InboxRow } from '../../ds/components/records/InboxRow';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 function ago(ms: number | undefined): string {
   if (!ms) return '';
@@ -24,12 +40,25 @@ export function FormsHome() {
   const forms = Object.values(FORM_DEFINITIONS);
   const mine = subs.submissions ?? [];
 
+  const open = mine.filter((s) => s.status === 'submitted' || s.status === 'processing');
+  const now = new Date();
+  const headline =
+    open.length === 1
+      ? 'One of your requests is moving'
+      : open.length > 1
+        ? `${open.length} of your requests are moving`
+        : mine.length > 0
+          ? 'Everything you filed is settled'
+          : 'Nothing on file yet';
+
   return (
     <>
-      <PageTitle
-        eyebrow="HR forms"
-        title="File something"
-        subtitle="Drafts save as you type, and you can see where every request sits after you send it."
+      <DayHeader
+        weekday={WEEKDAYS[now.getDay()]}
+        day={now.getDate()}
+        month={MONTHS[now.getMonth()]}
+        title={headline}
+        subtitle="Forms go to HR with a paper trail — drafts save as you type, and you can watch every request move."
       />
 
       <Card eyebrow="Forms" heading="What you can file today" pad={16}>
