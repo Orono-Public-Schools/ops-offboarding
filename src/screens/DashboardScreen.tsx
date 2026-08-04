@@ -131,7 +131,7 @@ export function DashboardScreen() {
     return (
       <Link
         key={task.key}
-        to={`/tasks/${task.key}`}
+        to={`/offboarding/tasks/${task.key}`}
         className={`${baseClasses} cursor-pointer hover:-translate-y-0.5`}
         style={style}
       >
@@ -184,7 +184,7 @@ export function DashboardScreen() {
     return (
       <Link
         key={task.key}
-        to={`/tasks/${task.key}`}
+        to={`/offboarding/tasks/${task.key}`}
         className={`${baseClasses} cursor-pointer hover:-translate-y-px`}
         style={style}
       >

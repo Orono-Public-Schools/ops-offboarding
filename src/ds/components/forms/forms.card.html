@@ -1,0 +1,46 @@
+<!-- @dsCard group="Components" viewport="700x430" name="Forms — fields, choices, divided rows" subtitle="Uppercase labels, focus rings, read-only inset, detail rows" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Forms</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../ds-namespace.js"></script>
+<style>body{padding:20px 24px}#root{max-width:652px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/ds-babel">
+DSResolve({"Icon":"../core/Icon.jsx","Card":"../core/Card.jsx","StatusBadge":"../core/StatusBadge.jsx","Field":"Field.jsx","Select":"Select.jsx","ChoiceRow":"ChoiceRow.jsx","CheckMark":"CheckMark.jsx","RowList":"RowList.jsx","DetailRow":"RowList.jsx","FormSection":"FormSection.jsx"}).then(function (NS) {
+const { Field, ChoiceRow, RowList, DetailRow, FormSection, StatusBadge } = NS;
+function Demo() {
+  const [pick, setPick] = React.useState('parental');
+  const [on, setOn] = React.useState(true);
+  return (
+    <div className="stack">
+      <FormSection title="Leave details" description="HR confirms these dates with you before anything is final.">
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <Field label="First day away" icon="calendar" defaultValue="04 / 13 / 2026" />
+          <Field label="Expected return" icon="calendar" error="Pick a date after your first day." defaultValue="04 / 02 / 2026" />
+        </div>
+        <Field label="Leave type" as="select" options={['Parental','Medical','Family care','Personal']} />
+        <Field label="Name" defaultValue="Marisol Reyes" readOnly help="Pulled from your record." />
+        <div style={{display:'grid',gap:8}}>
+          <ChoiceRow type="radio" name="l" title="Parental leave" description="Birth, adoption, or foster placement." meta="up to 12 weeks" checked={pick==='parental'} onChange={()=>setPick('parental')} />
+          <ChoiceRow type="switch" title="Email my personal address too" checked={on} onChange={()=>setOn(!on)} />
+        </div>
+      </FormSection>
+      <NS.Card heading="What was filed">
+        <RowList>
+          <DetailRow label="Leave type" value="Parental" />
+          <DetailRow label="First day away" value="April 13, 2026" />
+          <DetailRow label="Status" right={<StatusBadge state="processing" />} />
+        </RowList>
+      </NS.Card>
+    </div>
+  );
+}
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+});
+</script></body></html>

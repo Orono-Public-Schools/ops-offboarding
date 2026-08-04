@@ -47,3 +47,13 @@ pnpm-debug.log*
 
 # Test output
 coverage/
+
+# Generated copy of shared/ for the functions build
+functions/src/shared-gen/
+
+# Stray API-response dumps must never be committed
+idp.json
+idp-patch.json
+rename.json
+brands.json
+proj.json

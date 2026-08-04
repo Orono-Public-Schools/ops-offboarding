@@ -184,10 +184,11 @@ export function DrivePersonalTask() {
               <button
                 onClick={handleCreateFolder}
                 disabled={creating}
-                className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
+                className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
                 style={{
-                  background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-                  boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+                  background: '#ffffff',
+                  color: '#1d2a5d',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 }}
               >
                 {creating ? 'Creating…' : 'Create folder'}
@@ -300,10 +301,11 @@ export function DrivePersonalTask() {
                 <button
                   onClick={handleMarkComplete}
                   disabled={marking}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:translate-y-0"
                   style={{
-                    background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-                    boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+                    background: '#ffffff',
+                    color: '#1d2a5d',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   }}
                 >
                   {marking ? 'Saving…' : "I'm done — mark complete"}

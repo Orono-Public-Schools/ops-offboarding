@@ -21,7 +21,7 @@ export function NextTaskButton({ currentKey, className = '' }: Props) {
 
   return (
     <Link
-      to={`/tasks/${nextKey}`}
+      to={`/offboarding/tasks/${nextKey}`}
       className={`inline-flex items-center gap-1 rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow-md active:scale-[0.98] ${className}`.trim()}
       style={{
         background: '#ffffff',

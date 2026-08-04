@@ -1,0 +1,15 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--gradient-page);
+  background-attachment: fixed;
+  color: var(--text-body);
+  font: var(--type-body);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+* { box-sizing: border-box; }
+a { color: var(--secondary); text-decoration: none; border-bottom: 1px solid rgba(var(--secondary-rgb), 0.3); }
+a:hover { color: var(--primary); border-bottom-color: rgba(var(--primary-rgb), 0.6); }
+::selection { background: var(--tint); color: var(--dark); }
+input, textarea, select, button { font-family: var(--font-sans); }

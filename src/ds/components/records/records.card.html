@@ -1,0 +1,54 @@
+<!-- @dsCard group="Components" viewport="700x600" name="Records — modules, people, rows, empty" subtitle="Module cards with progress, inbox rows, checklists, empty states" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Records</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../ds-namespace.js"></script>
+<style>body{padding:20px 24px}#root{max-width:652px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/ds-babel">
+DSResolve({"Icon":"../core/Icon.jsx","Button":"../core/Button.jsx","Card":"../core/Card.jsx","StatusBadge":"../core/StatusBadge.jsx","ProgressBar":"../core/ProgressBar.jsx","RowList":"../forms/RowList.jsx","DetailRow":"../forms/RowList.jsx","ModuleCard":"ModuleCard.jsx","PersonPlate":"PersonPlate.jsx","InboxRow":"InboxRow.jsx","ChecklistItem":"ChecklistItem.jsx","CheckMark":"../forms/CheckMark.jsx","EmptyState":"EmptyState.jsx","StatusTrack":"StatusTrack.jsx","RequestRow":"RequestRow.jsx"}).then(function (NS) {
+const { ModuleCard, PersonPlate, InboxRow, ChecklistItem, EmptyState, StatusBadge, Card, RowList, Button, StatusTrack, RequestRow } = NS;
+function Demo() {
+  return (
+    <div className="stack">
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <ModuleCard icon="fileText" title="Change of address" description="Payroll and benefits update together." meta="4 min" onClick={()=>{}} />
+        <ModuleCard icon="logOut" title="Your last two weeks" description="Six things to hand back." total={6} done={2} onClick={()=>{}} />
+      </div>
+      <Card heading="Your open requests" pad={8}>
+        <RequestRow title="Leave of absence" kind="Form 30-A · Case 26-0142 · filed 4 days ago"
+          status={<StatusBadge state="processing" />}
+          track={<StatusTrack stages={['Filed','Received','With benefits','Complete']} current={2} />}
+          note="With benefits since Friday." onClick={()=>{}} />
+      </Card>
+      <Card heading="Inbox" headingRight={<StatusBadge state="submitted" label="8 open" icon={false} />} pad={16}>
+        <RowList>
+          <InboxRow unread person={<PersonPlate size="sm" name="Marisol Reyes" role="Grade 4 teacher" />}
+            request="Leave of absence" kind="Form 30-A · Case 26-0142"
+            status={<StatusBadge state="processing" />} time="4 days" onClick={()=>{}} />
+          <InboxRow person={<PersonPlate size="sm" name="Andre Kalu" role="Custodian" />}
+            request="Change of address" kind="Form 12-B · Case 26-0184"
+            status={<StatusBadge state="submitted" />} time="2 days"
+            actions={<Button size="sm" variant="secondary">Open</Button>} />
+        </RowList>
+      </Card>
+      <Card heading="Offboarding" pad={16}>
+        <RowList>
+          <ChecklistItem state="done" title="Final timesheet approved" due="Done Mar 2" />
+          <ChecklistItem state="waiting" title="Return classroom keys" owner="With Facilities" icon="key" due="By Jun 5" />
+          <ChecklistItem state="todo" title="Return laptop and charger" description="Tech wipes it while you wait." due="By Jun 5" />
+        </RowList>
+      </Card>
+      <EmptyState icon="inbox" line="Nothing waiting on you" note="New submissions appear here the moment staff file them." />
+    </div>
+  );
+}
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+});
+</script></body></html>

@@ -95,10 +95,11 @@ export function AdminListCard() {
         </div>
         <button
           onClick={() => setPickerOpen(true)}
-          className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] sm:text-sm"
+          className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition hover:-translate-y-px active:scale-[0.98] sm:text-sm"
           style={{
-            background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-            boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+            background: '#ffffff',
+            color: '#1d2a5d',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           }}
         >
           Add admin

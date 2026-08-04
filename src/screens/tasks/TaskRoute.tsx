@@ -27,7 +27,7 @@ const VALID_KEYS = new Set<string>(TASK_CATALOGUE.map((t) => t.key));
 export function TaskRoute() {
   const { taskKey } = useParams();
   if (!taskKey || !VALID_KEYS.has(taskKey)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/offboarding" replace />;
   }
 
   const key = taskKey as TaskKey;

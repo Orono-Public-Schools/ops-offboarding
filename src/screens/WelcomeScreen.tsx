@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { signOut, useAuth } from '../lib/auth';
+import { Link } from 'react-router';
+import { useAuth } from '../lib/auth';
 import { startOffboarding } from '../lib/functions';
 
 export function WelcomeScreen() {
@@ -20,20 +21,20 @@ export function WelcomeScreen() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 sm:px-6">
+    <div className="flex justify-center px-0 py-4 sm:py-8">
       <div
         className="w-full max-w-xl rounded-xl p-6 sm:p-8"
-        style={{
-          background: '#ffffff',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)',
-        }}
+        style={{ background: '#ffffff', boxShadow: 'var(--shadow-card)' }}
       >
         <img src="/orono-offboarding-blue.png" alt="" className="mb-3 h-14 w-14" />
 
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1d2a5d' }}>
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: 'var(--color-ops-navy)' }}
+        >
           Welcome, {user?.displayName?.split(' ')[0] ?? 'there'}.
         </h1>
-        <p className="mt-3 text-sm leading-relaxed" style={{ color: '#334155' }}>
+        <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-ink)' }}>
           Let's get you offboarded smoothly. We'll walk you through transferring your Drive files,
           handing off group ownership, setting an out-of-office reply, returning your devices, and
           the rest. Progress saves automatically — come back any time to pick up where you left off.
@@ -44,8 +45,8 @@ export function WelcomeScreen() {
           disabled={pending}
           className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:opacity-60"
           style={{
-            background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-            boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+            background: 'var(--grad-primary)',
+            boxShadow: '0 2px 8px rgba(29,42,93,0.25)',
           }}
         >
           {pending ? 'Starting…' : 'Start my offboarding checklist'}
@@ -54,27 +55,19 @@ export function WelcomeScreen() {
         {error && (
           <p
             className="mt-4 rounded-lg px-3 py-2 text-center text-xs"
-            style={{ background: 'rgba(173,33,34,0.08)', color: '#ad2122' }}
+            style={{ background: 'rgba(173,33,34,0.08)', color: 'var(--color-ops-red)' }}
           >
             {error}
           </p>
         )}
 
-        <div
-          className="mt-6 flex items-center justify-between text-xs"
-          style={{ color: '#94a3b8' }}
-        >
-          <span>Signed in as {user?.email}</span>
-          <button
-            onClick={() => signOut()}
-            disabled={pending}
-            className="font-semibold disabled:opacity-60"
-            style={{ color: '#475569' }}
-          >
-            Sign out
-          </button>
-        </div>
+        <p className="mt-6 text-center text-xs" style={{ color: 'var(--color-ink-faint)' }}>
+          Not leaving the district?{' '}
+          <Link to="/" className="font-semibold" style={{ color: 'var(--color-ops-blue)' }}>
+            Back to the portal home
+          </Link>
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

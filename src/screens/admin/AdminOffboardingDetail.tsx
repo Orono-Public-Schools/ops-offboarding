@@ -188,8 +188,8 @@ export function AdminOffboardingDetail() {
           disabled={resetting}
           className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-default disabled:opacity-60 sm:text-sm"
           style={{
-            background: 'linear-gradient(135deg, #ad2122 0%, #c9393a 100%)',
-            boxShadow: '0 2px 10px rgba(173,33,34,0.35)',
+            background: 'var(--grad-danger)',
+            boxShadow: 'var(--shadow-danger)',
           }}
         >
           {resetting ? 'Resetting…' : 'Reset user'}

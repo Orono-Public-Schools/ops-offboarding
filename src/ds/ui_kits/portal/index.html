@@ -1,0 +1,72 @@
+<!-- @dsCard group="Portal" viewport="1280x900" name="OronoHR portal" subtitle="Home, leave form, offboarding checklist, HR inbox on the dark shell" -->
+<!-- @startingPoint section="Screens" subtitle="Full OronoHR portal — click the tabs" viewport="1280x900" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OronoHR portal</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../ds-namespace.js"></script>
+</head><body><div id="root"></div>
+<script type="text/ds-babel">
+DSResolve({
+  "Icon": "../../components/core/Icon.jsx",
+  "Button": "../../components/core/Button.jsx",
+  "QuietLink": "../../components/core/QuietLink.jsx",
+  "Card": "../../components/core/Card.jsx",
+  "StatusBadge": "../../components/core/StatusBadge.jsx",
+  "ProgressBar": "../../components/core/ProgressBar.jsx",
+  "Field": "../../components/forms/Field.jsx",
+  "Select": "../../components/forms/Select.jsx",
+  "ChoiceRow": "../../components/forms/ChoiceRow.jsx",
+  "CheckMark": "../../components/forms/CheckMark.jsx",
+  "RowList": "../../components/forms/RowList.jsx",
+  "DetailRow": "../../components/forms/RowList.jsx",
+  "FormSection": "../../components/forms/FormSection.jsx",
+  "AppShell": "../../components/navigation/AppShell.jsx",
+  "AppBar": "../../components/navigation/AppBar.jsx",
+  "PageTitle": "../../components/navigation/PageTitle.jsx",
+  "DayHeader": "../../components/navigation/DayHeader.jsx",
+  "TabBar": "../../components/navigation/TabBar.jsx",
+  "ModuleCard": "../../components/records/ModuleCard.jsx",
+  "PersonPlate": "../../components/records/PersonPlate.jsx",
+  "InboxRow": "../../components/records/InboxRow.jsx",
+  "RequestRow": "../../components/records/RequestRow.jsx",
+  "StatusTrack": "../../components/records/StatusTrack.jsx",
+  "ChecklistItem": "../../components/records/ChecklistItem.jsx",
+  "EmptyState": "../../components/records/EmptyState.jsx",
+  "PortalHome": "PortalHome.jsx",
+  "LeaveForm": "LeaveForm.jsx",
+  "Offboarding": "Offboarding.jsx",
+  "Inbox": "Inbox.jsx"
+}).then(function (NS) {
+  const { AppShell, AppBar, TabBar, PortalHome, LeaveForm, Offboarding, Inbox } = NS;
+
+  const TABS = [
+    { id: 'home', label: 'Home', icon: 'home' },
+    { id: 'forms', label: 'Forms', icon: 'fileText' },
+    { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
+    { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 12 },
+  ];
+
+  function App() {
+    const [tab, setTab] = React.useState('home');
+    let body;
+    if (tab === 'forms') body = <LeaveForm onSubmit={() => setTab('home')} onCancel={() => setTab('home')} />;
+    else if (tab === 'offboarding') body = <Offboarding />;
+    else if (tab === 'inbox') body = <Inbox />;
+    else body = <PortalHome onOpen={() => setTab('forms')} />;
+
+    return (
+      <AppShell>
+        <AppBar person={{ name: 'Marisol Reyes', role: 'Grade 4 · Schumann' }} />
+        <TabBar tabs={TABS} active={tab} onSelect={setTab} />
+        {body}
+      </AppShell>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+});
+</script></body></html>

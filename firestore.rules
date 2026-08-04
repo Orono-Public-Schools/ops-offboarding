@@ -17,6 +17,11 @@ service cloud.firestore {
       return isAuthed() && request.auth.token.it_admin == true;
     }
 
+    function isHR() {
+      return isAuthed()
+        && (request.auth.token.hr == true || request.auth.token.it_admin == true);
+    }
+
     // Offboarding records. Document ID == user's Firebase UID, so rules
     // authorize by path — which also lets the client distinguish
     // "doesn't exist yet" from "denied" for first-time users.
@@ -62,6 +67,13 @@ service cloud.firestore {
     // server-side only (via setAdminClaim callable).
     match /adminAudit/{id} {
       allow read: if isItAdmin();
+      allow write: if false;
+    }
+
+    // HR form submissions. Submitters read their own; HR reads all.
+    // All writes go through the submitForm/updateSubmissionStatus callables.
+    match /submissions/{id} {
+      allow read: if isHR() || (isAuthed() && resource.data.submitterUid == request.auth.uid);
       allow write: if false;
     }
 

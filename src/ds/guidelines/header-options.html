@@ -1,0 +1,122 @@
+<!-- @dsCard group="Explorations" viewport="1180x820" name="Page header options" subtitle="Three ways to open the portal that aren't a greeting" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Page header options</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 34px 30px 60px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1.doc { margin: 0 0 6px; font: var(--type-page-title); letter-spacing: var(--tracking-tight); color: #fff; }
+  .lede { margin: 0 0 30px; font: var(--type-page-sub); color: var(--on-dark-muted); max-width: 76ch; }
+  h2.sect { margin: 0 0 6px; font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+            text-transform: uppercase; color: var(--on-dark-faint); }
+  .hint { font: var(--type-caption); color: var(--on-dark-faint); margin: 0 0 22px; }
+  .opt { display: flex; flex-direction: column; gap: 12px; margin-bottom: 42px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font: var(--type-field-label);
+           letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--on-dark-faint); }
+  .badge b { color: #fff; font: 600 11px/1 var(--font-sans); letter-spacing: 0.06em;
+             background: var(--on-dark-hover); border: 1px solid var(--on-dark-border);
+             padding: 4px 7px; border-radius: 5px; }
+  .why { font: var(--type-caption); color: var(--on-dark-muted); max-width: 80ch; }
+  .frame { border: 1px dashed var(--on-dark-border); border-radius: var(--radius-card); padding: 26px 24px; }
+
+  .h1 { margin: 0; font: var(--type-page-title); letter-spacing: -0.02em; color: #fff; }
+  .sub { margin: 8px 0 0; font: var(--type-page-sub); color: var(--on-dark-muted); max-width: 62ch; }
+  .mono { font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+          text-transform: uppercase; color: var(--on-dark-faint); }
+
+  /* ---- 7a: tear-off calendar block ---- */
+  .cal { flex: 0 0 auto; width: 72px; border-radius: 10px; overflow: hidden;
+         background: rgba(255,255,255,0.06); border: 1px solid var(--on-dark-border); text-align: center; }
+  /* Navy, not accent: a weekday label is not an action. */
+  .cal .top { background: var(--gradient-primary); color: #fff; font: var(--type-micro);
+              letter-spacing: 0.16em; text-transform: uppercase; padding: 6px 0; }
+  .cal .num { font: var(--type-page-title); color: #fff; padding: 9px 0 3px; letter-spacing: -0.02em; }
+  .cal .mon { font: var(--type-micro); letter-spacing: 0.14em; text-transform: uppercase;
+              color: var(--on-dark-faint); padding: 0 0 9px; }
+
+  /* school-year rail */
+  .rail { margin-top: 18px; max-width: 460px; }
+  .rail .track { position: relative; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.14); }
+  .rail .track .done { position: absolute; inset: 0 auto 0 0; width: 68%; border-radius: 2px;
+                       background: linear-gradient(90deg, rgba(255,255,255,.35), #fff); }
+  .rail .track .now { position: absolute; top: -3px; left: 68%; width: 9px; height: 9px; border-radius: 999px;
+                      background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .35); transform: translateX(-50%); }
+  .rail .ends { display: flex; justify-content: space-between; margin-top: 8px; }
+  .rail .ends span { font: var(--type-caption); font-size: 11px; color: var(--on-dark-faint); }
+
+  /* ---- 7b: record line ---- */
+  .rec { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
+  .rec span { font: var(--type-caption); color: var(--on-dark-muted); }
+  .rec span + span::before { content: "／"; margin: 0 9px; color: rgba(255,255,255,0.25); }
+  .keyline { height: 1px; background: rgba(255,255,255,0.16); margin: 16px 0; max-width: 520px; }
+  .count { font: var(--type-page-title); color: #fff; letter-spacing: -0.02em; }
+
+  /* ---- 7c: stamped masthead ---- */
+  .stamp { display: inline-flex; align-items: center; gap: 9px; padding: 5px 11px 5px 9px;
+           border-radius: 999px; background: rgba(255,255,255,0.07);
+           border: 1px solid var(--on-dark-border); }
+  .stamp i { width: 7px; height: 7px; border-radius: 999px; background: var(--accent);
+             box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .3); flex: 0 0 auto; }
+  .stamp span { font: var(--type-caption); font-size: 11.5px; color: #fff; font-weight: 600; }
+  .bigline { margin: 16px 0 0; font: var(--type-page-display); letter-spacing: -0.03em; color: #fff; max-width: 22ch; }
+  .bigline em { font-style: normal; color: rgba(255,255,255,0.45); }
+</style>
+</head><body>
+<div class="wrap">
+  <h1 class="doc">Page header options</h1>
+  <p class="lede">“Good morning, Marisol” over today’s date is the opening every product ships. Three replacements, each anchored in something only a school district has — the school-year calendar, the personnel record, and the fact that HR days are counted in deadlines.</p>
+
+  <p class="lede" style="margin-top:-18px">Two scale additions to flag before you choose: <code>--type-page-display</code> (34px, one step above the page title, used only by 7c) and <code>--type-micro</code> (10px uppercase, for labels boxed in by their container, like the calendar cap). Both are tokens now rather than one-off sizes.</p>
+
+  <h2 class="sect">Turn 7 — the header</h2>
+  <p class="hint">All three drop the greeting. Two of them make the header carry information instead of a pleasantry.</p>
+
+  <div class="opt" id="7a">
+    <div class="badge"><b>7a</b> Tear-off calendar + school-year rail</div>
+    <div class="frame">
+      <div style="display:flex; gap:20px; align-items:flex-start">
+        <div class="cal">
+          <div class="top">Mon</div>
+          <div class="num">2</div>
+          <div class="mon">March</div>
+        </div>
+        <div style="min-width:0">
+          <p class="h1">Two of your requests are moving</p>
+          <p class="sub">Nothing needs you today. Everything else here waits until you do.</p>
+          <div class="rail">
+            <div class="track"><span class="done"></span><span class="now"></span></div>
+            <div class="ends"><span>Day 118 of 174</span><span>56 school days left</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="why">A tear-off desk calendar block, then the state of your requests as the actual headline. The rail underneath is the school year, with today marked in red — the one number every person in a district feels. That red is the same “you are here” mark a StatusTrack uses; the calendar cap is navy, since a weekday label is not an action. Warm, specific, and impossible to mistake for another app.</p>
+  </div>
+
+  <div class="opt" id="7b">
+    <div class="badge"><b>7b</b> Personnel record line</div>
+    <div class="frame">
+      <div class="rec">
+        <span>Marisol Reyes</span><span>Grade 4</span><span>Schumann Elementary</span><span>Since Aug 2019</span>
+      </div>
+      <div class="keyline"></div>
+      <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap">
+        <span class="count">2</span>
+        <p class="h1" style="font-weight:600">requests open, both moving</p>
+      </div>
+      <p class="sub">Filed March 2 at 8:41 AM · nothing waiting on you</p>
+    </div>
+    <p class="why">Opens with who you are on the district’s books, ruled off like the top of a personnel file, then leads with the count. Quietest and most grown-up; risks the bureaucratic tone the brief warned about, though the keyline and sentence-case copy keep it human.</p>
+  </div>
+
+  <div class="opt" id="7c">
+    <div class="badge"><b>7c</b> Stamped status masthead</div>
+    <div class="frame">
+      <span class="stamp"><i></i><span>2 moving · 0 waiting on you · Mon 2 Mar</span></span>
+      <p class="bigline">Your leave request is <em>with benefits.</em></p>
+      <p class="sub" style="margin-top:14px">Since Friday. Dana Whitcomb will email you when the dates are confirmed — usually two business days.</p>
+    </div>
+    <p class="why">One live pill with the whole day in it, then the single most important fact about your record set large, with the part you can’t control greyed. It changes every day, so the portal never opens the same way twice. Boldest; needs real logic behind “most important fact”.</p>
+  </div>
+</div>
+</body></html>

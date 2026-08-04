@@ -1,0 +1,44 @@
+:root {
+  /* ---- Brand ramp (Orono navy -> action red) ---------------------- */
+  --dark:      #1d2a5d;   /* dark anchor: card headings, final status */
+  --primary:   #2d3f89;   /* primary buttons, focus rings, mid status */
+  --secondary: #4356a9;   /* outline buttons, checkboxes, early status */
+  --tint:      #eaecf5;   /* light accent background */
+  --accent:    #ad2122;   /* submit + destructive ONLY, never decoration */
+  --success:   #059669;   /* terminal success only, e.g. "paid" */
+
+  --dark-rgb:      29, 42, 93;
+  --primary-rgb:   45, 63, 137;
+  --secondary-rgb: 67, 86, 169;
+  --accent-rgb:    173, 33, 34;
+  --success-rgb:   5, 150, 105;
+
+  --gradient-primary: linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%);
+  --gradient-accent:  linear-gradient(135deg, #ad2122 0%, #c92a2b 100%);
+  --gradient-page:    linear-gradient(160deg, #0a1230 0%, #131f45 40%, #172550 100%);
+
+  /* ---- Neutrals --------------------------------------------------- */
+  --text-body:        #334155;
+  --text-muted:       #64748b;
+  --text-placeholder: #94a3b8;
+  --surface-card:     #ffffff;
+  --surface-inset:    #f8f9fb;
+  --border-input:     #e2e5ea;
+  --divider:          rgba(180, 185, 195, 0.25);
+
+  /* ---- On-dark ---------------------------------------------------- */
+  --on-dark:        #ffffff;
+  --on-dark-muted:  rgba(255, 255, 255, 0.6);
+  --on-dark-faint:  rgba(255, 255, 255, 0.5);
+  --on-dark-hover:  rgba(255, 255, 255, 0.08);
+  --on-dark-fill:   rgba(255, 255, 255, 0.06);
+  --on-dark-border: rgba(255, 255, 255, 0.15);
+
+  /* ---- Status ramp: workflow darkens through the brand family ----- */
+  --status-draft:      #94a3b8;
+  --status-submitted:  var(--secondary);
+  --status-processing: var(--primary);
+  --status-completed:  var(--dark);
+  --status-denied:     var(--accent);
+  --status-paid:       var(--success);
+}

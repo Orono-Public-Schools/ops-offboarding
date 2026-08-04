@@ -7,3 +7,5 @@ functions/node_modules
 package-lock.json
 functions/package-lock.json
 PLAN.md
+functions/src/shared-gen
+src/ds

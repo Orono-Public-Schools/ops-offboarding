@@ -1,0 +1,127 @@
+<!-- @dsCard group="Explorations" viewport="1180x620" name="Minor action options" subtitle="Two treatments for the Anything else row" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Minor action options</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 34px 30px 60px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font: var(--type-page-title); letter-spacing: var(--tracking-tight); color: #fff; }
+  .lede { margin: 0 0 30px; font: var(--type-page-sub); color: var(--on-dark-muted); max-width: 70ch; }
+  h2.sect { margin: 0 0 6px; font: var(--type-field-label); letter-spacing: var(--tracking-wider);
+            text-transform: uppercase; color: var(--on-dark-faint); }
+  .hint { font: var(--type-caption); color: var(--on-dark-faint); margin: 0 0 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 26px; }
+  .opt { display: flex; flex-direction: column; gap: 10px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font: var(--type-field-label);
+           letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--on-dark-faint); }
+  .badge b { color: #fff; font: 600 11px/1 var(--font-sans); letter-spacing: 0.06em;
+             background: var(--on-dark-hover); border: 1px solid var(--on-dark-border);
+             padding: 4px 7px; border-radius: 5px; }
+  .why { font: var(--type-caption); color: var(--on-dark-muted); max-width: 44ch; }
+
+  .card { background: var(--surface-card); border-radius: var(--radius-card);
+          box-shadow: var(--shadow-card); }
+  .chead { padding: 14px 20px; background: var(--surface-inset);
+           border-bottom: 1px solid var(--border-input);
+           border-radius: var(--radius-card) var(--radius-card) 0 0;
+           font: var(--type-card-heading); letter-spacing: var(--tracking-widest);
+           text-transform: uppercase; color: var(--dark); }
+  .cbody { padding: 20px; }
+  svg { display: block; flex: 0 0 auto; }
+
+  /* ---- A: quiet links, rule wipes in from the left ---- */
+  .links { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .lnk { position: relative; display: inline-flex; align-items: center; gap: 8px;
+         font: var(--type-strong); color: var(--dark); text-decoration: none;
+         border: none; background: none; padding: 2px 0; cursor: pointer; }
+  .lnk .g { color: var(--text-placeholder); transition: color var(--dur-fast) var(--ease); }
+  .lnk i { position: absolute; left: 0; right: 0; bottom: 0; height: 1.5px;
+           background: var(--gradient-primary); transform: scaleX(0); transform-origin: left;
+           transition: transform var(--dur-slow) cubic-bezier(.3,1,.8,1); }
+  .lnk:hover i { transform: scaleX(1); }
+  .lnk:hover .g { color: var(--secondary); }
+  .lnk:hover { color: var(--primary); }
+
+  /* footer variant: no heading strip, hairline top rule only */
+  .footer { padding: 16px 20px; border-top: 1px solid var(--divider); }
+
+  /* ---- B: chips, tint sweeps in ---- */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { position: relative; overflow: hidden; isolation: isolate;
+          display: inline-flex; align-items: center; gap: 7px;
+          height: 32px; padding: 0 13px; border-radius: 999px; border: none;
+          background: var(--surface-inset); color: var(--text-body);
+          font: 600 13px/1 var(--font-sans); cursor: pointer;
+          transition: color var(--dur-fast) var(--ease); }
+  .chip s { position: absolute; top: 0; left: -6%; width: 112%; height: 100%; z-index: -1;
+            background: var(--tint); transform: translate3d(-102%,0,0) skewX(14deg);
+            transition: transform var(--dur-slow) cubic-bezier(.3,1,.8,1); }
+  .chip:hover s { transform: skewX(14deg); }
+  .chip:hover { color: var(--dark); }
+  .chip:active { transform: scale(.98); }
+  .chip .g { color: var(--secondary); }
+  .chip.tall { height: 40px; padding: 0 16px; font-size: 14px; }
+</style>
+</head><body>
+<div class="wrap">
+  <h1>Minor action options</h1>
+  <p class="lede">Two treatments for the “Anything else” row — the things that are just doors to elsewhere, not actions in their own right. Hover them.</p>
+
+  <h2 class="sect">Turn 5 — minor actions</h2>
+  <p class="hint">Both drop the outline-button chrome. The question is whether these need to look tappable on a phone.</p>
+
+  <div class="grid">
+
+    <div class="opt" id="5a">
+      <div class="badge"><b>5a</b> Quiet links, ruled on hover</div>
+      <div class="card">
+        <div class="chead">Anything else</div>
+        <div class="cbody">
+          <div class="links">
+            <button class="lnk"><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span>Find my paystubs<i></i></button>
+            <button class="lnk"><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.99 5.73a2 2 0 0 1-2.02 0L2 7"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg></span>Ask HR a question<i></i></button>
+            <button class="lnk"><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/></svg></span>See all 21 forms<i></i></button>
+          </div>
+        </div>
+      </div>
+      <p class="why">No fill, no border. The navy rule wipes in from the left on hover — the same rule a field draws on focus. Stacked, so each one is a full-width target.</p>
+    </div>
+
+    <div class="opt" id="5b">
+      <div class="badge"><b>5b</b> Chips, tint sweeps in</div>
+      <div class="card">
+        <div class="chead">Anything else</div>
+        <div class="cbody">
+          <div class="chips">
+            <button class="chip"><s></s><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span>Find my paystubs</button>
+            <button class="chip"><s></s><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.99 5.73a2 2 0 0 1-2.02 0L2 7"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg></span>Ask HR a question</button>
+            <button class="chip"><s></s><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/></svg></span>See all 21 forms</button>
+          </div>
+          <p style="margin:18px 0 8px; font:var(--type-caption); color:var(--text-placeholder)">At 40px, for touch</p>
+          <div class="chips">
+            <button class="chip tall"><s></s><span class="g"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span>Find my paystubs</button>
+            <button class="chip tall"><s></s><span class="g"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.99 5.73a2 2 0 0 1-2.02 0L2 7"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg></span>Ask HR a question</button>
+          </div>
+        </div>
+      </div>
+      <p class="why">Pill radius, inset fill, no border. Icons stay secondary; the tint sweeps in on the button curve. A genuine new size tier for minor navigation — 32px on desktop, 40px for touch.</p>
+    </div>
+
+  </div>
+
+  <h2 class="sect" style="margin:38px 0 6px">Either one, as a footer instead of a section</h2>
+  <p class="hint">Dropping the heading strip stops the row reading as a fourth call to action.</p>
+  <div style="max-width:540px">
+    <div class="card">
+      <div class="chead">Your open requests</div>
+      <div class="cbody" style="padding:16px 20px; font:var(--type-body-sm); color:var(--text-muted)">Two requests, moving.</div>
+      <div class="footer">
+        <div class="chips">
+          <button class="chip"><s></s><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span>Find my paystubs</button>
+          <button class="chip"><s></s><span class="g"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/></svg></span>See all 21 forms</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

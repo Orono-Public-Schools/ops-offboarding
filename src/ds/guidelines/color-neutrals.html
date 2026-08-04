@@ -1,0 +1,18 @@
+<!-- @dsCard group="Colors" viewport="700x180" subtitle="Text, card, inset, border, divider — unchanged across brands" name="Neutrals" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Neutrals</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{padding:20px 22px;font:var(--type-body);color:var(--text-body)}
+.card{background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
+.g{display:grid;gap:14px}
+.sw i{height:48px;display:block;border-radius:8px 8px 0 0}
+.sw b{font:var(--type-caption);font-weight:400;color:var(--text-muted);padding:7px 9px;display:flex;justify-content:space-between;gap:6px;background:#fff;border-radius:0 0 8px 8px}
+.sw{border-radius:8px;overflow:hidden;box-shadow:var(--shadow-card)}
+.lbl{font:var(--type-field-label);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--text-muted)}
+.ondark{font:var(--type-caption);color:var(--on-dark-muted)}
+h3.ch{margin:0 0 14px;font:var(--type-card-heading);letter-spacing:var(--tracking-widest);text-transform:uppercase;color:var(--dark)}
+</style></head><body>
+<div class="g" style="grid-template-columns:repeat(6,1fr)">
+ <div class="sw"><i style="background:var(--text-body)"></i><b><span>body</span></b><b style="padding-top:0"><span style="color:var(--text-placeholder)">#334155</span></b></div><div class="sw"><i style="background:var(--text-muted)"></i><b><span>muted</span></b><b style="padding-top:0"><span style="color:var(--text-placeholder)">#64748b</span></b></div><div class="sw"><i style="background:var(--text-placeholder)"></i><b><span>hint</span></b><b style="padding-top:0"><span style="color:var(--text-placeholder)">#94a3b8</span></b></div><div class="sw"><i style="background:var(--surface-card)"></i><b><span>card</span></b><b style="padding-top:0"><span style="color:var(--text-placeholder)">#ffffff</span></b></div><div class="sw"><i style="background:var(--surface-inset)"></i><b><span>inset</span></b><b style="padding-top:0"><span style="color:var(--text-placeholder)">#f8f9fb</span></b></div><div class="sw"><i style="background:var(--border-input)"></i><b><span>border</span></b><b style="padding-top:0"><span style="color:var(--text-placeholder)">#e2e5ea</span></b></div>
+ </div>
+</body></html>
