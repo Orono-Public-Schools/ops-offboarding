@@ -17,5 +17,7 @@ export interface ChecklistItemProps extends React.HTMLAttributes<HTMLDivElement>
   /** Glyph beside the owner line. */
   icon?: IconName;
   onToggle?: () => void;
+  /** Trailing control at the row's end, e.g. an "Open" button. */
+  action?: React.ReactNode;
 }
 export declare function ChecklistItem(props: ChecklistItemProps): JSX.Element;

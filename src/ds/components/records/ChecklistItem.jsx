@@ -7,7 +7,7 @@ import { CheckMark } from '../forms/CheckMark.jsx';
    waiting on someone else shows a clock on its front face. */
 
 export function ChecklistItem({
-  state = 'todo', title, description, owner, due, icon, onToggle, style, ...rest
+  state = 'todo', title, description, owner, due, icon, onToggle, action, style, ...rest
 }) {
   const [hot, setHot] = React.useState(false);
   const done = state === 'done';
@@ -17,21 +17,33 @@ export function ChecklistItem({
     <div
       onMouseEnter={() => setHot(true)}
       onMouseLeave={() => setHot(false)}
-      style={{ display: 'flex', gap: 12, alignItems: 'flex-start', ...style }}
+      style={{ position: 'relative', display: 'flex', gap: 12, alignItems: 'flex-start', ...style }}
       {...rest}
     >
+      {/* Tinted panel sweeping in from the left on hover — the system's
+          request-row treatment, so rows read as live without being links. */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute', inset: '-6px -10px', zIndex: 0, borderRadius: 8,
+          background: 'rgba(var(--secondary-rgb), 0.07)', pointerEvents: 'none',
+          transform: hot ? 'translateX(0)' : 'translateX(-14px)',
+          opacity: hot ? 1 : 0,
+          transition: 'transform var(--dur-slow) var(--ease), opacity var(--dur-fast) var(--ease)',
+        }}
+      />
       <button
         type="button" onClick={onToggle} aria-pressed={done}
         aria-label={done ? `${title} — done` : title}
         style={{
-          padding: 0, border: 'none', background: 'none', marginTop: 1,
+          padding: 0, border: 'none', background: 'none', marginTop: 1, zIndex: 1,
           cursor: onToggle ? 'pointer' : 'default', display: 'block',
         }}
       >
         <CheckMark checked={done} waiting={waiting} hovered={hot && !!onToggle} size={20} radius={6} />
       </button>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
         <span style={{
           font: 'var(--type-strong)',
           color: done ? 'var(--text-muted)' : 'var(--dark)',
@@ -50,8 +62,13 @@ export function ChecklistItem({
       {due ? (
         <span style={{
           flex: '0 0 auto', font: 'var(--type-caption)', whiteSpace: 'nowrap', marginTop: 2,
+          position: 'relative',
           color: done ? 'var(--text-placeholder)' : 'var(--text-muted)',
         }}>{due}</span>
+      ) : null}
+
+      {action ? (
+        <span style={{ flex: '0 0 auto', position: 'relative', zIndex: 1 }}>{action}</span>
       ) : null}
     </div>
   );
