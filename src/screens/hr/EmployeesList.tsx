@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
 import { useHrCtx } from './HRModule';
 import { ImportCard } from './ImportCard';
@@ -72,6 +72,22 @@ const SHORT_LABELS: Record<string, string> = {
   lunchPin: 'Lunch PIN',
   ntoLetterSent: 'NTO letter',
 };
+
+/** The roster/dossier split is draggable; the width sticks per browser. */
+const RAIL_MIN = 280;
+const RAIL_MAX = 640;
+const RAIL_DEFAULT = 340;
+const RAIL_WIDTH_KEY = 'hrRailWidth';
+
+function savedRailWidth(): number {
+  try {
+    const w = Number(localStorage.getItem(RAIL_WIDTH_KEY));
+    if (w >= RAIL_MIN && w <= RAIL_MAX) return w;
+  } catch {
+    // Storage unavailable — fall through to the default.
+  }
+  return RAIL_DEFAULT;
+}
 
 type SortKey = 'name' | 'position' | 'building' | 'start' | 'progress';
 
@@ -609,6 +625,20 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const [railWidth, setRailWidth] = useState(savedRailWidth);
+  const [resizing, setResizing] = useState(false);
+  const dragStart = useRef<{ x: number; width: number } | null>(null);
+  const clampWidth = (w: number) => Math.min(RAIL_MAX, Math.max(RAIL_MIN, Math.round(w)));
+  const persistWidth = (w: number) => {
+    const clamped = clampWidth(w);
+    setRailWidth(clamped);
+    try {
+      localStorage.setItem(RAIL_WIDTH_KEY, String(clamped));
+    } catch {
+      // Storage unavailable — the width still applies for this visit.
+    }
+  };
+
   const people = kind === 'new_hire' ? ctx.newHires : ctx.ceSubs;
   const isCe = kind === 'ce_onboarding';
   const staff = 'staff' in staffState ? staffState.staff : [];
@@ -722,10 +752,9 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
             <div
               style={{
-                flex: '1 1 340px',
-                maxWidth: 440,
-                minWidth: 280,
-                borderRight: '1px solid var(--divider)',
+                flex: '0 1 auto',
+                width: railWidth,
+                minWidth: RAIL_MIN,
                 display: 'flex',
                 flexDirection: 'column',
               }}
@@ -813,7 +842,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                           font: '400 12.5px/1.4 var(--font-sans)',
                           color: 'var(--dark)',
                           background: isSel ? 'var(--tint)' : undefined,
-                          maxWidth: 140,
+                          maxWidth: 140 + Math.max(0, railWidth - RAIL_DEFAULT),
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -870,6 +899,49 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                 )}
               </div>
             </div>
+
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize the roster"
+              tabIndex={0}
+              title="Drag to resize · double-click to reset"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dragStart.current = { x: e.clientX, width: railWidth };
+                setResizing(true);
+              }}
+              onPointerMove={(e) => {
+                if (!dragStart.current) return;
+                setRailWidth(clampWidth(dragStart.current.width + e.clientX - dragStart.current.x));
+              }}
+              onPointerUp={() => {
+                dragStart.current = null;
+                setResizing(false);
+                persistWidth(railWidth);
+              }}
+              onDoubleClick={() => persistWidth(RAIL_DEFAULT)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowLeft') persistWidth(railWidth - 24);
+                if (e.key === 'ArrowRight') persistWidth(railWidth + 24);
+              }}
+              style={{
+                flex: '0 0 7px',
+                cursor: 'col-resize',
+                touchAction: 'none',
+                alignSelf: 'stretch',
+                borderLeft: `1px solid ${resizing ? 'var(--primary)' : 'var(--divider)'}`,
+                background: resizing ? 'var(--tint)' : 'transparent',
+                transition: 'background 120ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--tint)';
+              }}
+              onMouseLeave={(e) => {
+                if (!dragStart.current) e.currentTarget.style.background = 'transparent';
+              }}
+            />
 
             <div style={{ flex: '99 1 340px', minWidth: 0 }}>
               {selected ? (
