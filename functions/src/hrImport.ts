@@ -2,16 +2,17 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { google } from 'googleapis';
 
-import { REGION, deleteSubcollection, requireAuthedDomainUser } from './shared';
+import { REGION, requireAuthedDomainUser } from './shared';
 import { EMPLOYEE_ID_COUNTER_DOC, reconcileGoogleAccounts } from './hr';
 import {
   buildImportPlan,
   finalStatus,
   TAB_MATCHERS,
+  type PendingEmployee,
   type TabKey,
 } from './shared-gen/hr/importParse';
 import { isChecklistComplete, PROCESS_SPECS } from './shared-gen/hr/catalog';
-import { currentFiscalYearLabel, fiscalYearLabel } from './shared-gen/hr/util';
+import { currentFiscalYearLabel, fiscalYearLabel, nameMatchKeys } from './shared-gen/hr/util';
 
 // HR's master workbook ("<year> New EE Checklist"), shared read-only with the
 // compute service account. Tabs are matched by pattern so yearly renames and
@@ -67,18 +68,37 @@ async function fetchWorkbook(): Promise<{
   };
 }
 
-async function deleteImported(collection: string): Promise<number> {
+/** Stable identity for a sheet person across preview → import: EE# when
+ *  present, otherwise their normalized name. */
+function candidateKey(emp: PendingEmployee): string {
+  if (emp.employeeId !== null) return `ee:${emp.employeeId}`;
+  return `n:${nameMatchKeys(emp.nameRaw)[0] ?? emp.nameRaw.toLowerCase()}`;
+}
+
+/** Who's already in the portal, matchable the same way the sheet merges
+ *  identities: EE# first, then name in either order. */
+async function existingMatcher(): Promise<(emp: PendingEmployee) => boolean> {
   const db = getFirestore();
-  const snap = await db.collection(collection).where('source', '==', 'import').get();
-  const writer = db.bulkWriter();
+  const snap = await db.collection('employees').get();
+  const byEe = new Set<number>();
+  const byName = new Set<string>();
   for (const doc of snap.docs) {
-    if (collection === 'employees') {
-      await deleteSubcollection(doc.ref.collection('history'));
+    const e = doc.data() as {
+      employeeId?: number | null;
+      nameRaw?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    if (e.employeeId) byEe.add(Number(e.employeeId));
+    for (const raw of [e.nameRaw, `${e.firstName ?? ''} ${e.lastName ?? ''}`]) {
+      if (!raw?.trim()) continue;
+      for (const k of nameMatchKeys(raw)) byName.add(k);
     }
-    writer.delete(doc.ref);
   }
-  await writer.close();
-  return snap.size;
+  return (emp) => {
+    if (emp.employeeId !== null && byEe.has(emp.employeeId)) return true;
+    return nameMatchKeys(emp.nameRaw).some((k) => byName.has(k));
+  };
 }
 
 export const importHrMasterSheet = onCall(
@@ -89,7 +109,8 @@ export const importHrMasterSheet = onCall(
     if (token.hr !== true && token.it_admin !== true) {
       throw new HttpsError('permission-denied', 'HR access required.');
     }
-    const mode = (request.data as { mode?: string } | undefined)?.mode;
+    const data = (request.data ?? {}) as { mode?: string; include?: unknown };
+    const mode = data.mode;
     if (mode !== 'dryRun' && mode !== 'commit') {
       throw new HttpsError('invalid-argument', 'mode must be "dryRun" or "commit".');
     }
@@ -97,24 +118,35 @@ export const importHrMasterSheet = onCall(
     const { tabs, found, missing } = await fetchWorkbook();
     const todayIso = new Date().toISOString().slice(0, 10);
     const plan = buildImportPlan(tabs, todayIso);
+    const isExisting = await existingMatcher();
 
-    const recordCount = (c: 'processes' | 'leaves' | 'changes') =>
-      plan.employees.reduce((n, e) => n + e.records.filter((r) => r.collection === c).length, 0);
+    // The import only ever ADDS people. Anyone already in the portal is left
+    // exactly as they are — no updates, no replacements.
+    const candidates = plan.employees.filter((e) => !isExisting(e));
+    const skippedExisting = plan.employees.length - candidates.length;
+
+    const recordCount = (list: PendingEmployee[], c: 'processes' | 'leaves' | 'changes') =>
+      list.reduce((n, e) => n + e.records.filter((r) => r.collection === c).length, 0);
 
     const report = {
       mode,
       tabsFound: found,
       tabsMissing: missing,
       counts: {
-        employees: plan.employees.length,
-        processes: recordCount('processes'),
-        leaves: recordCount('leaves'),
-        changes: recordCount('changes'),
+        candidates: candidates.length,
+        skippedExisting,
+        processes: recordCount(candidates, 'processes'),
+        leaves: recordCount(candidates, 'leaves'),
+        changes: recordCount(candidates, 'changes'),
         byTab: plan.byTab,
       },
-      employeesPreview: plan.employees.slice(0, 15).map((e) => ({
+      candidates: candidates.map((e) => ({
+        key: candidateKey(e),
         name: e.nameRaw,
         employeeId: e.employeeId,
+        position: e.position ?? e.description,
+        building: e.building,
+        startDate: e.startDate,
         status: finalStatus(e, todayIso),
         kind: e.kind,
         records: e.records.length,
@@ -125,19 +157,20 @@ export const importHrMasterSheet = onCall(
 
     if (mode === 'dryRun') return report;
 
-    // Commit: replace previously imported docs, leave manual ones untouched.
+    if (!Array.isArray(data.include) || data.include.some((k) => typeof k !== 'string')) {
+      throw new HttpsError(
+        'invalid-argument',
+        'commit requires include: string[] of candidate keys.',
+      );
+    }
+    const include = new Set(data.include as string[]);
+    const selected = candidates.filter((e) => include.has(candidateKey(e)));
+
     const db = getFirestore();
     const batchId = `imp-${Date.now().toString(36)}`;
-    const deleted = {
-      employees: await deleteImported('employees'),
-      processes: await deleteImported('processes'),
-      leaves: await deleteImported('leaves'),
-      changes: await deleteImported('changes'),
-    };
-
     const writer = db.bulkWriter();
     const now = FieldValue.serverTimestamp();
-    for (const emp of plan.employees) {
+    for (const emp of selected) {
       const ref = db.collection('employees').doc();
       const name = [emp.firstName, emp.lastName].filter(Boolean).join(' ') || emp.nameRaw;
       writer.set(ref, {
@@ -226,19 +259,23 @@ export const importHrMasterSheet = onCall(
       tx.set(counterRef, { nextId: Math.max(existing, plan.maxEmployeeId + 1) }, { merge: true });
     });
 
-    await db.collection('appSettings').doc('hrImport').set({
-      lastRunAt: now,
-      batchId,
-      mode,
-      by: actor.email,
-      counts: report.counts,
-      deleted,
-    });
+    await db
+      .collection('appSettings')
+      .doc('hrImport')
+      .set({
+        lastRunAt: now,
+        batchId,
+        mode,
+        by: actor.email,
+        imported: selected.length,
+        skippedExisting,
+        notSelected: candidates.length - selected.length,
+      });
 
-    // Freshly imported hires whose Google account already exists get their
-    // Gmail task checked right away instead of waiting for the nightly sync.
+    // Newly imported hires whose Google account already exists get their
+    // employee email filled right away instead of waiting for the nightly sync.
     const reconciled = await reconcileGoogleAccounts();
 
-    return { ...report, batchId, deleted, reconciled };
+    return { ...report, batchId, imported: selected.length, reconciled };
   },
 );

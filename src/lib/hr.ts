@@ -126,34 +126,44 @@ export const deleteHrRecord = httpsCallable<
   { success: boolean }
 >(functions, 'deleteHrRecord');
 
+export type ImportCandidate = {
+  key: string;
+  name: string;
+  employeeId: number | null;
+  position: string | null;
+  building: string | null;
+  startDate: string | null;
+  status: string;
+  kind: string;
+  records: number;
+};
+
 export type ImportReport = {
   mode: 'dryRun' | 'commit';
   batchId?: string;
   tabsFound: string[];
   tabsMissing: string[];
   counts: {
-    employees: number;
+    candidates: number;
+    skippedExisting: number;
     processes: number;
     leaves: number;
     changes: number;
     byTab: Record<string, number>;
   };
-  deleted?: { employees: number; processes: number; leaves: number; changes: number };
-  employeesPreview: Array<{
-    name: string;
-    employeeId: number | null;
-    status: string;
-    kind: string;
-    records: number;
-  }>;
+  candidates: ImportCandidate[];
   warnings: string[];
   maxEmployeeId: number;
+  imported?: number;
 };
 
-export const importHrMasterSheet = httpsCallable<{ mode: 'dryRun' | 'commit' }, ImportReport>(
-  functions,
-  'importHrMasterSheet',
-);
+/** Additive and review-first: dryRun returns the people NOT yet in the
+ *  portal; commit imports only the candidate keys in `include`. Existing
+ *  employees are never touched. */
+export const importHrMasterSheet = httpsCallable<
+  { mode: 'dryRun' | 'commit'; include?: string[] },
+  ImportReport
+>(functions, 'importHrMasterSheet');
 
 // ---------------------------------------------------------------------------
 // Documents

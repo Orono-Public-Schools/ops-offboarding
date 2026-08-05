@@ -96,9 +96,10 @@ lists and detail-field specs drive both server validation and generic UI renderi
 **Importer** — `importHrMasterSheet` callable (HR-only): reads the shared sheet via the
 service account, parses header-keyed (column reorder-proof), merges identities across tabs
 (EE# first, then normalized name both orderings), derives employee status
-(terminated > on_leave > prospective/active). `dryRun` mode returns a report (counts,
-warnings, samples) without writing; `commit` replaces only `source:'import'` docs, so
-portal-created records survive re-imports (portal *edits* to imported docs do not — stated in UI).
+(terminated > on_leave > prospective/active). **Additive and review-first** (reworked
+2026-08-05): `dryRun` matches sheet people against existing employees and returns only the
+NEW ones as candidates; `commit` takes `include: string[]` of candidate keys and imports
+just those. Existing employees and records are never updated or deleted by an import.
 
 - [x] Capture the real sheet's tabs/columns → design `employees` schema (above)
 - [x] Shared HR schema + catalogues (`shared/hr/`: types, catalog, util, importParse)
