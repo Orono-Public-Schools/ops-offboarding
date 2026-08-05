@@ -76,7 +76,7 @@ const SHORT_LABELS: Record<string, string> = {
 /** The roster/dossier split is draggable; the width sticks per browser. */
 const RAIL_MIN = 280;
 const RAIL_MAX = 640;
-const RAIL_DEFAULT = 340;
+const RAIL_DEFAULT = 540;
 const RAIL_WIDTH_KEY = 'hrRailWidth';
 
 function savedRailWidth(): number {
@@ -842,7 +842,10 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                           font: '400 12.5px/1.4 var(--font-sans)',
                           color: 'var(--dark)',
                           background: isSel ? 'var(--tint)' : undefined,
-                          maxWidth: 140 + Math.max(0, railWidth - RAIL_DEFAULT),
+                          // Truncation eases as the rail grows past its snuggest
+                          // useful width; anchored at 340, not the default, so
+                          // the default ratio keeps full position titles.
+                          maxWidth: 140 + Math.max(0, railWidth - 340),
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
