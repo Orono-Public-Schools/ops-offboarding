@@ -639,7 +639,6 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
             New employee
           </Button>
         }
-        pad={0}
         bodyStyle={{ padding: 0 }}
       >
         {ctx.employees.loading ? (
