@@ -12,6 +12,7 @@ import {
   createHrRecord,
   deleteEmployee,
   displayName,
+  isChecklistComplete,
   isIsoDate,
   isoToMdy,
   normalizeDateInput,
@@ -641,6 +642,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
 
   const people = kind === 'new_hire' ? ctx.newHires : ctx.ceSubs;
   const isCe = kind === 'ce_onboarding';
+  const spec = PROCESS_SPECS[kind];
   const staff = 'staff' in staffState ? staffState.staff : [];
 
   const processByRef = useMemo(() => {
@@ -832,6 +834,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                       {filtered.map((e) => {
                         const p = processByRef.get(e.id);
                         const prog = p ? taskProgress(p) : null;
+                        const complete = p ? isChecklistComplete(spec, p.tasks ?? {}) : false;
                         const isSel = selected?.id === e.id;
                         const d = [e.startDate, p?.details?.startDate].find((v) =>
                           isIsoDate(v ?? null),
@@ -888,7 +891,8 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                             <td
                               style={{
                                 ...cell,
-                                color: 'var(--text-muted)',
+                                color: complete ? 'var(--dark)' : 'var(--text-muted)',
+                                fontWeight: complete ? 700 : undefined,
                                 fontVariantNumeric: 'tabular-nums',
                               }}
                             >
