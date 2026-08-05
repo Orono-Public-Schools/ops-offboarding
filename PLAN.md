@@ -106,20 +106,39 @@ just those. Existing employees and records are never updated or deleted by an im
 - [x] Callables: employee CRUD + transactional EE# assignment, record create/update,
       task toggles, delete, importer (`functions/src/hr.ts`, `hrImport.ts`)
 - [x] HR-only Firestore rules for the four collections
-- [x] HR module UI: sub-tabs mirror the workbook's segmentation (Inbox · New employees ·
-      CE/Sub/Coaching · Offboarding · Leaves · Changes) with live counts. The two people
-      tabs use expandable rows — EE#, position/building, start date, progress bar, status
-      at a glance; open a row for the facts and the full checklist with working toggles
-      (sheet-parity, no click-through). Employee detail (edit, records timeline, history),
-      record lists/detail, import card with dry-run preview. Main nav says "HR Portal";
-      PersonPlate photo slots removed from HR lists.
+- [x] HR module UI (iterated with Joel 2026-08-05): sub-tabs mirror the workbook
+      (Inbox · New employees · CE/Sub/Coaching · Offboarding · Leaves · Changes). The two
+      people tabs are the **Dossier**: a sortable **Directory Rail** (Name · Position ·
+      Bldg · Starts · Done columns, sticky header, default chronological) with the selected
+      person's file always open beside it — facts row (incl. Google account + Replacing),
+      grouped checklist with instant optimistic ticks, inline Edit mode (profile + board
+      date/replacing/lunch PIN), and Remove employee (deleteEmployee callable cleans
+      records + history). Main nav says "HR Portal"; PersonPlate photo slots off in HR.
+- [x] Checklist model (per Joel): new-hire = 9 required boxes (payroll form, background,
+      paperwork, I-9, Frontline, EF+, Vector, union, Synergy) + optional Health & Safety /
+      Key / Lunch PIN in their own group (never counted); any task can be marked **N/A**
+      (excluded from progress; complete = required all done-or-N/A). Contract-sent is a
+      date detail. Dates display/type as **MM-DD-YYYY** (ISO stored underneath).
+- [x] Automation: `reconcileGoogleAccounts` runs after every roster sync and import —
+      matches employees to the synced Google directory (email → EE# → name), fills
+      missing emails, checks the Gmail task where it still exists. `setHrTask` mirrors
+      shared tasks (background check, I-9, …) between a person's new-hire and CE
+      checklists so both tabs agree.
 - [x] Parser verified locally against the real downloaded workbook (2026-08-05):
       69 employees / 39 checklists / 21 leaves / 9 changes, cross-tab merges correct
       ("Forney, Chris" ↔ "Chris Forney" by EE#), statuses derived (20 prospective /
       34 active / 10 on-leave / 5 terminated), max EE# 7420, one benign warning
       (NTO row "Murray, Daniel" has no new-hire row)
-- [ ] Joel: run the real import from the Employees tab (Preview → Import now), spot-check
-      against the sheet with HR
+- [x] First real import ran 2026-08-05; section-header junk rows ("Human Resources",
+      "Technology", legend notes) surfaced and the parser now skips them
+- [ ] Joel: re-run Preview → review candidates → Import to bring in anyone still missing;
+      spot-check against the sheet with HR
+- [ ] **Later:** record-level import review — a new sheet row (LOA, change, termination)
+      for an *already-imported* person is currently skipped with the person; surface those
+      as record candidates in the same review UI
+- [ ] **Later:** roster facet chips (design-review option B) layered on the Directory Rail
+      if role/building questions outgrow sorting; mobile pass on the Dossier
+      (design-option artifacts: new-employees section 0058d27a…, roster 9e01fac0…)
 
 ### Phase 3 — Form engine + first forms
 - [ ] Schema-driven form renderer (field types, validation, conditional visibility, sections) + Zod shared client/server
