@@ -21,6 +21,7 @@ import type {
   ProcessStatus,
   ProcessType,
 } from '../../shared/hr/types';
+import { specFor } from '../../shared/hr/catalog';
 
 export type {
   ChangeType,
@@ -41,13 +42,14 @@ export {
 } from '../../shared/hr/types';
 export {
   CHANGE_SPECS,
+  isChecklistComplete,
   LEAVE_REASON_OPTIONS,
   LEAVE_SPEC,
   PROCESS_SPECS,
-  specFor,
 } from '../../shared/hr/catalog';
+export { specFor };
 export type { HrDetailSpec, HrRecordSpec, HrTaskSpec } from '../../shared/hr/catalog';
-export { isIsoDate } from '../../shared/hr/util';
+export { isIsoDate, isoToMdy, normalizeDateInput } from '../../shared/hr/util';
 
 const functions = getFunctions(app, 'us-central1');
 
@@ -404,16 +406,22 @@ export const LEAVE_STATUS_BADGE: Record<
   ended: { state: 'draft', label: 'Ended' },
 };
 
-/** N/A tasks don't count toward either side of the fraction. */
+/** Progress over the catalogue's required tasks only — optional tasks and
+ *  N/A'd items don't count toward either side of the fraction, and stale task
+ *  entries from older catalogue versions are ignored. */
 export function taskProgress(record: HrRecordDoc): { done: number; total: number } {
-  const tasks = Object.values(record.tasks ?? {}).filter((t) => t.na !== true);
-  return { done: tasks.filter((t) => t.done).length, total: tasks.length };
+  const spec = specFor(record.collection, (record.type as string | undefined) ?? null);
+  const states = spec
+    ? spec.tasks.filter((t) => !t.optional).map((t) => record.tasks?.[t.key])
+    : Object.values(record.tasks ?? {});
+  const applicable = states.filter((t): t is HrTaskState => !!t && t.na !== true);
+  return { done: applicable.filter((t) => t.done).length, total: applicable.length };
 }
 
-/** "2026-08-19" → "Aug 19, 2026"; anything non-ISO ("TBD") passes through. */
+/** "2026-08-19" → "08-19-2026"; anything non-ISO ("TBD") passes through. */
 export function prettyDate(value: string | null | undefined): string {
   if (!value) return '';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  const d = new Date(`${value}T12:00:00`);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const [y, m, d] = value.split('-');
+  return `${m}-${d}-${y}`;
 }

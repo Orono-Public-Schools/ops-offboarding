@@ -13,7 +13,13 @@ import {
   type LeaveStatus,
   type TaskMap,
 } from './shared-gen/hr/types';
-import { specFor, taskKeys, detailKeys, type HrRecordSpec } from './shared-gen/hr/catalog';
+import {
+  PROCESS_SPECS,
+  specFor,
+  taskKeys,
+  detailKeys,
+  type HrRecordSpec,
+} from './shared-gen/hr/catalog';
 import { currentFiscalYearLabel, fiscalYearLabel } from './shared-gen/hr/util';
 
 export const EMPLOYEE_ID_COUNTER_DOC = 'hrEmployeeIds';
@@ -430,6 +436,31 @@ export const setHrTask = onCall({ region: REGION }, async (request) => {
     updatedAt: FieldValue.serverTimestamp(),
     updatedBy: actor.email,
   });
+
+  // A person can be on both onboarding tabs (a teacher who also coaches).
+  // Shared items — background check, I-9, Frontline… — are facts about the
+  // person, not the checklist, so mirror the state onto their sibling
+  // onboarding checklist when it carries the same task.
+  if (collection === 'processes' && (type === 'new_hire' || type === 'ce_onboarding')) {
+    const siblingType = type === 'new_hire' ? 'ce_onboarding' : 'new_hire';
+    if (taskKeys(PROCESS_SPECS[siblingType]).has(taskKey)) {
+      const employeeRef = snap.get('employeeRef') as string | undefined;
+      if (employeeRef) {
+        const sibs = await db
+          .collection('processes')
+          .where('employeeRef', '==', employeeRef)
+          .where('type', '==', siblingType)
+          .get();
+        for (const sib of sibs.docs) {
+          await sib.ref.update({
+            [`tasks.${taskKey}`]: state,
+            updatedAt: FieldValue.serverTimestamp(),
+            updatedBy: actor.email,
+          });
+        }
+      }
+    }
+  }
   return { success: true };
 });
 

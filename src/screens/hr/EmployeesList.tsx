@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
 import { useHrCtx } from './HRModule';
 import { ImportCard } from './ImportCard';
@@ -13,6 +13,8 @@ import {
   deleteEmployee,
   displayName,
   isIsoDate,
+  isoToMdy,
+  normalizeDateInput,
   prettyDate,
   setHrTask,
   taskProgress,
@@ -38,22 +40,15 @@ const TASK_GROUPS: Partial<Record<ProcessType, Array<{ label: string; keys: stri
   new_hire: [
     {
       label: 'Paperwork',
-      keys: [
-        'payrollChangeForm',
-        'contractSent',
-        'backgroundCheck',
-        'paperwork',
-        'i9',
-        'newTeacherFormSent',
-      ],
+      keys: ['payrollChangeForm', 'backgroundCheck', 'paperwork', 'i9'],
     },
     {
-      label: 'Systems',
-      keys: ['frontline', 'efPlus', 'vector', 'synergy', 'gmailAccount', 'phoneAssigned'],
+      label: 'Systems & people',
+      keys: ['frontline', 'efPlus', 'vector', 'synergy', 'notifyUnion'],
     },
     {
-      label: 'Building & people',
-      keys: ['notifyUnion', 'healthSafety', 'key', 'lunchPin', 'ntoLetterSent'],
+      label: 'Optional',
+      keys: ['healthSafety', 'key', 'lunchPin'],
     },
   ],
 };
@@ -124,14 +119,12 @@ function TaskButton({
   taskKey,
   label,
   state,
-  busy,
   onToggle,
   onNa,
 }: {
   taskKey: string;
   label: string;
   state: HrTaskState | undefined;
-  busy: boolean;
   onToggle: () => void;
   onNa: () => void;
 }) {
@@ -152,7 +145,6 @@ function TaskButton({
     >
       <button
         onClick={onToggle}
-        disabled={busy}
         title={title}
         style={{
           display: 'flex',
@@ -167,7 +159,6 @@ function TaskButton({
           padding: 0,
           font: '400 13px/1.4 var(--font-sans)',
           color: na || done ? 'var(--text-muted)' : 'var(--dark)',
-          opacity: busy ? 0.5 : 1,
         }}
       >
         <span style={{ opacity: na ? 0.35 : 1, display: 'inline-flex', marginTop: 1 }}>
@@ -184,7 +175,6 @@ function TaskButton({
       </button>
       <button
         onClick={onNa}
-        disabled={busy}
         title={na ? 'Restore — this applies after all' : "Doesn't apply to this person"}
         style={{
           border: 'none',
@@ -217,7 +207,6 @@ function DossierPanel({
   google: StaffRecord | null;
 }) {
   const navigate = useNavigate();
-  const [busyTask, setBusyTask] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -225,65 +214,71 @@ function DossierPanel({
   const [procDraft, setProcDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  // Optimistic checkmarks: flip locally the instant a box is clicked, let the
+  // callable catch up, and drop the override once the live snapshot lands
+  // (or revert it if the call fails).
+  const [overrides, setOverrides] = useState<Record<string, HrTaskState>>({});
+  const processStamp = process?.updatedAt ? process.updatedAt.toMillis() : 0;
+  useEffect(() => {
+    setOverrides({});
+  }, [process?.id, processStamp]);
+
   const spec = PROCESS_SPECS[kind];
   const groups = TASK_GROUPS[kind] ?? [{ label: 'Checklist', keys: spec.tasks.map((t) => t.key) }];
   const start = employee.startDate ?? process?.details?.startDate ?? null;
-  const progress = process ? taskProgress(process) : null;
+  const effectiveProcess = process
+    ? { ...process, tasks: { ...process.tasks, ...overrides } }
+    : null;
+  const progress = effectiveProcess ? taskProgress(effectiveProcess) : null;
 
-  const call = async (fn: () => Promise<unknown>, key: string) => {
-    setBusyTask(key);
+  const stateOf = (taskKey: string): HrTaskState | undefined =>
+    overrides[taskKey] ?? process?.tasks?.[taskKey];
+
+  const push = (taskKey: string, local: HrTaskState, payload: { done?: boolean; na?: boolean }) => {
+    if (!process) return;
+    setOverrides((o) => ({ ...o, [taskKey]: local }));
     setError(null);
-    try {
-      await fn();
-    } catch (err) {
+    setHrTask({ collection: 'processes', id: process.id, taskKey, ...payload }).catch((err) => {
+      setOverrides((o) => {
+        const next = { ...o };
+        delete next[taskKey];
+        return next;
+      });
       setError(err instanceof Error ? err.message : 'Could not save that.');
-    } finally {
-      setBusyTask(null);
-    }
+    });
   };
 
-  const toggle = (taskKey: string, state: HrTaskState | undefined) =>
-    call(async () => {
-      if (!process) return;
-      if (state?.na === true) {
-        await setHrTask({
-          collection: 'processes',
-          id: process.id,
-          taskKey,
-          done: false,
-          na: false,
-        });
-      } else {
-        await setHrTask({
-          collection: 'processes',
-          id: process.id,
-          taskKey,
-          done: !(state?.done ?? false),
-          na: false,
-        });
-      }
-    }, taskKey);
+  const toggle = (taskKey: string) => {
+    const cur = stateOf(taskKey);
+    const done = cur?.na === true ? false : !(cur?.done ?? false);
+    push(
+      taskKey,
+      { done, na: false, doneAt: null, doneBy: null, note: cur?.note ?? null },
+      { done, na: false },
+    );
+  };
 
-  const markNa = (taskKey: string, state: HrTaskState | undefined) =>
-    call(async () => {
-      if (!process) return;
-      if (state?.na === true) {
-        await setHrTask({
-          collection: 'processes',
-          id: process.id,
-          taskKey,
-          done: false,
-          na: false,
-        });
-      } else {
-        await setHrTask({ collection: 'processes', id: process.id, taskKey, na: true });
-      }
-    }, taskKey);
+  const markNa = (taskKey: string) => {
+    const cur = stateOf(taskKey);
+    if (cur?.na === true) {
+      push(
+        taskKey,
+        { done: false, na: false, doneAt: null, doneBy: null, note: cur?.note ?? null },
+        { done: false, na: false },
+      );
+    } else {
+      push(
+        taskKey,
+        { done: false, na: true, doneAt: null, doneBy: null, note: cur?.note ?? null },
+        { na: true },
+      );
+    }
+  };
 
   const startEdit = () => {
     setValues(employeeToFormValues(employee));
     setProcDraft({
-      boardDate: process?.details?.boardDate ?? '',
+      boardDate: isoToMdy(process?.details?.boardDate ?? ''),
       replacing: process?.details?.replacing ?? '',
       lunchPin: process?.details?.lunchPin ?? '',
     });
@@ -302,7 +297,7 @@ function DossierPanel({
           collection: 'processes',
           id: process.id,
           details: {
-            boardDate: procDraft.boardDate.trim(),
+            boardDate: normalizeDateInput(procDraft.boardDate),
             replacing: procDraft.replacing.trim(),
           },
         });
@@ -343,6 +338,11 @@ function DossierPanel({
     ['Starts', prettyDate(start) || '—'],
     ...(process?.details?.boardDate
       ? ([['Board date', prettyDate(process.details.boardDate)]] as Array<[string, string]>)
+      : []),
+    ...(process?.details?.contractSentDate
+      ? ([['Contract sent', prettyDate(process.details.contractSentDate)]] as Array<
+          [string, string]
+        >)
       : []),
     ['Reports to', employee.reportsTo ?? process?.reportsTo ?? '—'],
     ...(process?.details?.replacing
@@ -420,7 +420,7 @@ function DossierPanel({
                     optional
                     value={procDraft.boardDate}
                     onChange={(ev) => setProcDraft((d) => ({ ...d, boardDate: ev.target.value }))}
-                    placeholder="YYYY-MM-DD"
+                    placeholder="MM-DD-YYYY"
                   />
                   <Field
                     label="Replacing / student teacher"
@@ -508,10 +508,9 @@ function DossierPanel({
                         key={t.key}
                         taskKey={t.key}
                         label={SHORT_LABELS[t.key] ?? t.label}
-                        state={process.tasks?.[t.key]}
-                        busy={busyTask === t.key}
-                        onToggle={() => toggle(t.key, process.tasks?.[t.key])}
-                        onNa={() => markNa(t.key, process.tasks?.[t.key])}
+                        state={stateOf(t.key)}
+                        onToggle={() => toggle(t.key)}
+                        onNa={() => markNa(t.key)}
                       />
                     ))}
                 </div>
@@ -761,7 +760,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
-                        {d ? prettyDate(d).replace(/, \d{4}$/, '') : '—'}
+                        {d ? prettyDate(d).slice(0, 5) : '—'}
                       </span>
                       <span
                         style={{

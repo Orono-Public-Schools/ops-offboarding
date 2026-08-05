@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router';
 import {
   deleteHrRecord,
   isIsoDate,
+  isoToMdy,
+  normalizeDateInput,
   prettyDate,
   setHrTask,
   specFor,
@@ -84,7 +86,10 @@ export function HrRecordDetail() {
 
   const startEdit = () => {
     const d: Record<string, string> = {};
-    for (const f of spec.details) d[f.key] = r.details?.[f.key] ?? '';
+    for (const f of spec.details) {
+      const raw = r.details?.[f.key] ?? '';
+      d[f.key] = f.kind === 'date' ? isoToMdy(raw) : raw;
+    }
     setDraft(d);
     setDraftNotes(r.notes ?? '');
     setDraftReason(r.reason ?? '');
@@ -96,10 +101,16 @@ export function HrRecordDetail() {
     setBusy(true);
     setError(null);
     try {
+      const details = Object.fromEntries(
+        Object.entries(draft).map(([k, v]) => {
+          const kind = spec.details.find((f) => f.key === k)?.kind;
+          return [k, kind === 'date' ? normalizeDateInput(v) : v];
+        }),
+      );
       await updateHrRecord({
         collection,
         id: r.id,
-        details: draft,
+        details,
         notes: draftNotes.trim() || null,
         ...(collection === 'leaves' ? { reason: draftReason.trim() || null } : {}),
       });
@@ -257,7 +268,7 @@ export function HrRecordDetail() {
                     label={f.label}
                     value={draft[f.key] ?? ''}
                     onChange={(ev) => setDraft((d) => ({ ...d, [f.key]: ev.target.value }))}
-                    placeholder={f.kind === 'date' ? 'YYYY-MM-DD or TBD' : undefined}
+                    placeholder={f.kind === 'date' ? 'MM-DD-YYYY or TBD' : undefined}
                   />
                 ),
               )}
@@ -310,6 +321,7 @@ export function HrRecordDetail() {
               const parts = na
                 ? ["Doesn't apply"]
                 : [
+                    t.optional ? 'Optional' : null,
                     ts?.doneBy === 'roster-sync' ? 'checked automatically' : (ts?.doneBy ?? null),
                     ts?.doneAt ? ts.doneAt.toDate().toLocaleDateString() : null,
                     ts?.note ?? null,

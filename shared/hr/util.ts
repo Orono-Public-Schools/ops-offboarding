@@ -36,6 +36,24 @@ export function isIsoDate(value: string | null | undefined): boolean {
   return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+/** Stored ISO → the app's display format, MM-DD-YYYY. Non-ISO text ("TBD",
+ *  "Winter 2026") passes through untouched. */
+export function isoToMdy(value: string | null | undefined): string {
+  if (!value) return '';
+  if (!isIsoDate(value)) return value;
+  const [y, m, d] = value.split('-');
+  return `${m}-${d}-${y}`;
+}
+
+/** Typed MM-DD-YYYY (or M/D/YYYY, or ISO) → stored ISO. Anything else —
+ *  "TBD", a season — is kept as typed. Month-first, per US convention. */
+export function normalizeDateInput(raw: string): string {
+  const s = raw.trim();
+  const mdY = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (mdY) return `${mdY[3]}-${mdY[1].padStart(2, '0')}-${mdY[2].padStart(2, '0')}`;
+  return s;
+}
+
 /** Fiscal-year label with a July 1 boundary: 2026-08-19 → "2026-27". */
 export function fiscalYearLabel(iso: string | null): string | null {
   if (!isIsoDate(iso)) return null;

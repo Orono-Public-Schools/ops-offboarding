@@ -10,6 +10,7 @@ import {
   TAB_MATCHERS,
   type TabKey,
 } from './shared-gen/hr/importParse';
+import { isChecklistComplete, PROCESS_SPECS } from './shared-gen/hr/catalog';
 import { currentFiscalYearLabel, fiscalYearLabel } from './shared-gen/hr/util';
 
 // HR's master workbook ("<year> New EE Checklist"), shared read-only with the
@@ -186,7 +187,7 @@ export const importHrMasterSheet = onCall(
           updatedBy: actor.email,
         };
         if (rec.collection === 'processes') {
-          const allDone = Object.values(rec.tasks).every((t) => t.done);
+          const allDone = isChecklistComplete(PROCESS_SPECS[rec.type], rec.tasks);
           const basis =
             rec.details.startDate || rec.details.termDate || rec.details.boardDate || null;
           writer.set(db.collection('processes').doc(), {

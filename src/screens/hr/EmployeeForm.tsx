@@ -1,6 +1,11 @@
 import type { CSSProperties } from 'react';
 import { Field } from '../../ds/components/forms/Field';
-import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUSES } from '../../lib/hr';
+import {
+  isoToMdy,
+  normalizeDateInput,
+  EMPLOYEE_STATUS_LABELS,
+  EMPLOYEE_STATUSES,
+} from '../../lib/hr';
 
 /** Everything as strings for form state; callables get trimmed values. */
 export type EmployeeFormValues = {
@@ -60,8 +65,8 @@ export function employeeToFormValues(e: {
     building: e.building ?? '',
     position: e.position ?? '',
     reportsTo: e.reportsTo ?? '',
-    startDate: e.startDate ?? '',
-    endDate: e.endDate ?? '',
+    startDate: isoToMdy(e.startDate),
+    endDate: isoToMdy(e.endDate),
     description: e.description ?? '',
     notes: e.notes ?? '',
   };
@@ -79,8 +84,8 @@ export function employeeFormFields(values: EmployeeFormValues): Record<string, u
     building: s(values.building),
     position: s(values.position),
     reportsTo: s(values.reportsTo),
-    startDate: s(values.startDate),
-    endDate: s(values.endDate),
+    startDate: values.startDate.trim() ? normalizeDateInput(values.startDate) : null,
+    endDate: values.endDate.trim() ? normalizeDateInput(values.endDate) : null,
     description: s(values.description),
     notes: s(values.notes),
   };
@@ -154,14 +159,14 @@ export function EmployeeForm({
           optional
           value={values.startDate}
           onChange={set('startDate')}
-          placeholder="YYYY-MM-DD or TBD"
+          placeholder="MM-DD-YYYY or TBD"
         />
         <Field
           label="End date"
           optional
           value={values.endDate}
           onChange={set('endDate')}
-          placeholder="YYYY-MM-DD"
+          placeholder="MM-DD-YYYY"
         />
         <Field
           label="Description"

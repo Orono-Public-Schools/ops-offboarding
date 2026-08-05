@@ -9,6 +9,8 @@ import type { ChangeType, ProcessType } from './types';
 export type HrTaskSpec = {
   key: string;
   label: string;
+  /** Tickable but never counted in progress or required for completion. */
+  optional?: boolean;
 };
 
 export type HrDetailSpec = {
@@ -28,10 +30,10 @@ export type HrRecordSpec = {
 export const PROCESS_SPECS: Record<ProcessType, HrRecordSpec> = {
   new_hire: {
     label: 'New hire',
+    // Trimmed 2026-08-05 to the boxes HR actually works; contract-sent became
+    // a date detail, and the Google column answers the Gmail question.
     tasks: [
       { key: 'payrollChangeForm', label: 'Payroll change form' },
-      { key: 'contractSent', label: 'Contract sent' },
-      { key: 'newTeacherFormSent', label: 'New teacher form sent' },
       { key: 'backgroundCheck', label: 'Background check complete' },
       { key: 'paperwork', label: 'Paperwork complete' },
       { key: 'i9', label: 'I-9 complete' },
@@ -39,18 +41,16 @@ export const PROCESS_SPECS: Record<ProcessType, HrRecordSpec> = {
       { key: 'efPlus', label: 'EF+ updated' },
       { key: 'vector', label: 'Added to Vector' },
       { key: 'notifyUnion', label: 'Union notified' },
-      { key: 'healthSafety', label: 'Health & Safety' },
-      { key: 'key', label: 'Key issued' },
-      { key: 'lunchPin', label: 'Lunch PIN set' },
-      { key: 'gmailAccount', label: 'School Gmail account' },
       { key: 'synergy', label: 'Synergy' },
-      { key: 'phoneAssigned', label: 'Phone assigned' },
-      { key: 'ntoLetterSent', label: 'NTO letter / schedule sent' },
+      { key: 'healthSafety', label: 'Health & Safety', optional: true },
+      { key: 'key', label: 'Key issued', optional: true },
+      { key: 'lunchPin', label: 'Lunch PIN set', optional: true },
     ],
     details: [
       { key: 'boardDate', label: 'Board date', kind: 'date' },
       { key: 'startDate', label: 'Start date', kind: 'date' },
       { key: 'ltsEndDate', label: 'LTS end date', kind: 'date' },
+      { key: 'contractSentDate', label: 'Contract sent', kind: 'date' },
       { key: 'checkin30Due', label: '30-day check-in due', kind: 'date' },
       { key: 'checkin90Due', label: '90-day check-in due', kind: 'date' },
       { key: 'replacing', label: 'Replacing / student teacher', kind: 'text' },
@@ -217,6 +217,19 @@ export function specFor(
 
 export function taskKeys(spec: HrRecordSpec): Set<string> {
   return new Set(spec.tasks.map((t) => t.key));
+}
+
+/** Complete = every required (non-optional) task done or N/A. */
+export function isChecklistComplete(
+  spec: HrRecordSpec,
+  tasks: Record<string, { done?: boolean; na?: boolean } | undefined>,
+): boolean {
+  const required = spec.tasks.filter((t) => !t.optional);
+  if (required.length === 0) return false;
+  return required.every((t) => {
+    const s = tasks[t.key];
+    return s ? s.done === true || s.na === true : false;
+  });
 }
 
 export function detailKeys(spec: HrRecordSpec): Set<string> {
