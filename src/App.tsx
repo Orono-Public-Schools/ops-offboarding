@@ -66,10 +66,11 @@ export default function App() {
           <Route path="/forms/:formId" element={<FormFillScreen />} />
           <Route path="/hr" element={<HRModule />}>
             <Route index element={<HRInbox />} />
-            <Route path="employees" element={<EmployeesList />} />
+            <Route path="employees" element={<EmployeesList kind="new_hire" />} />
             <Route path="employees/new" element={<EmployeeNew />} />
             <Route path="employees/:id" element={<EmployeeDetail />} />
-            <Route path="onboarding" element={<HrRecordList kind="onboarding" />} />
+            <Route path="ce" element={<EmployeesList kind="ce_onboarding" />} />
+            <Route path="onboarding" element={<Navigate to="/hr/employees" replace />} />
             <Route path="offboarding" element={<HrRecordList kind="offboarding" />} />
             <Route path="leaves" element={<HrRecordList kind="leaves" />} />
             <Route path="changes" element={<HrRecordList kind="changes" />} />

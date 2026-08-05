@@ -82,7 +82,14 @@ export function HRInbox() {
           {filtered.map((s) => (
             <InboxRow
               key={s.id}
-              person={<PersonPlate size="sm" name={s.submitterName} role={s.submitterEmail} />}
+              person={
+                <PersonPlate
+                  size="sm"
+                  photoSlot={false}
+                  name={s.submitterName}
+                  role={s.submitterEmail}
+                />
+              }
               request={s.formTitle}
               kind={`${s.id} · ${s.summary}`}
               status={<StatusBadge state={s.status} />}

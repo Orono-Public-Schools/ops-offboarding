@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router';
 import { useIsHR } from '../../lib/auth';
 import { useAllSubmissions } from '../../lib/forms';
@@ -29,6 +30,12 @@ const MONTHS = [
 
 export type HrOutletCtx = {
   employees: ListState<EmployeeDoc>;
+  /** The New employees tab: people with a new-hire checklist, plus regular
+   *  staff added by hand with no records yet. People who exist only through a
+   *  leave, change, or termination live under those tabs instead. */
+  newHires: EmployeeDoc[];
+  /** The CE/Sub/Coaching tab — the workbook's own segmentation. */
+  ceSubs: EmployeeDoc[];
   processes: ListState<HrRecordDoc>;
   leaves: ListState<HrRecordDoc>;
   changes: ListState<HrRecordDoc>;
@@ -39,12 +46,12 @@ export function useHrCtx(): HrOutletCtx {
   return useOutletContext<HrOutletCtx>();
 }
 
-type HrTab = 'inbox' | 'employees' | 'onboarding' | 'offboarding' | 'leaves' | 'changes';
+type HrTab = 'inbox' | 'employees' | 'cesub' | 'offboarding' | 'leaves' | 'changes';
 
 const TAB_PATHS: Record<HrTab, string> = {
   inbox: '/hr',
   employees: '/hr/employees',
-  onboarding: '/hr/onboarding',
+  cesub: '/hr/ce',
   offboarding: '/hr/offboarding',
   leaves: '/hr/leaves',
   changes: '/hr/changes',
@@ -52,7 +59,7 @@ const TAB_PATHS: Record<HrTab, string> = {
 
 function activeTab(pathname: string): HrTab {
   if (pathname.startsWith('/hr/employees')) return 'employees';
-  if (pathname.startsWith('/hr/onboarding')) return 'onboarding';
+  if (pathname.startsWith('/hr/ce')) return 'cesub';
   if (pathname.startsWith('/hr/offboarding')) return 'offboarding';
   if (pathname.startsWith('/hr/leaves')) return 'leaves';
   if (pathname.startsWith('/hr/changes')) return 'changes';
@@ -73,29 +80,29 @@ function headline(tab: HrTab, ctx: HrOutletCtx): { title: string; subtitle: stri
     changes: ctx.changes.items?.length ?? 0,
   };
   switch (tab) {
-    case 'employees':
-      return n.employees === 0
+    case 'employees': {
+      const count = ctx.newHires.length;
+      return count === 0
         ? {
-            title: 'The employee database is empty',
+            title: 'No new employees on file yet',
             subtitle: 'Run the sheet import below, or add someone by hand.',
           }
         : {
-            title: `${n.employees} people on file`,
+            title: count === 1 ? 'One new employee on file' : `${count} new employees on file`,
             subtitle:
-              "This year's New EE workbook, imported — new hires, CE/sub/coaching, leaves, and terminations.",
+              'Open a row for the details and checklist. Leaves, changes, and terminations live under their own tabs.',
           };
-    case 'onboarding': {
-      const open = n.processes.filter(
-        (p) => (p.type === 'new_hire' || p.type === 'ce_onboarding') && p.status === 'open',
-      ).length;
+    }
+    case 'cesub': {
+      const count = ctx.ceSubs.length;
       return {
         title:
-          open === 0
-            ? 'No onboarding checklists are open'
-            : open === 1
-              ? 'One onboarding checklist is open'
-              : `${open} onboarding checklists are open`,
-        subtitle: 'New hires and CE / sub / coaching, one checklist each.',
+          count === 0
+            ? 'No CE, sub, or coaching hires on file'
+            : count === 1
+              ? 'One CE / sub / coaching hire on file'
+              : `${count} CE / sub / coaching hires on file`,
+        subtitle: 'Background check through EF+, one row each.',
       };
     }
     case 'offboarding': {
@@ -159,9 +166,34 @@ export function HRModule() {
   const changes = useHrRecords('changes', isHR);
   const submissions = useAllSubmissions(isHR);
 
+  const { newHires, ceSubs } = useMemo(() => {
+    const procs = processes.items ?? [];
+    const withNewHire = new Set(
+      procs.filter((p) => p.type === 'new_hire').map((p) => p.employeeRef),
+    );
+    const withCe = new Set(
+      procs.filter((p) => p.type === 'ce_onboarding').map((p) => p.employeeRef),
+    );
+    const withAnyRecord = new Set([
+      ...procs.map((p) => p.employeeRef),
+      ...(leaves.items ?? []).map((l) => l.employeeRef),
+      ...(changes.items ?? []).map((c) => c.employeeRef),
+    ]);
+    const all = employees.items ?? [];
+    // Recordless people (hand-added, or ID-assignment-only) sort by kind.
+    return {
+      newHires: all.filter(
+        (e) => withNewHire.has(e.id) || (!withAnyRecord.has(e.id) && e.kind !== 'ce_sub_coach'),
+      ),
+      ceSubs: all.filter(
+        (e) => withCe.has(e.id) || (!withAnyRecord.has(e.id) && e.kind === 'ce_sub_coach'),
+      ),
+    };
+  }, [employees.items, processes.items, leaves.items, changes.items]);
+
   if (!isHR) return <Navigate to="/" replace />;
 
-  const ctx: HrOutletCtx = { employees, processes, leaves, changes, submissions };
+  const ctx: HrOutletCtx = { employees, newHires, ceSubs, processes, leaves, changes, submissions };
   const tab = activeTab(location.pathname);
   const openInbox = (submissions.submissions ?? []).filter(
     (s) => s.status === 'submitted' || s.status === 'processing',
@@ -169,8 +201,8 @@ export function HRModule() {
 
   const tabs: TabEntry[] = [
     { id: 'inbox', label: 'Inbox', icon: 'inbox', count: openInbox || undefined },
-    { id: 'employees', label: 'Employees', icon: 'users' },
-    { id: 'onboarding', label: 'Onboarding', icon: 'plus' },
+    { id: 'employees', label: 'New employees', icon: 'users' },
+    { id: 'cesub', label: 'CE/Sub/Coaching', icon: 'plus' },
     { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
     { id: 'leaves', label: 'Leaves', icon: 'clock' },
     { id: 'changes', label: 'Changes', icon: 'fileText' },
@@ -191,7 +223,7 @@ export function HRModule() {
           subtitle={head.subtitle}
           railPct={monthPct}
           railLeft={`${MONTHS[now.getMonth()]}`}
-          railRight={`${employees.items?.length ?? 0} people on file`}
+          railRight={`${newHires.length} new employees this year`}
         />
       )}
       <TabBar

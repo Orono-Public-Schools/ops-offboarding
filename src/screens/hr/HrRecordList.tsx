@@ -20,25 +20,11 @@ import { EmptyState } from '../../ds/components/records/EmptyState';
 import { InboxRow } from '../../ds/components/records/InboxRow';
 import { PersonPlate } from '../../ds/components/records/PersonPlate';
 
-export type RecordListKind = 'onboarding' | 'offboarding' | 'leaves' | 'changes';
+export type RecordListKind = 'offboarding' | 'leaves' | 'changes';
 
 type Chip = { key: string; label: string; test: (r: HrRecordDoc) => boolean };
 
 const CHIPS: Record<RecordListKind, Chip[]> = {
-  onboarding: [
-    {
-      key: 'open',
-      label: 'Open',
-      test: (r) => (r.type === 'new_hire' || r.type === 'ce_onboarding') && r.status === 'open',
-    },
-    { key: 'new_hire', label: 'New hires', test: (r) => r.type === 'new_hire' },
-    { key: 'ce', label: 'CE / Sub / Coaching', test: (r) => r.type === 'ce_onboarding' },
-    {
-      key: 'all',
-      label: 'All',
-      test: (r) => r.type === 'new_hire' || r.type === 'ce_onboarding',
-    },
-  ],
   offboarding: [
     { key: 'open', label: 'Open', test: (r) => r.type === 'termination' && r.status === 'open' },
     { key: 'all', label: 'All', test: (r) => r.type === 'termination' },
@@ -58,7 +44,6 @@ const CHIPS: Record<RecordListKind, Chip[]> = {
 };
 
 const HEADINGS: Record<RecordListKind, { eyebrow: string; heading: string }> = {
-  onboarding: { eyebrow: 'Onboarding', heading: 'New hires and CE / Sub / Coaching' },
   offboarding: { eyebrow: 'Offboarding', heading: 'Terminations, the HR side' },
   leaves: { eyebrow: 'Leaves', heading: 'Leaves of absence' },
   changes: { eyebrow: 'Changes', heading: 'Building, position, name, and address' },
@@ -147,6 +132,7 @@ export function HrRecordList({ kind }: { kind: RecordListKind }) {
               person={
                 <PersonPlate
                   size="sm"
+                  photoSlot={false}
                   name={r.employeeName}
                   role={[r.position, r.building].filter(Boolean).join(' · ')}
                 />

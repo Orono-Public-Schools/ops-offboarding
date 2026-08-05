@@ -11,5 +11,7 @@ export interface PersonPlateProps extends React.HTMLAttributes<HTMLDivElement> {
   meta?: string;
   photo?: string;
   size?: 'sm' | 'md' | 'lg';
+  /** Set false to drop the photo slot entirely (still shown if a photo is given). */
+  photoSlot?: boolean;
 }
 export declare function PersonPlate(props: PersonPlateProps): JSX.Element;
