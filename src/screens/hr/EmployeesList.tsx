@@ -73,6 +73,16 @@ const SHORT_LABELS: Record<string, string> = {
   ntoLetterSent: 'NTO letter',
 };
 
+type SortKey = 'name' | 'position' | 'building' | 'start' | 'progress';
+
+const DIRECTORY_COLUMNS: Array<{ key: SortKey; label: string }> = [
+  { key: 'name', label: 'Name' },
+  { key: 'position', label: 'Position' },
+  { key: 'building', label: 'Bldg' },
+  { key: 'start', label: 'Starts' },
+  { key: 'progress', label: 'Done' },
+];
+
 function matches(e: EmployeeDoc, needle: string): boolean {
   if (!needle) return true;
   const hay = [
@@ -598,7 +608,10 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
     return map;
   }, [ctx.processes.items, kind]);
 
-  // Chronological like the sheet: earliest start first; undated rows last.
+  // The directory rail sorts by any column; the default stays the sheet's own
+  // order — chronological by start, undated rows last.
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'start', dir: 1 });
+
   const startKey = (e: EmployeeDoc): string => {
     const p = processByRef.get(e.id);
     const d = [e.startDate, p?.details?.startDate, p?.details?.boardDate].find((v) =>
@@ -606,13 +619,35 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
     );
     return d ?? '9999-99-99';
   };
+  const sortValue = (e: EmployeeDoc): string | number => {
+    switch (sort.key) {
+      case 'name':
+        return (e.lastName || e.nameRaw).toLowerCase();
+      case 'position':
+        return (e.position ?? e.description ?? '').toLowerCase() || '￿';
+      case 'building':
+        return (e.building ?? '').toLowerCase() || '￿';
+      case 'progress': {
+        const p = processByRef.get(e.id);
+        if (!p) return 2;
+        const pr = taskProgress(p);
+        return pr.total > 0 ? pr.done / pr.total : 0;
+      }
+      default:
+        return startKey(e);
+    }
+  };
   const filtered = people
     .filter((e) => matches(e, search.trim()))
-    .sort(
-      (a, b) =>
-        startKey(a).localeCompare(startKey(b)) ||
-        (a.lastName || a.nameRaw).localeCompare(b.lastName || b.nameRaw),
-    );
+    .sort((a, b) => {
+      const va = sortValue(a);
+      const vb = sortValue(b);
+      const cmp =
+        typeof va === 'number' && typeof vb === 'number'
+          ? va - vb
+          : String(va).localeCompare(String(vb));
+      return cmp * sort.dir || (a.lastName || a.nameRaw).localeCompare(b.lastName || b.nameRaw);
+    });
 
   const selected = filtered.find((e) => e.id === selectedId) ?? filtered[0] ?? null;
 
@@ -674,9 +709,9 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
             <div
               style={{
-                flex: '1 1 250px',
-                maxWidth: 320,
-                minWidth: 230,
+                flex: '1 1 340px',
+                maxWidth: 440,
+                minWidth: 280,
                 borderRight: '1px solid var(--divider)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -691,9 +726,8 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                 />
               </div>
               <div
-                role="listbox"
-                aria-label={isCe ? 'CE, sub, and coaching hires' : 'New employees'}
                 tabIndex={0}
+                aria-label={isCe ? 'CE, sub, and coaching hires' : 'New employees'}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -706,7 +740,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                 }}
                 style={{ overflowY: 'auto', maxHeight: 520, outline: 'none' }}
               >
-                {filtered.length === 0 && (
+                {filtered.length === 0 ? (
                   <p
                     style={{
                       font: 'var(--type-body-sm)',
@@ -716,87 +750,111 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                   >
                     Nobody matches that.
                   </p>
-                )}
-                {filtered.map((e) => {
-                  const p = processByRef.get(e.id);
-                  const prog = p ? taskProgress(p) : null;
-                  const isSel = selected?.id === e.id;
-                  const d = [e.startDate, p?.details?.startDate].find((v) => isIsoDate(v ?? null));
-                  return (
-                    <button
-                      key={e.id}
-                      role="option"
-                      aria-selected={isSel}
-                      onClick={() => setSelectedId(e.id)}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto',
-                        gap: '3px 10px',
-                        width: '100%',
-                        padding: '10px 14px',
-                        border: 'none',
-                        borderLeft: `3px solid ${isSel ? 'var(--primary)' : 'transparent'}`,
-                        borderBottom: '1px solid var(--divider)',
-                        background: isSel ? 'var(--tint)' : 'transparent',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span
-                        style={{
-                          font: '600 13px/1.35 var(--font-sans)',
+                ) : (
+                  <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead>
+                      <tr>
+                        {DIRECTORY_COLUMNS.map((c) => (
+                          <th
+                            key={c.key}
+                            onClick={() =>
+                              setSort((s) => ({
+                                key: c.key,
+                                dir: s.key === c.key ? (-s.dir as 1 | -1) : 1,
+                              }))
+                            }
+                            style={{
+                              position: 'sticky',
+                              top: 0,
+                              zIndex: 1,
+                              background: 'var(--surface-card)',
+                              textAlign: 'left',
+                              padding: '6px 8px',
+                              font: '600 9.5px/1.3 var(--font-sans)',
+                              letterSpacing: 'var(--tracking-wider)',
+                              textTransform: 'uppercase',
+                              color: sort.key === c.key ? 'var(--primary)' : 'var(--text-muted)',
+                              borderBottom: '1px solid var(--border-input)',
+                              whiteSpace: 'nowrap',
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                            }}
+                          >
+                            {c.label}
+                            {sort.key === c.key ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((e) => {
+                        const p = processByRef.get(e.id);
+                        const prog = p ? taskProgress(p) : null;
+                        const isSel = selected?.id === e.id;
+                        const d = [e.startDate, p?.details?.startDate].find((v) =>
+                          isIsoDate(v ?? null),
+                        );
+                        const cell: CSSProperties = {
+                          padding: '8px 8px',
+                          borderBottom: '1px solid var(--divider)',
+                          font: '400 12.5px/1.4 var(--font-sans)',
                           color: 'var(--dark)',
-                          whiteSpace: 'nowrap',
+                          background: isSel ? 'var(--tint)' : undefined,
+                          maxWidth: 140,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {displayName(e)}
-                      </span>
-                      <span
-                        style={{
-                          font: '500 11.5px/1.5 var(--font-sans)',
-                          color: 'var(--text-muted)',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {d ? prettyDate(d).slice(0, 5) : '—'}
-                      </span>
-                      <span
-                        style={{
-                          gridColumn: '1 / -1',
-                          font: '400 11.5px/1.4 var(--font-sans)',
-                          color: 'var(--text-muted)',
                           whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {[e.position ?? e.description, e.building].filter(Boolean).join(' · ') ||
-                          '—'}
-                      </span>
-                      <span
-                        style={{
-                          gridColumn: '1 / -1',
-                          height: 4,
-                          borderRadius: 2,
-                          background: 'var(--tint)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: 'block',
-                            height: '100%',
-                            width:
-                              prog && prog.total > 0 ? `${(prog.done / prog.total) * 100}%` : 0,
-                            background: 'linear-gradient(90deg, #1d2a5d, #4356a9)',
-                          }}
-                        />
-                      </span>
-                    </button>
-                  );
-                })}
+                        };
+                        return (
+                          <tr
+                            key={e.id}
+                            aria-selected={isSel}
+                            onClick={() => setSelectedId(e.id)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <td
+                              style={{
+                                ...cell,
+                                fontWeight: 600,
+                                borderLeft: `3px solid ${isSel ? 'var(--primary)' : 'transparent'}`,
+                              }}
+                              title={displayName(e)}
+                            >
+                              {displayName(e)}
+                            </td>
+                            <td
+                              style={{ ...cell, color: 'var(--text-muted)' }}
+                              title={e.position ?? e.description ?? undefined}
+                            >
+                              {e.position ?? e.description ?? '—'}
+                            </td>
+                            <td style={{ ...cell, color: 'var(--text-muted)' }}>
+                              {e.building ?? '—'}
+                            </td>
+                            <td
+                              style={{
+                                ...cell,
+                                color: 'var(--text-muted)',
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            >
+                              {d ? prettyDate(d).slice(0, 5) : '—'}
+                            </td>
+                            <td
+                              style={{
+                                ...cell,
+                                color: 'var(--text-muted)',
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            >
+                              {prog ? `${prog.done}/${prog.total}` : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
 
