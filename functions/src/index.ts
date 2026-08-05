@@ -33,6 +33,7 @@ export {
   createEmployee,
   updateEmployee,
   assignEmployeeId,
+  deleteEmployee,
   createHrRecord,
   updateHrRecord,
   setHrTask,

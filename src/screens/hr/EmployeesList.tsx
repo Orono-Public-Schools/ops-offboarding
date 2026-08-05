@@ -3,12 +3,21 @@ import { useNavigate } from 'react-router';
 import { useHrCtx } from './HRModule';
 import { ImportCard } from './ImportCard';
 import {
+  EmployeeForm,
+  employeeFormFields,
+  employeeToFormValues,
+  type EmployeeFormValues,
+} from './EmployeeForm';
+import {
   createHrRecord,
+  deleteEmployee,
   displayName,
   isIsoDate,
   prettyDate,
   setHrTask,
   taskProgress,
+  updateEmployee,
+  updateHrRecord,
   PROCESS_SPECS,
   type EmployeeDoc,
   type HrRecordDoc,
@@ -47,6 +56,26 @@ const TASK_GROUPS: Partial<Record<ProcessType, Array<{ label: string; keys: stri
       keys: ['notifyUnion', 'healthSafety', 'key', 'lunchPin', 'ntoLetterSent'],
     },
   ],
+};
+
+/** Compact labels for the grouped panel — the group heading carries the
+ *  context the catalogue's longer labels repeat. */
+const SHORT_LABELS: Record<string, string> = {
+  backgroundCheck: 'Background check',
+  paperwork: 'Paperwork',
+  i9: 'I-9',
+  newTeacherFormSent: 'New teacher form',
+  frontline: 'Frontline',
+  efPlus: 'EF+',
+  vector: 'Vector',
+  synergy: 'Synergy',
+  gmailAccount: 'School Gmail',
+  phoneAssigned: 'Phone',
+  notifyUnion: 'Union notified',
+  healthSafety: 'Health & Safety',
+  key: 'Key',
+  lunchPin: 'Lunch PIN',
+  ntoLetterSent: 'NTO letter',
 };
 
 function matches(e: EmployeeDoc, needle: string): boolean {
@@ -127,7 +156,7 @@ function TaskButton({
         title={title}
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: 8,
           flex: 1,
           minWidth: 0,
@@ -136,12 +165,12 @@ function TaskButton({
           cursor: 'pointer',
           textAlign: 'left',
           padding: 0,
-          font: 'var(--type-body-sm)',
+          font: '400 13px/1.4 var(--font-sans)',
           color: na || done ? 'var(--text-muted)' : 'var(--dark)',
           opacity: busy ? 0.5 : 1,
         }}
       >
-        <span style={{ opacity: na ? 0.35 : 1, display: 'inline-flex' }}>
+        <span style={{ opacity: na ? 0.35 : 1, display: 'inline-flex', marginTop: 1 }}>
           <CheckMark checked={done && !na} size={16} />
         </span>
         <span
@@ -161,11 +190,13 @@ function TaskButton({
           border: 'none',
           background: na ? 'var(--surface-inset)' : 'transparent',
           borderRadius: 999,
-          padding: '2px 7px',
+          padding: '1px 5px',
           cursor: 'pointer',
-          font: '600 10px/1.2 var(--font-sans)',
-          letterSpacing: '0.06em',
+          font: '600 9px/1.3 var(--font-sans)',
+          letterSpacing: '0.05em',
           color: 'var(--text-placeholder)',
+          opacity: na ? 1 : 0.55,
+          flex: '0 0 auto',
         }}
       >
         N/A
@@ -189,6 +220,10 @@ function DossierPanel({
   const [busyTask, setBusyTask] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [values, setValues] = useState<EmployeeFormValues | null>(null);
+  const [procDraft, setProcDraft] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   const spec = PROCESS_SPECS[kind];
   const groups = TASK_GROUPS[kind] ?? [{ label: 'Checklist', keys: spec.tasks.map((t) => t.key) }];
@@ -245,6 +280,65 @@ function DossierPanel({
       }
     }, taskKey);
 
+  const startEdit = () => {
+    setValues(employeeToFormValues(employee));
+    setProcDraft({
+      boardDate: process?.details?.boardDate ?? '',
+      replacing: process?.details?.replacing ?? '',
+      lunchPin: process?.details?.lunchPin ?? '',
+    });
+    setEditing(true);
+    setError(null);
+  };
+
+  const save = async () => {
+    if (!values) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await updateEmployee({ id: employee.id, fields: employeeFormFields(values) });
+      if (process && kind === 'new_hire') {
+        await updateHrRecord({
+          collection: 'processes',
+          id: process.id,
+          details: {
+            boardDate: procDraft.boardDate.trim(),
+            replacing: procDraft.replacing.trim(),
+          },
+        });
+      } else if (process && kind === 'ce_onboarding') {
+        await updateHrRecord({
+          collection: 'processes',
+          id: process.id,
+          details: { lunchPin: procDraft.lunchPin.trim() },
+        });
+      }
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async () => {
+    if (
+      !window.confirm(
+        `Remove ${displayName(employee)} and all their records? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await deleteEmployee({ id: employee.id });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove them.');
+      setSaving(false);
+    }
+  };
+
   const facts: Array<[string, string]> = [
     ['Starts', prettyDate(start) || '—'],
     ...(process?.details?.boardDate
@@ -280,113 +374,182 @@ function DossierPanel({
         >
           {displayName(employee)}
         </h3>
-        {progress && (
-          <span
-            style={{
-              font: 'var(--type-body-sm)',
-              color: 'var(--text-muted)',
-              whiteSpace: 'nowrap',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {progress.done} of {progress.total} done
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {progress && !editing && (
+            <span
+              style={{
+                font: 'var(--type-body-sm)',
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {progress.done} of {progress.total} done
+            </span>
+          )}
+          {!editing && (
+            <Button size="sm" variant="ghost" onClick={startEdit}>
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
       <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '2px 0 12px' }}>
         {[employee.position ?? employee.description, employee.building].filter(Boolean).join(' · ')}
         {employee.employeeId ? ` · EE# ${employee.employeeId}` : ' · No EE# yet'}
       </p>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '10px 26px',
-          flexWrap: 'wrap',
-          padding: '10px 0 14px',
-          borderBottom: '1px solid var(--divider)',
-          marginBottom: 12,
-        }}
-      >
-        {facts.map(([l, v]) => (
-          <div key={l}>
-            <span style={LABEL}>{l}</span>
-            <p
-              style={{
-                font: '600 13px/1.4 var(--font-sans)',
-                color: 'var(--dark)',
-                margin: '2px 0 0',
-              }}
-            >
-              {v}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {process ? (
-        groups.map((g) => (
-          <div key={g.label} style={{ marginBottom: 10 }}>
-            <span
-              style={{ ...LABEL, color: 'var(--secondary)', display: 'block', paddingBottom: 4 }}
-            >
-              {g.label}
-            </span>
+      {editing && values ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 6 }}>
+          <EmployeeForm
+            values={values}
+            onChange={(p) => setValues((v) => (v ? { ...v, ...p } : v))}
+          />
+          {process && (
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
-                gap: '1px 14px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 16,
               }}
             >
-              {g.keys
-                .map((k) => spec.tasks.find((t) => t.key === k))
-                .filter((t): t is { key: string; label: string } => !!t)
-                .map((t) => (
-                  <TaskButton
-                    key={t.key}
-                    taskKey={t.key}
-                    label={t.label}
-                    state={process.tasks?.[t.key]}
-                    busy={busyTask === t.key}
-                    onToggle={() => toggle(t.key, process.tasks?.[t.key])}
-                    onNa={() => markNa(t.key, process.tasks?.[t.key])}
+              {kind === 'new_hire' ? (
+                <>
+                  <Field
+                    label="Board date"
+                    optional
+                    value={procDraft.boardDate}
+                    onChange={(ev) => setProcDraft((d) => ({ ...d, boardDate: ev.target.value }))}
+                    placeholder="YYYY-MM-DD"
                   />
-                ))}
+                  <Field
+                    label="Replacing / student teacher"
+                    optional
+                    value={procDraft.replacing}
+                    onChange={(ev) => setProcDraft((d) => ({ ...d, replacing: ev.target.value }))}
+                  />
+                </>
+              ) : (
+                <Field
+                  label="Lunch PIN"
+                  optional
+                  value={procDraft.lunchPin}
+                  onChange={(ev) => setProcDraft((d) => ({ ...d, lunchPin: ev.target.value }))}
+                />
+              )}
             </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button variant="submit" icon="save" disabled={saving} onClick={save}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </Button>
+            <Button variant="ghost" disabled={saving} onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <div style={{ flex: 1 }} />
+            <Button size="sm" variant="destructive" disabled={saving} onClick={remove}>
+              Remove employee
+            </Button>
           </div>
-        ))
+        </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0 8px' }}>
-          <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
-            No {spec.label.toLowerCase()} checklist yet.
-          </span>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={starting}
-            onClick={async () => {
-              setStarting(true);
-              setError(null);
-              try {
-                await createHrRecord({
-                  collection: 'processes',
-                  type: kind,
-                  employeeRef: employee.id,
-                });
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Could not start the checklist.');
-              } finally {
-                setStarting(false);
-              }
+        <>
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px 26px',
+              flexWrap: 'wrap',
+              padding: '10px 0 14px',
+              borderBottom: '1px solid var(--divider)',
+              marginBottom: 12,
             }}
           >
-            {starting ? 'Starting…' : 'Start checklist'}
-          </Button>
-        </div>
+            {facts.map(([l, v]) => (
+              <div key={l}>
+                <span style={LABEL}>{l}</span>
+                <p
+                  style={{
+                    font: '600 13px/1.4 var(--font-sans)',
+                    color: 'var(--dark)',
+                    margin: '2px 0 0',
+                  }}
+                >
+                  {v}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {process ? (
+            groups.map((g) => (
+              <div key={g.label} style={{ marginBottom: 10 }}>
+                <span
+                  style={{
+                    ...LABEL,
+                    color: 'var(--secondary)',
+                    display: 'block',
+                    paddingBottom: 4,
+                  }}
+                >
+                  {g.label}
+                </span>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
+                    gap: '2px 16px',
+                  }}
+                >
+                  {g.keys
+                    .map((k) => spec.tasks.find((t) => t.key === k))
+                    .filter((t): t is { key: string; label: string } => !!t)
+                    .map((t) => (
+                      <TaskButton
+                        key={t.key}
+                        taskKey={t.key}
+                        label={SHORT_LABELS[t.key] ?? t.label}
+                        state={process.tasks?.[t.key]}
+                        busy={busyTask === t.key}
+                        onToggle={() => toggle(t.key, process.tasks?.[t.key])}
+                        onNa={() => markNa(t.key, process.tasks?.[t.key])}
+                      />
+                    ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0 8px' }}>
+              <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
+                No {spec.label.toLowerCase()} checklist yet.
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={starting}
+                onClick={async () => {
+                  setStarting(true);
+                  setError(null);
+                  try {
+                    await createHrRecord({
+                      collection: 'processes',
+                      type: kind,
+                      employeeRef: employee.id,
+                    });
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Could not start the checklist.');
+                  } finally {
+                    setStarting(false);
+                  }
+                }}
+              >
+                {starting ? 'Starting…' : 'Start checklist'}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
-      {(process?.notes || employee.notes) && (
+      {!editing && (process?.notes || employee.notes) && (
         <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '8px 0 0' }}>
           {process?.notes ?? employee.notes}
         </p>

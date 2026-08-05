@@ -1,7 +1,7 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
-import { REGION, requireAuthedDomainUser } from './shared';
+import { REGION, deleteSubcollection, requireAuthedDomainUser } from './shared';
 import {
   EMPLOYEE_STATUSES,
   LEAVE_STATUSES,
@@ -523,6 +523,33 @@ export async function reconcileGoogleAccounts(): Promise<{
   await writer.close();
   return { matched, gmailChecked };
 }
+
+export const deleteEmployee = onCall({ region: REGION }, async (request) => {
+  requireHr(request);
+  const id = (request.data as { id?: string } | undefined)?.id;
+  if (!id || typeof id !== 'string') {
+    throw new HttpsError('invalid-argument', 'Missing employee id.');
+  }
+  const db = getFirestore();
+  const ref = db.collection('employees').doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Employee not found.');
+
+  // Their records go with them — an orphaned checklist helps nobody.
+  const writer = db.bulkWriter();
+  let removedRecords = 0;
+  for (const coll of HR_RECORD_COLLECTIONS) {
+    const rs = await db.collection(coll).where('employeeRef', '==', id).get();
+    for (const doc of rs.docs) {
+      writer.delete(doc.ref);
+      removedRecords++;
+    }
+  }
+  await writer.close();
+  await deleteSubcollection(ref.collection('history'));
+  await ref.delete();
+  return { success: true, removedRecords };
+});
 
 export const deleteHrRecord = onCall({ region: REGION }, async (request) => {
   requireHr(request);

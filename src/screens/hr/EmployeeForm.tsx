@@ -35,6 +35,38 @@ export const EMPTY_EMPLOYEE_FORM: EmployeeFormValues = {
   notes: '',
 };
 
+export function employeeToFormValues(e: {
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  employeeId: number | null;
+  kind: string;
+  status: string;
+  building: string | null;
+  position: string | null;
+  reportsTo: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  description: string | null;
+  notes: string | null;
+}): EmployeeFormValues {
+  return {
+    firstName: e.firstName ?? '',
+    lastName: e.lastName ?? '',
+    email: e.email ?? '',
+    employeeId: e.employeeId ? String(e.employeeId) : '',
+    kind: e.kind ?? 'regular',
+    status: e.status ?? 'active',
+    building: e.building ?? '',
+    position: e.position ?? '',
+    reportsTo: e.reportsTo ?? '',
+    startDate: e.startDate ?? '',
+    endDate: e.endDate ?? '',
+    description: e.description ?? '',
+    notes: e.notes ?? '',
+  };
+}
+
 export function employeeFormFields(values: EmployeeFormValues): Record<string, unknown> {
   const s = (v: string) => v.trim() || null;
   return {

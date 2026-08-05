@@ -69,6 +69,12 @@ export const assignEmployeeId = httpsCallable<{ id: string }, { employeeId: numb
   'assignEmployeeId',
 );
 
+/** Removes the employee, their history, and every record referencing them. */
+export const deleteEmployee = httpsCallable<
+  { id: string },
+  { success: boolean; removedRecords: number }
+>(functions, 'deleteEmployee');
+
 export const createHrRecord = httpsCallable<
   {
     collection: HrRecordCollection;
