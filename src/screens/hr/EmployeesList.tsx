@@ -765,6 +765,19 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                       <span
                         style={{
                           gridColumn: '1 / -1',
+                          font: '400 11.5px/1.4 var(--font-sans)',
+                          color: 'var(--text-muted)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {[e.position ?? e.description, e.building].filter(Boolean).join(' · ') ||
+                          '—'}
+                      </span>
+                      <span
+                        style={{
+                          gridColumn: '1 / -1',
                           height: 4,
                           borderRadius: 2,
                           background: 'var(--tint)',
