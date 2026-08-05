@@ -345,8 +345,8 @@ function DossierPanel({
         >)
       : []),
     ['Reports to', employee.reportsTo ?? process?.reportsTo ?? '—'],
-    ...(process?.details?.replacing
-      ? ([['Replacing', process.details.replacing]] as Array<[string, string]>)
+    ...(kind === 'new_hire'
+      ? ([['Replacing', process?.details?.replacing || '—']] as Array<[string, string]>)
       : []),
     ...(process?.details?.lunchPin
       ? ([['Lunch PIN', process.details.lunchPin]] as Array<[string, string]>)
