@@ -9,7 +9,13 @@ import { FormFillScreen } from './screens/forms/FormFillScreen';
 import { FormsHome } from './screens/forms/FormsHome';
 import { SubmissionDetail } from './screens/forms/SubmissionDetail';
 import { HomeScreen } from './screens/HomeScreen';
+import { EmployeeDetail } from './screens/hr/EmployeeDetail';
+import { EmployeeNew } from './screens/hr/EmployeeNew';
+import { EmployeesList } from './screens/hr/EmployeesList';
 import { HRInbox } from './screens/hr/HRInbox';
+import { HRModule } from './screens/hr/HRModule';
+import { HrRecordDetail } from './screens/hr/HrRecordDetail';
+import { HrRecordList } from './screens/hr/HrRecordList';
 import { OffboardingModule } from './screens/OffboardingModule';
 import { SignInScreen } from './screens/SignInScreen';
 import { TaskRoute } from './screens/tasks/TaskRoute';
@@ -58,7 +64,17 @@ export default function App() {
           <Route path="/forms" element={<FormsHome />} />
           <Route path="/forms/submissions/:id" element={<SubmissionDetail />} />
           <Route path="/forms/:formId" element={<FormFillScreen />} />
-          <Route path="/hr" element={<HRInbox />} />
+          <Route path="/hr" element={<HRModule />}>
+            <Route index element={<HRInbox />} />
+            <Route path="employees" element={<EmployeesList />} />
+            <Route path="employees/new" element={<EmployeeNew />} />
+            <Route path="employees/:id" element={<EmployeeDetail />} />
+            <Route path="onboarding" element={<HrRecordList kind="onboarding" />} />
+            <Route path="offboarding" element={<HrRecordList kind="offboarding" />} />
+            <Route path="leaves" element={<HrRecordList kind="leaves" />} />
+            <Route path="changes" element={<HrRecordList kind="changes" />} />
+            <Route path="records/:coll/:id" element={<HrRecordDetail />} />
+          </Route>
           <Route element={<AdminGate />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/offboardings/:uid" element={<AdminOffboardingDetail />} />

@@ -29,3 +29,13 @@ export {
 } from './drive';
 export { promoteGroupOwner } from './groups';
 export { submitForm, updateSubmissionStatus } from './forms';
+export {
+  createEmployee,
+  updateEmployee,
+  assignEmployeeId,
+  createHrRecord,
+  updateHrRecord,
+  setHrTask,
+  deleteHrRecord,
+} from './hr';
+export { importHrMasterSheet } from './hrImport';

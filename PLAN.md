@@ -52,9 +52,70 @@ Approval-flow state machine + `resolveRoutingChain` (chain frozen at submit), `R
 - [ ] **Later — styling button-up pass:** sweep for rough edges once real usage surfaces them (mobile nav collapse, custom date picker per the handoff's open asks, remove now-unused legacy tokens from `src/index.css`, empty-state/copy polish)
 
 ### Phase 2 — HR side
-- [ ] Capture the real sheet's tabs/columns → design `employees` schema
-- [ ] One-time sheet import; HR dashboard (employee list, record view, statuses)
-- [ ] HR-only Firestore rules + callables
+
+Sheet captured 2026-08-04 ("2026-27 New EE Checklist", shared with the compute
+service account, ID `1AHpraAF9mjO_hEgAGw5aBFMDTCe3Mk9DtUZlsgXOiEg`). Findings
+from the real workbook: checkbox columns are true booleans but tabs carry
+dozens of pre-filled all-false rows with no name (skip rows without a name);
+dates are dirty ("TBD", "Signed", "???", "Winter 2026", ranges) so date fields
+keep the raw string and an ISO value when parseable; EE# is sparse so it's an
+indexed optional field, not the key; "Contract Changes" is two stacked tables
+on one tab; names mix "Last, First" and "First Last"; extra tabs beyond the
+original list: Address Change (4 old rows), stray ELVET Update column.
+
+**Sheet → schema mapping**
+- `2026-2027 New Employees` → `employees` + `processes` (type `new_hire`)
+- `Terminated Employees` → employee status/endDate + `processes` (`termination`)
+- `CESubCoaching` → employees (kind `ce_sub_coach`) + `processes` (`ce_onboarding`)
+- `NTO` → orientation fields merged into the matching `new_hire` process; email onto the employee
+- `Employee ID Assignments` → employeeId/description/startDate merged onto employees; seeds the EE# counter
+- `LOA` → `leaves` (own collection so tab-level protection stays a one-line rule change later)
+- `Contract Changes` → `changes` (types `building` / `position`)
+- `Name Change` → `changes` (type `name`); `Address Change` → `changes` (type `address`)
+- Fiscal year is a **field** derived from dates (July 1 boundary, e.g. "2026-27"), not a new
+  sheet per year — kills the annual sheet-duplication chore.
+
+**Collections** (all HR-only read, writes only via callables)
+- `employees/{autoId}` — employeeId (EE#, optional int), first/last/nameRaw, email, status
+  (`prospective|active|on_leave|terminated|inactive`), kind (`regular|ce_sub_coach`), building,
+  position, reportsTo, start/endDate, description, notes, source (`import|manual`) +
+  `history/` subcollection with field-diff entries (PaperPal pattern).
+- `processes/{autoId}` — type (`new_hire|termination|ce_onboarding`), employeeRef + denormalized
+  name/EE#, fiscalYear, status (`open|complete`), typed `details`, `tasks` map
+  (`{done, doneAt, doneBy, note}` per catalogue key), notes.
+- `leaves/{autoId}` — LOA tab fields; status + reason normalized enums with raw preserved.
+  Reason category only — NO medical detail ever (MGDPA/FMLA stance).
+- `changes/{autoId}` — type (`building|position|name|address`), from/to fields, small task
+  checklist, `submissionId` link (Phase 3 forms will create these on approval).
+- `appSettings/hrEmployeeIds` — `{ nextId }` counter, transactional EE# assignment;
+  `appSettings/hrImport` — last import batch metadata.
+
+**Task/field catalogues** live in `shared/hr/` (same pattern as `shared/forms`): per-type task
+lists and detail-field specs drive both server validation and generic UI rendering.
+
+**Importer** — `importHrMasterSheet` callable (HR-only): reads the shared sheet via the
+service account, parses header-keyed (column reorder-proof), merges identities across tabs
+(EE# first, then normalized name both orderings), derives employee status
+(terminated > on_leave > prospective/active). `dryRun` mode returns a report (counts,
+warnings, samples) without writing; `commit` replaces only `source:'import'` docs, so
+portal-created records survive re-imports (portal *edits* to imported docs do not — stated in UI).
+
+- [x] Capture the real sheet's tabs/columns → design `employees` schema (above)
+- [x] Shared HR schema + catalogues (`shared/hr/`: types, catalog, util, importParse)
+- [x] Callables: employee CRUD + transactional EE# assignment, record create/update,
+      task toggles, delete, importer (`functions/src/hr.ts`, `hrImport.ts`)
+- [x] HR-only Firestore rules for the four collections
+- [x] HR module UI: sub-tabs (Inbox · Employees · Onboarding · Offboarding · Leaves · Changes)
+      with live counts, employee list (search + status filter) + detail (edit, records
+      timeline, history), generic record lists/detail with checklist toggles, import card
+      with dry-run preview
+- [x] Parser verified locally against the real downloaded workbook (2026-08-05):
+      69 employees / 39 checklists / 21 leaves / 9 changes, cross-tab merges correct
+      ("Forney, Chris" ↔ "Chris Forney" by EE#), statuses derived (20 prospective /
+      34 active / 10 on-leave / 5 terminated), max EE# 7420, one benign warning
+      (NTO row "Murray, Daniel" has no new-hire row)
+- [ ] Joel: run the real import from the Employees tab (Preview → Import now), spot-check
+      against the sheet with HR
 
 ### Phase 3 — Form engine + first forms
 - [ ] Schema-driven form renderer (field types, validation, conditional visibility, sections) + Zod shared client/server

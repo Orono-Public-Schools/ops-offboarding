@@ -77,6 +77,38 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // HR employee database (Phase 2). HR/IT read only; every write goes
+    // through the hr.ts / hrImport.ts callables.
+    match /employees/{id} {
+      allow read: if isHR();
+      allow write: if false;
+
+      match /history/{entryId} {
+        allow read: if isHR();
+        allow write: if false;
+      }
+    }
+
+    // Onboarding / termination checklist records.
+    match /processes/{id} {
+      allow read: if isHR();
+      allow write: if false;
+    }
+
+    // Leaves of absence — own collection (not folded into processes) so a
+    // narrower claim can gate it later without a data migration. Reason
+    // categories only; medical detail never lands here.
+    match /leaves/{id} {
+      allow read: if isHR();
+      allow write: if false;
+    }
+
+    // Building / position / name / address change events.
+    match /changes/{id} {
+      allow read: if isHR();
+      allow write: if false;
+    }
+
     // Default deny.
     match /{document=**} {
       allow read, write: if false;
