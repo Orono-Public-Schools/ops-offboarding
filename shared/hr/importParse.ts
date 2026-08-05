@@ -69,6 +69,11 @@ function cellInt(value: unknown): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+/** Legend notes share the name column with people ("* after replacing…"). */
+function isNoteRow(name: string): boolean {
+  return name.startsWith('*') || name.includes('=') || name.length > 60;
+}
+
 /** Header row = the row (among the first six) with the most string cells. */
 function findHeaderRow(rows: Row[]): number {
   let best = -1;
@@ -272,9 +277,19 @@ function parseNewEmployees(rows: Row[], reg: Registry): number {
   let count = 0;
   for (const row of t.rows) {
     const name = cellStr(t.get(row, 'last name first name'));
-    if (!name) continue;
+    if (!name || isNoteRow(name)) continue;
+    // Department section rows ("Human Resources", "Technology") sit in the
+    // name column too: no comma, and none of a person's supporting data.
+    const ee = cellInt(t.get(row, 'ee'));
+    const support =
+      ee !== null ||
+      cellDate(t.get(row, 'board date')) !== null ||
+      cellDate(t.get(row, 'start date')) !== null ||
+      cellStr(t.get(row, 'position')) !== null ||
+      cellDate(t.get(row, 'contract sent')) !== null;
+    if (!name.includes(',') && !support) continue;
     count++;
-    const emp = reg.findOrCreate(name, cellInt(t.get(row, 'ee')));
+    const emp = reg.findOrCreate(name, ee);
     fill(emp, 'building', cellStr(t.get(row, 'bldg')));
     fill(emp, 'position', cellStr(t.get(row, 'position')));
     fill(emp, 'reportsTo', cellStr(t.get(row, 'reports to')));
@@ -323,10 +338,18 @@ function parseTerminated(rows: Row[], reg: Registry): number {
   let count = 0;
   for (const row of t.rows) {
     const name = cellStr(t.get(row, 'name'));
-    if (!name) continue;
-    count++;
-    const emp = reg.findOrCreate(name, cellInt(t.get(row, 'ee')));
+    if (!name || isNoteRow(name)) continue;
+    const ee = cellInt(t.get(row, 'ee'));
     const termDate = cellDate(t.get(row, 'termination date'));
+    const support =
+      ee !== null ||
+      termDate !== null ||
+      cellDate(t.get(row, 'board')) !== null ||
+      cellStr(t.get(row, 'position')) !== null ||
+      cellStr(t.get(row, 'bldg')) !== null;
+    if (!name.includes(',') && !support) continue;
+    count++;
+    const emp = reg.findOrCreate(name, ee);
     emp.terminated = true;
     fill(emp, 'endDate', termDate);
     fill(emp, 'building', cellStr(t.get(row, 'bldg')));
@@ -403,7 +426,7 @@ function parseLoa(rows: Row[], reg: Registry, todayIso: string): number {
   let count = 0;
   for (const row of t.rows) {
     const name = cellStr(t.get(row, 'employee'));
-    if (!name) continue;
+    if (!name || isNoteRow(name)) continue;
     count++;
     const emp = reg.findOrCreate(name, cellInt(t.get(row, 'ee')));
     fill(emp, 'building', cellStr(t.get(row, 'bldg')));
@@ -472,7 +495,7 @@ function parseContractChanges(rows: Row[], reg: Registry): number {
     }
     if (!section || !table) continue;
     const name = cellStr(table.get(row, 'name'));
-    if (!name) continue;
+    if (!name || isNoteRow(name)) continue;
     count++;
     const emp = reg.findOrCreate(name, cellInt(table.get(row, 'ee')));
 
@@ -560,7 +583,7 @@ function parseIdAssignments(rows: Row[], reg: Registry): number {
   for (const row of t.rows) {
     const name = cellStr(t.get(row, 'name'));
     const id = cellInt(t.get(row, 'id'));
-    if (!name || id === null) continue;
+    if (!name || id === null || isNoteRow(name)) continue;
     count++;
     const emp = reg.findOrCreate(name, id);
     const description = cellStr(t.get(row, 'description'));
@@ -578,7 +601,7 @@ function parseCeSub(rows: Row[], reg: Registry): number {
   let count = 0;
   for (const row of t.rows) {
     const name = cellStr(t.get(row, 'name'));
-    if (!name) continue;
+    if (!name || isNoteRow(name)) continue;
     count++;
     const emp = reg.findOrCreate(name, cellInt(t.get(row, 'ee')));
     emp.kind = 'ce_sub_coach';
@@ -619,7 +642,7 @@ function parseNto(rows: Row[], reg: Registry): number {
   let count = 0;
   for (const row of t.rows) {
     const name = cellStr(t.get(row, 'name'));
-    if (!name) continue;
+    if (!name || isNoteRow(name)) continue;
     count++;
     const emp = reg.findOrCreate(name, null);
     fill(emp, 'email', cellStr(t.get(row, 'email')));

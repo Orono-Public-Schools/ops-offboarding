@@ -5,33 +5,24 @@ import { ImportCard } from './ImportCard';
 import {
   createHrRecord,
   displayName,
+  isIsoDate,
   prettyDate,
   setHrTask,
   taskProgress,
-  EMPLOYEE_STATUS_BADGE,
   PROCESS_SPECS,
   type EmployeeDoc,
-  type EmployeeStatus,
   type HrRecordDoc,
   type ProcessType,
 } from '../../lib/hr';
+import { useStaff, type StaffRecord } from '../../lib/staff';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
 import { Icon } from '../../ds/components/core/Icon';
 import { ProgressBar } from '../../ds/components/core/ProgressBar';
 import { QuietLink } from '../../ds/components/core/QuietLink';
-import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { CheckMark } from '../../ds/components/forms/CheckMark';
 import { Field } from '../../ds/components/forms/Field';
 import { EmptyState } from '../../ds/components/records/EmptyState';
-
-type FilterKey = 'all' | EmployeeStatus;
-const FILTERS: Array<{ key: FilterKey; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'active', label: 'Active' },
-  { key: 'prospective', label: 'Prospective' },
-  { key: 'on_leave', label: 'On leave' },
-];
 
 function matches(e: EmployeeDoc, needle: string): boolean {
   if (!needle) return true;
@@ -91,14 +82,30 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** The nightly staff-roster sync mirrors the Google directory export — if a
+ *  new hire appears there, their school account exists. Matched by email,
+ *  then EE#, then name. */
+function findGoogleAccount(e: EmployeeDoc, staff: StaffRecord[]): StaffRecord | null {
+  const email = e.email?.toLowerCase();
+  const name = `${e.firstName} ${e.lastName}`.trim().toLowerCase();
+  for (const s of staff) {
+    if (email && s.email.toLowerCase() === email) return s;
+    if (e.employeeId && s.employeeId && String(e.employeeId) === s.employeeId.trim()) return s;
+    if (name && `${s.givenName} ${s.familyName}`.trim().toLowerCase() === name) return s;
+  }
+  return null;
+}
+
 function EmployeeRow({
   employee,
   process,
   kind,
+  googleAccount,
 }: {
   employee: EmployeeDoc;
   process: HrRecordDoc | null;
   kind: ProcessType;
+  googleAccount: StaffRecord | null;
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -107,7 +114,6 @@ function EmployeeRow({
   const [error, setError] = useState<string | null>(null);
 
   const spec = PROCESS_SPECS[kind];
-  const badge = EMPLOYEE_STATUS_BADGE[employee.status] ?? EMPLOYEE_STATUS_BADGE.active;
   const progress = process ? taskProgress(process) : null;
   const start = employee.startDate ?? process?.details?.startDate ?? null;
 
@@ -211,7 +217,37 @@ function EmployeeRow({
           )}
         </div>
 
-        <StatusBadge size="sm" state={badge.state} label={badge.label} />
+        <div style={{ flex: '0 0 auto', width: 92 }} title={googleAccount?.email ?? undefined}>
+          <p
+            style={{
+              font: 'var(--type-field-label)',
+              letterSpacing: 'var(--tracking-wider)',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              margin: 0,
+            }}
+          >
+            Google
+          </p>
+          <p
+            style={{
+              font: 'var(--type-body-sm)',
+              color: googleAccount ? 'var(--dark)' : 'var(--text-muted)',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            {googleAccount ? (
+              <>
+                <Icon name="check" size={13} /> Created
+              </>
+            ) : (
+              'Not yet'
+            )}
+          </p>
+        </div>
         <span
           style={{
             display: 'inline-flex',
@@ -246,7 +282,10 @@ function EmployeeRow({
               {process?.details?.lunchPin && (
                 <Fact label="Lunch PIN" value={process.details.lunchPin} />
               )}
-              {employee.email && <Fact label="Email" value={employee.email} />}
+              <Fact
+                label="Google account"
+                value={googleAccount?.email ?? employee.email ?? 'Not created yet'}
+              />
               {(process?.notes || employee.notes) && (
                 <p
                   style={{
@@ -366,11 +405,12 @@ function EmployeeRow({
 export function EmployeesList({ kind }: { kind: ProcessType }) {
   const navigate = useNavigate();
   const ctx = useHrCtx();
+  const staffState = useStaff();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<FilterKey>('all');
 
   const people = kind === 'new_hire' ? ctx.newHires : ctx.ceSubs;
   const isCe = kind === 'ce_onboarding';
+  const staff = 'staff' in staffState ? staffState.staff : [];
 
   const processByRef = useMemo(() => {
     const map = new Map<string, HrRecordDoc>();
@@ -380,21 +420,27 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
     return map;
   }, [ctx.processes.items, kind]);
 
-  const filtered = people.filter(
-    (e) => (filter === 'all' || e.status === filter) && matches(e, search.trim()),
-  );
+  // Chronological like the sheet: earliest start first; undated rows last.
+  const startKey = (e: EmployeeDoc): string => {
+    const p = processByRef.get(e.id);
+    const d = [e.startDate, p?.details?.startDate, p?.details?.boardDate].find((v) =>
+      isIsoDate(v ?? null),
+    );
+    return d ?? '9999-99-99';
+  };
+  const filtered = people
+    .filter((e) => matches(e, search.trim()))
+    .sort(
+      (a, b) =>
+        startKey(a).localeCompare(startKey(b)) ||
+        (a.lastName || a.nameRaw).localeCompare(b.lastName || b.nameRaw),
+    );
 
   return (
     <>
       <Card
         eyebrow={isCe ? 'CE / Sub / Coaching' : 'New employees'}
-        heading={
-          filter === 'all'
-            ? isCe
-              ? 'Community ed, subs, and coaches'
-              : "This year's new employees"
-            : `Showing ${filter.replace('_', ' ')}`
-        }
+        heading={isCe ? 'Community ed, subs, and coaches' : "This year's new employees"}
         headingRight={
           <Button
             size="sm"
@@ -408,28 +454,12 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
         pad={16}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ flex: '1 1 240px' }}>
-              <Field
-                icon="search"
-                placeholder="Search name, EE#, building, position…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {FILTERS.map((f) => (
-                <Button
-                  key={f.key}
-                  size="sm"
-                  variant={filter === f.key ? 'primary' : 'ghost'}
-                  onClick={() => setFilter(f.key)}
-                >
-                  {f.label}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <Field
+            icon="search"
+            placeholder="Search name, EE#, building, position…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
           {ctx.employees.loading ? (
             <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
@@ -449,7 +479,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                   ? isCe
                     ? 'CE, sub, and coaching hires land here from the import or by hand.'
                     : 'Import the master sheet below, or add someone by hand.'
-                  : 'Try fewer words, or clear the status filter.'
+                  : 'Try fewer words.'
               }
             />
           ) : (
@@ -462,7 +492,12 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
                     borderTop: i === 0 ? 'none' : '1px solid var(--divider)',
                   }}
                 >
-                  <EmployeeRow employee={e} process={processByRef.get(e.id) ?? null} kind={kind} />
+                  <EmployeeRow
+                    employee={e}
+                    process={processByRef.get(e.id) ?? null}
+                    kind={kind}
+                    googleAccount={findGoogleAccount(e, staff)}
+                  />
                 </div>
               ))}
             </div>
