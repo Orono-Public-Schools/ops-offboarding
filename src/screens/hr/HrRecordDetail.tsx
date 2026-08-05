@@ -135,11 +135,11 @@ export function HrRecordDetail() {
     }
   };
 
-  const toggleTask = async (taskKey: string, done: boolean) => {
+  const callTask = async (taskKey: string, payload: { done?: boolean; na?: boolean }) => {
     setTogglingTask(taskKey);
     setError(null);
     try {
-      await setHrTask({ collection, id: r.id, taskKey, done });
+      await setHrTask({ collection, id: r.id, taskKey, ...payload });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update the task.');
     } finally {
@@ -306,19 +306,43 @@ export function HrRecordDetail() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {spec.tasks.map((t) => {
               const ts = r.tasks?.[t.key];
-              const parts = [
-                ts?.doneBy ?? null,
-                ts?.doneAt ? ts.doneAt.toDate().toLocaleDateString() : null,
-                ts?.note ?? null,
-              ].filter(Boolean);
+              const na = ts?.na === true;
+              const parts = na
+                ? ["Doesn't apply"]
+                : [
+                    ts?.doneBy === 'roster-sync' ? 'checked automatically' : (ts?.doneBy ?? null),
+                    ts?.doneAt ? ts.doneAt.toDate().toLocaleDateString() : null,
+                    ts?.note ?? null,
+                  ].filter(Boolean);
               return (
                 <ChecklistItem
                   key={t.key}
-                  state={ts?.done ? 'done' : 'todo'}
+                  state={!na && ts?.done ? 'done' : 'todo'}
                   title={t.label}
                   description={parts.join(' · ') || undefined}
                   onToggle={
-                    togglingTask ? undefined : () => toggleTask(t.key, !(ts?.done ?? false))
+                    togglingTask
+                      ? undefined
+                      : () =>
+                          callTask(
+                            t.key,
+                            na
+                              ? { done: false, na: false }
+                              : { done: !(ts?.done ?? false), na: false },
+                          )
+                  }
+                  action={
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={togglingTask !== null}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        callTask(t.key, na ? { done: false, na: false } : { na: true });
+                      }}
+                    >
+                      {na ? 'Applies' : 'N/A'}
+                    </Button>
                   }
                 />
               );

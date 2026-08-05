@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
 import { useHrCtx } from './HRModule';
 import { ImportCard } from './ImportCard';
@@ -12,17 +12,42 @@ import {
   PROCESS_SPECS,
   type EmployeeDoc,
   type HrRecordDoc,
+  type HrTaskState,
   type ProcessType,
 } from '../../lib/hr';
 import { useStaff, type StaffRecord } from '../../lib/staff';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
-import { Icon } from '../../ds/components/core/Icon';
-import { ProgressBar } from '../../ds/components/core/ProgressBar';
 import { QuietLink } from '../../ds/components/core/QuietLink';
 import { CheckMark } from '../../ds/components/forms/CheckMark';
 import { Field } from '../../ds/components/forms/Field';
 import { EmptyState } from '../../ds/components/records/EmptyState';
+
+/** UI-only grouping of the catalogue's flat task list into the three real
+ *  phases of onboarding. Keys not listed fall into the last group. */
+const TASK_GROUPS: Partial<Record<ProcessType, Array<{ label: string; keys: string[] }>>> = {
+  new_hire: [
+    {
+      label: 'Paperwork',
+      keys: [
+        'payrollChangeForm',
+        'contractSent',
+        'backgroundCheck',
+        'paperwork',
+        'i9',
+        'newTeacherFormSent',
+      ],
+    },
+    {
+      label: 'Systems',
+      keys: ['frontline', 'efPlus', 'vector', 'synergy', 'gmailAccount', 'phoneAssigned'],
+    },
+    {
+      label: 'Building & people',
+      keys: ['notifyUnion', 'healthSafety', 'key', 'lunchPin', 'ntoLetterSent'],
+    },
+  ],
+};
 
 function matches(e: EmployeeDoc, needle: string): boolean {
   if (!needle) return true;
@@ -46,45 +71,8 @@ function matches(e: EmployeeDoc, needle: string): boolean {
     .every((term) => hay.includes(term));
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'baseline',
-        gap: 12,
-        padding: '3px 0',
-      }}
-    >
-      <span
-        style={{
-          font: 'var(--type-field-label)',
-          letterSpacing: 'var(--tracking-wider)',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          font: 'var(--type-body-sm)',
-          color: 'var(--dark)',
-          fontWeight: 500,
-          textAlign: 'right',
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/** The nightly staff-roster sync mirrors the Google directory export — if a
- *  new hire appears there, their school account exists. Matched by email,
- *  then EE#, then name. */
+/** The nightly staff-roster sync mirrors the Google directory — if a new hire
+ *  appears there, their school account exists. Matched by email, EE#, name. */
 function findGoogleAccount(e: EmployeeDoc, staff: StaffRecord[]): StaffRecord | null {
   const email = e.email?.toLowerCase();
   const name = `${e.firstName} ${e.lastName}`.trim().toLowerCase();
@@ -96,317 +84,345 @@ function findGoogleAccount(e: EmployeeDoc, staff: StaffRecord[]): StaffRecord | 
   return null;
 }
 
-function EmployeeRow({
-  employee,
-  process,
-  kind,
-  googleAccount,
+const LABEL: CSSProperties = {
+  font: 'var(--type-field-label)',
+  letterSpacing: 'var(--tracking-wider)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+};
+
+function TaskButton({
+  taskKey,
+  label,
+  state,
+  busy,
+  onToggle,
+  onNa,
 }: {
-  employee: EmployeeDoc;
-  process: HrRecordDoc | null;
-  kind: ProcessType;
-  googleAccount: StaffRecord | null;
+  taskKey: string;
+  label: string;
+  state: HrTaskState | undefined;
+  busy: boolean;
+  onToggle: () => void;
+  onNa: () => void;
 }) {
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const spec = PROCESS_SPECS[kind];
-  const progress = process ? taskProgress(process) : null;
-  const start = employee.startDate ?? process?.details?.startDate ?? null;
-
-  const toggle = async (taskKey: string, done: boolean) => {
-    if (!process) return;
-    setPending(taskKey);
-    setError(null);
-    try {
-      await setHrTask({ collection: 'processes', id: process.id, taskKey, done });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update the task.');
-    } finally {
-      setPending(null);
-    }
-  };
-
-  const startChecklist = async () => {
-    setStarting(true);
-    setError(null);
-    try {
-      await createHrRecord({ collection: 'processes', type: kind, employeeRef: employee.id });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start the checklist.');
-      setStarting(false);
-    }
-  };
-
+  const done = state?.done ?? false;
+  const na = state?.na === true;
+  const title =
+    done && state?.doneBy
+      ? `${state.doneBy === 'roster-sync' ? 'Checked automatically' : state.doneBy}${
+          state.doneAt ? ` · ${state.doneAt.toDate().toLocaleDateString()}` : ''
+        }${state.note ? ` · ${state.note}` : ''}`
+      : na
+        ? 'Marked N/A — click to restore'
+        : undefined;
   return (
-    <div>
-      <div
-        onClick={() => setOpen((v) => !v)}
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px', minWidth: 0 }}
+      data-task={taskKey}
+    >
+      <button
+        onClick={onToggle}
+        disabled={busy}
+        title={title}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 14,
-          flexWrap: 'wrap',
+          gap: 8,
+          flex: 1,
+          minWidth: 0,
+          border: 'none',
+          background: 'transparent',
           cursor: 'pointer',
+          textAlign: 'left',
+          padding: 0,
+          font: 'var(--type-body-sm)',
+          color: na || done ? 'var(--text-muted)' : 'var(--dark)',
+          opacity: busy ? 0.5 : 1,
         }}
       >
-        <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-          <p
-            style={{
-              font: 'var(--type-body)',
-              fontWeight: 600,
-              color: 'var(--dark)',
-              margin: 0,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {displayName(employee)}
-            {employee.employeeId && (
-              <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>
-                {' '}
-                · {employee.employeeId}
-              </span>
-            )}
-          </p>
-          <p
-            style={{
-              font: 'var(--type-caption)',
-              fontSize: 11.5,
-              color: 'var(--text-muted)',
-              margin: 0,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {[employee.position ?? employee.description, employee.building]
-              .filter(Boolean)
-              .join(' · ') || '—'}
-          </p>
-        </div>
-
-        <div style={{ flex: '0 0 auto', width: 92 }}>
-          <p
-            style={{
-              font: 'var(--type-field-label)',
-              letterSpacing: 'var(--tracking-wider)',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              margin: 0,
-            }}
-          >
-            Starts
-          </p>
-          <p style={{ font: 'var(--type-body-sm)', color: 'var(--dark)', margin: 0 }}>
-            {prettyDate(start) || '—'}
-          </p>
-        </div>
-
-        <div style={{ flex: '0 0 auto', width: 140 }}>
-          {progress ? (
-            <ProgressBar total={progress.total} done={progress.done} showCount height={5} />
-          ) : (
-            <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
-              No checklist
-            </span>
-          )}
-        </div>
-
-        <div style={{ flex: '0 0 auto', width: 92 }} title={googleAccount?.email ?? undefined}>
-          <p
-            style={{
-              font: 'var(--type-field-label)',
-              letterSpacing: 'var(--tracking-wider)',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              margin: 0,
-            }}
-          >
-            Google
-          </p>
-          <p
-            style={{
-              font: 'var(--type-body-sm)',
-              color: googleAccount ? 'var(--dark)' : 'var(--text-muted)',
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            {googleAccount ? (
-              <>
-                <Icon name="check" size={13} /> Created
-              </>
-            ) : (
-              'Not yet'
-            )}
-          </p>
-        </div>
+        <span style={{ opacity: na ? 0.35 : 1, display: 'inline-flex' }}>
+          <CheckMark checked={done && !na} size={16} />
+        </span>
         <span
           style={{
-            display: 'inline-flex',
-            color: 'var(--text-muted)',
-            transform: open ? 'rotate(180deg)' : 'none',
-            transition: 'transform var(--dur-med, 200ms) ease',
+            minWidth: 0,
+            textDecoration: na ? 'line-through' : 'none',
           }}
         >
-          <Icon name="chevronDown" size={16} />
+          {label}
         </span>
-      </div>
-
-      {open && (
-        <div style={{ padding: '12px 0 2px' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: 18,
-            }}
-          >
-            <div>
-              <Fact label="EE#" value={employee.employeeId ? String(employee.employeeId) : '—'} />
-              <Fact label="Start date" value={prettyDate(start) || '—'} />
-              {process?.details?.boardDate && (
-                <Fact label="Board date" value={prettyDate(process.details.boardDate)} />
-              )}
-              <Fact label="Reports to" value={employee.reportsTo ?? process?.reportsTo ?? '—'} />
-              {process?.details?.replacing && (
-                <Fact label="Replacing" value={process.details.replacing} />
-              )}
-              {process?.details?.lunchPin && (
-                <Fact label="Lunch PIN" value={process.details.lunchPin} />
-              )}
-              <Fact
-                label="Google account"
-                value={googleAccount?.email ?? employee.email ?? 'Not created yet'}
-              />
-              {(process?.notes || employee.notes) && (
-                <p
-                  style={{
-                    font: 'var(--type-body-sm)',
-                    color: 'var(--text-muted)',
-                    margin: '6px 0 0',
-                  }}
-                >
-                  {process?.notes ?? employee.notes}
-                </p>
-              )}
-            </div>
-
-            <div style={{ gridColumn: 'span 1' }}>
-              {process ? (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                    gap: '2px 14px',
-                  }}
-                >
-                  {spec.tasks.map((t) => {
-                    const ts = process.tasks?.[t.key];
-                    const done = ts?.done ?? false;
-                    return (
-                      <button
-                        key={t.key}
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          toggle(t.key, !done);
-                        }}
-                        disabled={pending !== null}
-                        title={
-                          done && ts?.doneBy
-                            ? `${ts.doneBy}${ts.doneAt ? ` · ${ts.doneAt.toDate().toLocaleDateString()}` : ''}`
-                            : undefined
-                        }
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          padding: '5px 2px',
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          font: 'var(--type-body-sm)',
-                          color: done ? 'var(--text-muted)' : 'var(--dark)',
-                          opacity: pending === t.key ? 0.5 : 1,
-                        }}
-                      >
-                        <CheckMark checked={done} size={16} />
-                        <span style={{ minWidth: 0 }}>{t.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
-                    No {spec.label.toLowerCase()} checklist yet.
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={starting}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      startChecklist();
-                    }}
-                  >
-                    {starting ? 'Starting…' : 'Start checklist'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {error && (
-            <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: '8px 0 0' }}>
-              {error}
-            </p>
-          )}
-
-          <div style={{ display: 'flex', gap: 18, marginTop: 10 }}>
-            <QuietLink
-              icon="arrowRight"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                navigate(`/hr/employees/${employee.id}`);
-              }}
-            >
-              Full employee record
-            </QuietLink>
-            {process && (
-              <QuietLink
-                icon="fileText"
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  navigate(`/hr/records/processes/${process.id}`);
-                }}
-              >
-                Checklist page
-              </QuietLink>
-            )}
-          </div>
-        </div>
-      )}
+      </button>
+      <button
+        onClick={onNa}
+        disabled={busy}
+        title={na ? 'Restore — this applies after all' : "Doesn't apply to this person"}
+        style={{
+          border: 'none',
+          background: na ? 'var(--surface-inset)' : 'transparent',
+          borderRadius: 999,
+          padding: '2px 7px',
+          cursor: 'pointer',
+          font: '600 10px/1.2 var(--font-sans)',
+          letterSpacing: '0.06em',
+          color: 'var(--text-placeholder)',
+        }}
+      >
+        N/A
+      </button>
     </div>
   );
 }
 
-/** The New employees and CE/Sub/Coaching tabs — the workbook's segmentation,
- *  one expandable row per person so details and the checklist are one click
- *  away at most. */
+function DossierPanel({
+  employee,
+  process,
+  kind,
+  google,
+}: {
+  employee: EmployeeDoc;
+  process: HrRecordDoc | null;
+  kind: ProcessType;
+  google: StaffRecord | null;
+}) {
+  const navigate = useNavigate();
+  const [busyTask, setBusyTask] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const spec = PROCESS_SPECS[kind];
+  const groups = TASK_GROUPS[kind] ?? [{ label: 'Checklist', keys: spec.tasks.map((t) => t.key) }];
+  const start = employee.startDate ?? process?.details?.startDate ?? null;
+  const progress = process ? taskProgress(process) : null;
+
+  const call = async (fn: () => Promise<unknown>, key: string) => {
+    setBusyTask(key);
+    setError(null);
+    try {
+      await fn();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save that.');
+    } finally {
+      setBusyTask(null);
+    }
+  };
+
+  const toggle = (taskKey: string, state: HrTaskState | undefined) =>
+    call(async () => {
+      if (!process) return;
+      if (state?.na === true) {
+        await setHrTask({
+          collection: 'processes',
+          id: process.id,
+          taskKey,
+          done: false,
+          na: false,
+        });
+      } else {
+        await setHrTask({
+          collection: 'processes',
+          id: process.id,
+          taskKey,
+          done: !(state?.done ?? false),
+          na: false,
+        });
+      }
+    }, taskKey);
+
+  const markNa = (taskKey: string, state: HrTaskState | undefined) =>
+    call(async () => {
+      if (!process) return;
+      if (state?.na === true) {
+        await setHrTask({
+          collection: 'processes',
+          id: process.id,
+          taskKey,
+          done: false,
+          na: false,
+        });
+      } else {
+        await setHrTask({ collection: 'processes', id: process.id, taskKey, na: true });
+      }
+    }, taskKey);
+
+  const facts: Array<[string, string]> = [
+    ['Starts', prettyDate(start) || '—'],
+    ...(process?.details?.boardDate
+      ? ([['Board date', prettyDate(process.details.boardDate)]] as Array<[string, string]>)
+      : []),
+    ['Reports to', employee.reportsTo ?? process?.reportsTo ?? '—'],
+    ...(process?.details?.replacing
+      ? ([['Replacing', process.details.replacing]] as Array<[string, string]>)
+      : []),
+    ...(process?.details?.lunchPin
+      ? ([['Lunch PIN', process.details.lunchPin]] as Array<[string, string]>)
+      : []),
+    ['Google account', google?.email ?? employee.email ?? 'Not created yet'],
+  ];
+
+  return (
+    <div style={{ padding: '16px 20px', minWidth: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 12,
+          alignItems: 'baseline',
+        }}
+      >
+        <h3
+          style={{
+            font: '700 19px/1.25 var(--font-sans)',
+            letterSpacing: 'var(--tracking-tight)',
+            color: 'var(--dark)',
+            margin: 0,
+          }}
+        >
+          {displayName(employee)}
+        </h3>
+        {progress && (
+          <span
+            style={{
+              font: 'var(--type-body-sm)',
+              color: 'var(--text-muted)',
+              whiteSpace: 'nowrap',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {progress.done} of {progress.total} done
+          </span>
+        )}
+      </div>
+      <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '2px 0 12px' }}>
+        {[employee.position ?? employee.description, employee.building].filter(Boolean).join(' · ')}
+        {employee.employeeId ? ` · EE# ${employee.employeeId}` : ' · No EE# yet'}
+      </p>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px 26px',
+          flexWrap: 'wrap',
+          padding: '10px 0 14px',
+          borderBottom: '1px solid var(--divider)',
+          marginBottom: 12,
+        }}
+      >
+        {facts.map(([l, v]) => (
+          <div key={l}>
+            <span style={LABEL}>{l}</span>
+            <p
+              style={{
+                font: '600 13px/1.4 var(--font-sans)',
+                color: 'var(--dark)',
+                margin: '2px 0 0',
+              }}
+            >
+              {v}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {process ? (
+        groups.map((g) => (
+          <div key={g.label} style={{ marginBottom: 10 }}>
+            <span
+              style={{ ...LABEL, color: 'var(--secondary)', display: 'block', paddingBottom: 4 }}
+            >
+              {g.label}
+            </span>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+                gap: '1px 14px',
+              }}
+            >
+              {g.keys
+                .map((k) => spec.tasks.find((t) => t.key === k))
+                .filter((t): t is { key: string; label: string } => !!t)
+                .map((t) => (
+                  <TaskButton
+                    key={t.key}
+                    taskKey={t.key}
+                    label={t.label}
+                    state={process.tasks?.[t.key]}
+                    busy={busyTask === t.key}
+                    onToggle={() => toggle(t.key, process.tasks?.[t.key])}
+                    onNa={() => markNa(t.key, process.tasks?.[t.key])}
+                  />
+                ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0 8px' }}>
+          <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
+            No {spec.label.toLowerCase()} checklist yet.
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={starting}
+            onClick={async () => {
+              setStarting(true);
+              setError(null);
+              try {
+                await createHrRecord({
+                  collection: 'processes',
+                  type: kind,
+                  employeeRef: employee.id,
+                });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Could not start the checklist.');
+              } finally {
+                setStarting(false);
+              }
+            }}
+          >
+            {starting ? 'Starting…' : 'Start checklist'}
+          </Button>
+        </div>
+      )}
+
+      {(process?.notes || employee.notes) && (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '8px 0 0' }}>
+          {process?.notes ?? employee.notes}
+        </p>
+      )}
+      {error && (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: '8px 0 0' }}>
+          {error}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: 18, marginTop: 14 }}>
+        <QuietLink icon="arrowRight" onClick={() => navigate(`/hr/employees/${employee.id}`)}>
+          Full employee record
+        </QuietLink>
+        {process && (
+          <QuietLink
+            icon="fileText"
+            onClick={() => navigate(`/hr/records/processes/${process.id}`)}
+          >
+            Checklist page
+          </QuietLink>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The New employees / CE-Sub-Coaching tabs: a roster on the left, the
+ *  selected person's full file always open on the right. Arrow keys move
+ *  through the roster. */
 export function EmployeesList({ kind }: { kind: ProcessType }) {
   const navigate = useNavigate();
   const ctx = useHrCtx();
   const staffState = useStaff();
   const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const people = kind === 'new_hire' ? ctx.newHires : ctx.ceSubs;
   const isCe = kind === 'ce_onboarding';
@@ -436,6 +452,15 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
         (a.lastName || a.nameRaw).localeCompare(b.lastName || b.nameRaw),
     );
 
+  const selected = filtered.find((e) => e.id === selectedId) ?? filtered[0] ?? null;
+
+  const moveSelection = (delta: number) => {
+    if (!selected) return;
+    const i = filtered.findIndex((e) => e.id === selected.id);
+    const next = filtered[Math.min(filtered.length - 1, Math.max(0, i + delta))];
+    if (next) setSelectedId(next.id);
+  };
+
   return (
     <>
       <Card
@@ -451,58 +476,173 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
             New employee
           </Button>
         }
-        pad={16}
+        pad={0}
+        bodyStyle={{ padding: 0 }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Field
-            icon="search"
-            placeholder="Search name, EE#, building, position…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          {ctx.employees.loading ? (
-            <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
-              Loading…
-            </p>
-          ) : ctx.employees.error ? (
-            <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
-              {ctx.employees.error}
-            </p>
-          ) : filtered.length === 0 ? (
+        {ctx.employees.loading ? (
+          <p
+            style={{
+              font: 'var(--type-body-sm)',
+              color: 'var(--text-muted)',
+              margin: 0,
+              padding: 16,
+            }}
+          >
+            Loading…
+          </p>
+        ) : ctx.employees.error ? (
+          <p
+            style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0, padding: 16 }}
+          >
+            {ctx.employees.error}
+          </p>
+        ) : people.length === 0 ? (
+          <div style={{ padding: 16 }}>
             <EmptyState
               on="card"
               icon="users"
-              line={people.length === 0 ? 'Nobody on file yet' : 'Nobody matches that'}
+              line="Nobody on file yet"
               note={
-                people.length === 0
-                  ? isCe
-                    ? 'CE, sub, and coaching hires land here from the import or by hand.'
-                    : 'Import the master sheet below, or add someone by hand.'
-                  : 'Try fewer words.'
+                isCe
+                  ? 'CE, sub, and coaching hires land here from the import or by hand.'
+                  : 'Import the master sheet below, or add someone by hand.'
               }
             />
-          ) : (
-            <div>
-              {filtered.map((e, i) => (
-                <div
-                  key={e.id}
-                  style={{
-                    padding: i === 0 ? '0 0 10px' : '10px 0',
-                    borderTop: i === 0 ? 'none' : '1px solid var(--divider)',
-                  }}
-                >
-                  <EmployeeRow
-                    employee={e}
-                    process={processByRef.get(e.id) ?? null}
-                    kind={kind}
-                    googleAccount={findGoogleAccount(e, staff)}
-                  />
-                </div>
-              ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
+            <div
+              style={{
+                flex: '1 1 250px',
+                maxWidth: 320,
+                minWidth: 230,
+                borderRight: '1px solid var(--divider)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{ padding: '12px 12px 8px' }}>
+                <Field
+                  icon="search"
+                  placeholder="Search…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div
+                role="listbox"
+                aria-label={isCe ? 'CE, sub, and coaching hires' : 'New employees'}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    moveSelection(1);
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    moveSelection(-1);
+                  }
+                }}
+                style={{ overflowY: 'auto', maxHeight: 520, outline: 'none' }}
+              >
+                {filtered.length === 0 && (
+                  <p
+                    style={{
+                      font: 'var(--type-body-sm)',
+                      color: 'var(--text-muted)',
+                      padding: '8px 14px',
+                    }}
+                  >
+                    Nobody matches that.
+                  </p>
+                )}
+                {filtered.map((e) => {
+                  const p = processByRef.get(e.id);
+                  const prog = p ? taskProgress(p) : null;
+                  const isSel = selected?.id === e.id;
+                  const d = [e.startDate, p?.details?.startDate].find((v) => isIsoDate(v ?? null));
+                  return (
+                    <button
+                      key={e.id}
+                      role="option"
+                      aria-selected={isSel}
+                      onClick={() => setSelectedId(e.id)}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        gap: '3px 10px',
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: 'none',
+                        borderLeft: `3px solid ${isSel ? 'var(--primary)' : 'transparent'}`,
+                        borderBottom: '1px solid var(--divider)',
+                        background: isSel ? 'var(--tint)' : 'transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span
+                        style={{
+                          font: '600 13px/1.35 var(--font-sans)',
+                          color: 'var(--dark)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {displayName(e)}
+                      </span>
+                      <span
+                        style={{
+                          font: '500 11.5px/1.5 var(--font-sans)',
+                          color: 'var(--text-muted)',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {d ? prettyDate(d).replace(/, \d{4}$/, '') : '—'}
+                      </span>
+                      <span
+                        style={{
+                          gridColumn: '1 / -1',
+                          height: 4,
+                          borderRadius: 2,
+                          background: 'var(--tint)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'block',
+                            height: '100%',
+                            width:
+                              prog && prog.total > 0 ? `${(prog.done / prog.total) * 100}%` : 0,
+                            background: 'linear-gradient(90deg, #1d2a5d, #4356a9)',
+                          }}
+                        />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </div>
+
+            <div style={{ flex: '99 1 340px', minWidth: 0 }}>
+              {selected ? (
+                <DossierPanel
+                  key={selected.id}
+                  employee={selected}
+                  process={processByRef.get(selected.id) ?? null}
+                  kind={kind}
+                  google={findGoogleAccount(selected, staff)}
+                />
+              ) : (
+                <div style={{ padding: 16 }}>
+                  <EmptyState on="card" icon="users" line="Select someone on the left" />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Card>
 
       {!isCe && <ImportCard defaultOpen={!ctx.employees.loading && people.length === 0} />}

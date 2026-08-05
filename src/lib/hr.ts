@@ -105,7 +105,9 @@ export const setHrTask = httpsCallable<
     collection: HrRecordCollection;
     id: string;
     taskKey: string;
-    done: boolean;
+    done?: boolean;
+    /** true marks the task "doesn't apply"; pass done with na: false to clear. */
+    na?: boolean;
     note?: string | null;
   },
   { success: boolean }
@@ -157,6 +159,7 @@ export type EmployeeDoc = Employee & {
 
 export type HrTaskState = {
   done: boolean;
+  na?: boolean;
   doneAt: Timestamp | null;
   doneBy: string | null;
   note: string | null;
@@ -395,8 +398,9 @@ export const LEAVE_STATUS_BADGE: Record<
   ended: { state: 'draft', label: 'Ended' },
 };
 
+/** N/A tasks don't count toward either side of the fraction. */
 export function taskProgress(record: HrRecordDoc): { done: number; total: number } {
-  const tasks = Object.values(record.tasks ?? {});
+  const tasks = Object.values(record.tasks ?? {}).filter((t) => t.na !== true);
   return { done: tasks.filter((t) => t.done).length, total: tasks.length };
 }
 

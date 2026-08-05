@@ -3,7 +3,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { google } from 'googleapis';
 
 import { REGION, deleteSubcollection, requireAuthedDomainUser } from './shared';
-import { EMPLOYEE_ID_COUNTER_DOC } from './hr';
+import { EMPLOYEE_ID_COUNTER_DOC, reconcileGoogleAccounts } from './hr';
 import {
   buildImportPlan,
   finalStatus,
@@ -234,6 +234,10 @@ export const importHrMasterSheet = onCall(
       deleted,
     });
 
-    return { ...report, batchId, deleted };
+    // Freshly imported hires whose Google account already exists get their
+    // Gmail task checked right away instead of waiting for the nightly sync.
+    const reconciled = await reconcileGoogleAccounts();
+
+    return { ...report, batchId, deleted, reconciled };
   },
 );

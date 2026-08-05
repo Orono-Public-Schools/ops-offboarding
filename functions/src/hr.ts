@@ -389,13 +389,17 @@ export const setHrTask = onCall({ region: REGION }, async (request) => {
   const id = raw.id;
   const taskKey = raw.taskKey;
   const done = raw.done;
+  const na = raw.na;
   if (!id || typeof id !== 'string') {
     throw new HttpsError('invalid-argument', 'Missing record id.');
   }
   if (!taskKey || typeof taskKey !== 'string') {
     throw new HttpsError('invalid-argument', 'Missing task key.');
   }
-  if (typeof done !== 'boolean') {
+  if (na !== undefined && typeof na !== 'boolean') {
+    throw new HttpsError('invalid-argument', 'na must be a boolean.');
+  }
+  if (na !== true && typeof done !== 'boolean') {
     throw new HttpsError('invalid-argument', 'done must be a boolean.');
   }
   const note = optString(raw.note, 'note', 500);
@@ -410,18 +414,115 @@ export const setHrTask = onCall({ region: REGION }, async (request) => {
     throw new HttpsError('invalid-argument', `Unknown task: ${taskKey}`);
   }
 
+  const state =
+    na === true
+      ? { done: false, na: true, doneAt: null, doneBy: actor.email, note }
+      : {
+          done,
+          na: false,
+          doneAt: done ? FieldValue.serverTimestamp() : null,
+          doneBy: done ? actor.email : null,
+          note,
+        };
+
   await ref.update({
-    [`tasks.${taskKey}`]: {
-      done,
-      doneAt: done ? FieldValue.serverTimestamp() : null,
-      doneBy: done ? actor.email : null,
-      note,
-    },
+    [`tasks.${taskKey}`]: state,
     updatedAt: FieldValue.serverTimestamp(),
     updatedBy: actor.email,
   });
   return { success: true };
 });
+
+/**
+ * Match employees against the synced staff directory (the nightly mirror of
+ * the Google environment). A match fills a missing employee email and checks
+ * the "School Gmail account" task on their new-hire checklist — the account
+ * exists, so nobody should have to tick it by hand. Runs after each roster
+ * sync and each sheet import.
+ */
+export async function reconcileGoogleAccounts(): Promise<{
+  matched: number;
+  gmailChecked: number;
+}> {
+  const db = getFirestore();
+  const [staffSnap, empSnap, procSnap] = await Promise.all([
+    db.collection('staff').get(),
+    db.collection('employees').get(),
+    db.collection('processes').where('type', '==', 'new_hire').get(),
+  ]);
+
+  type StaffDoc = {
+    email: string;
+    givenName?: string;
+    familyName?: string;
+    employeeId?: string;
+  };
+  const byEmail = new Map<string, StaffDoc>();
+  const byEe = new Map<string, StaffDoc>();
+  const byName = new Map<string, StaffDoc>();
+  for (const doc of staffSnap.docs) {
+    const s = doc.data() as StaffDoc;
+    if (!s.email) continue;
+    byEmail.set(s.email.toLowerCase(), s);
+    if (s.employeeId?.trim()) byEe.set(s.employeeId.trim(), s);
+    const name = `${s.givenName ?? ''} ${s.familyName ?? ''}`.trim().toLowerCase();
+    if (name) byName.set(name, s);
+  }
+
+  const writer = db.bulkWriter();
+  const emailByRef = new Map<string, string>();
+  let matched = 0;
+  for (const doc of empSnap.docs) {
+    const e = doc.data() as {
+      email?: string | null;
+      employeeId?: number | null;
+      firstName?: string;
+      lastName?: string;
+    };
+    const name = `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim().toLowerCase();
+    const hit =
+      (e.email ? byEmail.get(e.email.toLowerCase()) : undefined) ??
+      (e.employeeId ? byEe.get(String(e.employeeId)) : undefined) ??
+      (name ? byName.get(name) : undefined);
+    if (!hit) continue;
+    matched++;
+    emailByRef.set(doc.id, hit.email);
+    if (!e.email) {
+      writer.update(doc.ref, {
+        email: hit.email,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: 'roster-sync',
+      });
+    }
+  }
+
+  let gmailChecked = 0;
+  for (const doc of procSnap.docs) {
+    const p = doc.data() as {
+      employeeRef?: string;
+      tasks?: Record<string, { done?: boolean; na?: boolean }>;
+    };
+    const email = p.employeeRef ? emailByRef.get(p.employeeRef) : undefined;
+    if (!email) continue;
+    const t = p.tasks?.gmailAccount;
+    if (t && t.done !== true && t.na !== true) {
+      writer.update(doc.ref, {
+        'tasks.gmailAccount': {
+          done: true,
+          na: false,
+          doneAt: FieldValue.serverTimestamp(),
+          doneBy: 'roster-sync',
+          note: email,
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: 'roster-sync',
+      });
+      gmailChecked++;
+    }
+  }
+  await writer.close();
+  return { matched, gmailChecked };
+}
 
 export const deleteHrRecord = onCall({ region: REGION }, async (request) => {
   requireHr(request);

@@ -47,8 +47,11 @@ export const HR_RECORD_COLLECTIONS: HrRecordCollection[] = ['processes', 'leaves
 /** One checklist entry on a record. */
 export type TaskState = {
   done: boolean;
+  /** Marked "doesn't apply" — excluded from progress counts. */
+  na?: boolean;
   /** Server timestamp when marked done; null while open. */
   doneAt: unknown;
+  /** Who marked it — an email, or "roster-sync" for automatic checks. */
   doneBy: string | null;
   /** Free note, e.g. the raw sheet value ("Signed") the import preserved. */
   note: string | null;
