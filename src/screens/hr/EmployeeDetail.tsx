@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { EmployeeForm, type EmployeeFormValues, employeeFormFields } from './EmployeeForm';
 import {
@@ -134,6 +134,14 @@ export function EmployeeDetail() {
   const [newRecord, setNewRecord] = useState('');
   const [creating, setCreating] = useState(false);
 
+  // Optimistic profile edits: show the saved values immediately and let the
+  // callable catch up; the override drops once the live snapshot lands.
+  const [empOverride, setEmpOverride] = useState<Partial<EmployeeDoc> | null>(null);
+  const empStamp = state.item?.updatedAt ? state.item.updatedAt.toMillis() : 0;
+  useEffect(() => {
+    setEmpOverride(null);
+  }, [id, empStamp]);
+
   const records = useMemo(
     () => [...(processes.items ?? []), ...(leaves.items ?? []), ...(changes.items ?? [])],
     [processes.items, leaves.items, changes.items],
@@ -156,7 +164,7 @@ export function EmployeeDetail() {
     );
   }
 
-  const e = state.item;
+  const e = empOverride ? { ...state.item, ...empOverride } : state.item;
   const badge = EMPLOYEE_STATUS_BADGE[e.status] ?? EMPLOYEE_STATUS_BADGE.active;
 
   const startEdit = () => {
@@ -165,18 +173,18 @@ export function EmployeeDetail() {
     setError(null);
   };
 
-  const save = async () => {
+  const save = () => {
     if (!values) return;
-    setBusy(true);
+    const fields = employeeFormFields(values);
+    setEmpOverride(fields as Partial<EmployeeDoc>);
+    setEditing(false);
     setError(null);
-    try {
-      await updateEmployee({ id: e.id, fields: employeeFormFields(values) });
-      setEditing(false);
-    } catch (err) {
+    updateEmployee({ id: e.id, fields }).catch((err) => {
+      // Give the draft back so nothing typed is lost.
+      setEmpOverride(null);
+      setEditing(true);
       setError(err instanceof Error ? err.message : 'Could not save.');
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const assignId = async () => {
@@ -253,7 +261,7 @@ export function EmployeeDetail() {
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="submit" icon="save" disabled={busy} onClick={save}>
-                {busy ? 'Saving…' : 'Save changes'}
+                Save changes
               </Button>
               <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>
                 Cancel

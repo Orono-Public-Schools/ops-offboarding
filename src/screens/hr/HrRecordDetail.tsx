@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   deleteHrRecord,
@@ -17,6 +17,7 @@ import {
   LEAVE_STATUSES,
   type HrRecordCollection,
   type HrRecordDoc,
+  type HrTaskState,
   type LeaveStatus,
 } from '../../lib/hr';
 import { Button } from '../../ds/components/core/Button';
@@ -59,8 +60,18 @@ export function HrRecordDetail() {
   const [draftNotes, setDraftNotes] = useState('');
   const [draftReason, setDraftReason] = useState('');
   const [busy, setBusy] = useState(false);
-  const [togglingTask, setTogglingTask] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Optimistic writes: task ticks, edited details, and status changes show
+  // immediately; overrides drop once the live snapshot lands, or revert if
+  // the callable fails.
+  const [taskOverrides, setTaskOverrides] = useState<Record<string, HrTaskState>>({});
+  const [recOverride, setRecOverride] = useState<Partial<HrRecordDoc> | null>(null);
+  const stamp = state.item?.updatedAt ? state.item.updatedAt.toMillis() : 0;
+  useEffect(() => {
+    setTaskOverrides({});
+    setRecOverride(null);
+  }, [id, stamp]);
 
   if (!collection) return <EmptyState icon="fileText" line="That record type doesn't exist." />;
   if (state.loading) {
@@ -80,7 +91,13 @@ export function HrRecordDetail() {
     );
   }
 
-  const r = state.item;
+  const base = state.item;
+  const r: HrRecordDoc = {
+    ...base,
+    ...(recOverride ?? {}),
+    details: { ...base.details, ...(recOverride?.details ?? {}) },
+    tasks: { ...base.tasks, ...taskOverrides },
+  };
   const spec = specFor(collection, (r.type as string) ?? null);
   if (!spec) return <EmptyState icon="fileText" line="This record has an unknown type." />;
 
@@ -97,41 +114,41 @@ export function HrRecordDetail() {
     setError(null);
   };
 
-  const save = async () => {
-    setBusy(true);
+  const save = () => {
+    const details = Object.fromEntries(
+      Object.entries(draft).map(([k, v]) => {
+        const kind = spec.details.find((f) => f.key === k)?.kind;
+        return [k, kind === 'date' ? normalizeDateInput(v) : v];
+      }),
+    );
+    const patch = {
+      details,
+      notes: draftNotes.trim() || null,
+      ...(collection === 'leaves' ? { reason: draftReason.trim() || null } : {}),
+    };
+    setRecOverride((o) => ({ ...(o ?? {}), ...patch }));
+    setEditing(false);
     setError(null);
-    try {
-      const details = Object.fromEntries(
-        Object.entries(draft).map(([k, v]) => {
-          const kind = spec.details.find((f) => f.key === k)?.kind;
-          return [k, kind === 'date' ? normalizeDateInput(v) : v];
-        }),
-      );
-      await updateHrRecord({
-        collection,
-        id: r.id,
-        details,
-        notes: draftNotes.trim() || null,
-        ...(collection === 'leaves' ? { reason: draftReason.trim() || null } : {}),
-      });
-      setEditing(false);
-    } catch (err) {
+    updateHrRecord({ collection, id: r.id, ...patch }).catch((err) => {
+      // Give the draft back so nothing typed is lost.
+      setRecOverride(null);
+      setEditing(true);
       setError(err instanceof Error ? err.message : 'Could not save.');
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
-  const setStatus = async (status: string) => {
-    setBusy(true);
+  const setStatus = (status: string) => {
+    setRecOverride((o) => ({ ...(o ?? {}), status: status as HrRecordDoc['status'] }));
     setError(null);
-    try {
-      await updateHrRecord({ collection, id: r.id, status: status as never });
-    } catch (err) {
+    updateHrRecord({ collection, id: r.id, status: status as never }).catch((err) => {
+      setRecOverride((o) => {
+        if (!o) return o;
+        const next = { ...o };
+        delete next.status;
+        return next;
+      });
       setError(err instanceof Error ? err.message : 'Could not update the status.');
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const remove = async () => {
@@ -146,16 +163,24 @@ export function HrRecordDetail() {
     }
   };
 
-  const callTask = async (taskKey: string, payload: { done?: boolean; na?: boolean }) => {
-    setTogglingTask(taskKey);
+  const callTask = (taskKey: string, payload: { done?: boolean; na?: boolean }) => {
+    const local: HrTaskState = {
+      done: payload.done ?? false,
+      na: payload.na ?? false,
+      doneAt: null,
+      doneBy: null,
+      note: r.tasks?.[taskKey]?.note ?? null,
+    };
+    setTaskOverrides((o) => ({ ...o, [taskKey]: local }));
     setError(null);
-    try {
-      await setHrTask({ collection, id: r.id, taskKey, ...payload });
-    } catch (err) {
+    setHrTask({ collection, id: r.id, taskKey, ...payload }).catch((err) => {
+      setTaskOverrides((o) => {
+        const next = { ...o };
+        delete next[taskKey];
+        return next;
+      });
       setError(err instanceof Error ? err.message : 'Could not update the task.');
-    } finally {
-      setTogglingTask(null);
-    }
+    });
   };
 
   const { done, total } = taskProgress(r);
@@ -283,7 +308,7 @@ export function HrRecordDetail() {
             />
             <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="submit" icon="save" disabled={busy} onClick={save}>
-                {busy ? 'Saving…' : 'Save changes'}
+                Save changes
               </Button>
               <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>
                 Cancel
@@ -332,22 +357,16 @@ export function HrRecordDetail() {
                   state={!na && ts?.done ? 'done' : 'todo'}
                   title={t.label}
                   description={parts.join(' · ') || undefined}
-                  onToggle={
-                    togglingTask
-                      ? undefined
-                      : () =>
-                          callTask(
-                            t.key,
-                            na
-                              ? { done: false, na: false }
-                              : { done: !(ts?.done ?? false), na: false },
-                          )
+                  onToggle={() =>
+                    callTask(
+                      t.key,
+                      na ? { done: false, na: false } : { done: !(ts?.done ?? false), na: false },
+                    )
                   }
                   action={
                     <Button
                       size="sm"
                       variant="ghost"
-                      disabled={togglingTask !== null}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         callTask(t.key, na ? { done: false, na: false } : { na: true });

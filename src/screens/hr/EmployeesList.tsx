@@ -224,21 +224,35 @@ function DossierPanel({
   const [procDraft, setProcDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // Optimistic checkmarks: flip locally the instant a box is clicked, let the
+  // Optimistic writes: apply locally the instant something is saved, let the
   // callable catch up, and drop the override once the live snapshot lands
-  // (or revert it if the call fails).
+  // (or revert it if the call fails). Covers checkmarks, edited profile
+  // fields, and edited process details alike.
   const [overrides, setOverrides] = useState<Record<string, HrTaskState>>({});
+  const [detailsOverride, setDetailsOverride] = useState<Record<string, string> | null>(null);
   const processStamp = process?.updatedAt ? process.updatedAt.toMillis() : 0;
   useEffect(() => {
     setOverrides({});
+    setDetailsOverride(null);
   }, [process?.id, processStamp]);
 
+  const [empOverride, setEmpOverride] = useState<Partial<EmployeeDoc> | null>(null);
+  const empStamp = employee.updatedAt ? employee.updatedAt.toMillis() : 0;
+  useEffect(() => {
+    setEmpOverride(null);
+  }, [employee.id, empStamp]);
+
+  const emp = empOverride ? { ...employee, ...empOverride } : employee;
   const spec = PROCESS_SPECS[kind];
   const groups = TASK_GROUPS[kind] ?? [{ label: 'Checklist', keys: spec.tasks.map((t) => t.key) }];
-  const start = employee.startDate ?? process?.details?.startDate ?? null;
   const effectiveProcess = process
-    ? { ...process, tasks: { ...process.tasks, ...overrides } }
+    ? {
+        ...process,
+        details: detailsOverride ? { ...process.details, ...detailsOverride } : process.details,
+        tasks: { ...process.tasks, ...overrides },
+      }
     : null;
+  const start = emp.startDate ?? effectiveProcess?.details?.startDate ?? null;
   const progress = effectiveProcess ? taskProgress(effectiveProcess) : null;
 
   const stateOf = (taskKey: string): HrTaskState | undefined =>
@@ -286,44 +300,41 @@ function DossierPanel({
   };
 
   const startEdit = () => {
-    setValues(employeeToFormValues(employee));
+    setValues(employeeToFormValues(emp));
     setProcDraft({
-      boardDate: isoToMdy(process?.details?.boardDate ?? ''),
-      replacing: process?.details?.replacing ?? '',
-      lunchPin: process?.details?.lunchPin ?? '',
+      boardDate: isoToMdy(effectiveProcess?.details?.boardDate ?? ''),
+      replacing: effectiveProcess?.details?.replacing ?? '',
+      lunchPin: effectiveProcess?.details?.lunchPin ?? '',
     });
     setEditing(true);
     setError(null);
   };
 
-  const save = async () => {
+  const save = () => {
     if (!values) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await updateEmployee({ id: employee.id, fields: employeeFormFields(values) });
-      if (process && kind === 'new_hire') {
-        await updateHrRecord({
-          collection: 'processes',
-          id: process.id,
-          details: {
+    const fields = employeeFormFields(values);
+    const details: Record<string, string> =
+      kind === 'new_hire'
+        ? {
             boardDate: normalizeDateInput(procDraft.boardDate),
             replacing: procDraft.replacing.trim(),
-          },
-        });
-      } else if (process && kind === 'ce_onboarding') {
-        await updateHrRecord({
-          collection: 'processes',
-          id: process.id,
-          details: { lunchPin: procDraft.lunchPin.trim() },
-        });
-      }
-      setEditing(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save.');
-    } finally {
-      setSaving(false);
+          }
+        : { lunchPin: procDraft.lunchPin.trim() };
+    setEmpOverride(fields as Partial<EmployeeDoc>);
+    if (process) setDetailsOverride(details);
+    setEditing(false);
+    setError(null);
+    const calls: Array<Promise<unknown>> = [updateEmployee({ id: employee.id, fields })];
+    if (process) {
+      calls.push(updateHrRecord({ collection: 'processes', id: process.id, details }));
     }
+    Promise.all(calls).catch((err) => {
+      // Give the draft back so nothing typed is lost.
+      setEmpOverride(null);
+      setDetailsOverride(null);
+      setEditing(true);
+      setError(err instanceof Error ? err.message : 'Could not save.');
+    });
   };
 
   const remove = async () => {
@@ -346,22 +357,24 @@ function DossierPanel({
 
   const facts: Array<[string, string]> = [
     ['Starts', prettyDate(start) || '—'],
-    ...(process?.details?.boardDate
-      ? ([['Board date', prettyDate(process.details.boardDate)]] as Array<[string, string]>)
-      : []),
-    ...(process?.details?.contractSentDate
-      ? ([['Contract sent', prettyDate(process.details.contractSentDate)]] as Array<
+    ...(effectiveProcess?.details?.boardDate
+      ? ([['Board date', prettyDate(effectiveProcess.details.boardDate)]] as Array<
           [string, string]
         >)
       : []),
-    ['Reports to', employee.reportsTo ?? process?.reportsTo ?? '—'],
+    ...(effectiveProcess?.details?.contractSentDate
+      ? ([['Contract sent', prettyDate(effectiveProcess.details.contractSentDate)]] as Array<
+          [string, string]
+        >)
+      : []),
+    ['Reports to', emp.reportsTo ?? effectiveProcess?.reportsTo ?? '—'],
     ...(kind === 'new_hire'
-      ? ([['Replacing', process?.details?.replacing || '—']] as Array<[string, string]>)
+      ? ([['Replacing', effectiveProcess?.details?.replacing || '—']] as Array<[string, string]>)
       : []),
-    ...(process?.details?.lunchPin
-      ? ([['Lunch PIN', process.details.lunchPin]] as Array<[string, string]>)
+    ...(effectiveProcess?.details?.lunchPin
+      ? ([['Lunch PIN', effectiveProcess.details.lunchPin]] as Array<[string, string]>)
       : []),
-    ['Google account', google?.email ?? employee.email ?? 'Not created yet'],
+    ['Google account', google?.email ?? emp.email ?? 'Not created yet'],
   ];
 
   return (
@@ -382,7 +395,7 @@ function DossierPanel({
             margin: 0,
           }}
         >
-          {displayName(employee)}
+          {displayName(emp)}
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {progress && !editing && (
@@ -405,8 +418,8 @@ function DossierPanel({
         </div>
       </div>
       <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '2px 0 12px' }}>
-        {[employee.position ?? employee.description, employee.building].filter(Boolean).join(' · ')}
-        {employee.employeeId ? ` · EE# ${employee.employeeId}` : ' · No EE# yet'}
+        {[emp.position ?? emp.description, emp.building].filter(Boolean).join(' · ')}
+        {emp.employeeId ? ` · EE# ${emp.employeeId}` : ' · No EE# yet'}
       </p>
 
       {editing && values ? (
@@ -451,7 +464,7 @@ function DossierPanel({
           )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button variant="submit" icon="save" disabled={saving} onClick={save}>
-              {saving ? 'Saving…' : 'Save changes'}
+              Save changes
             </Button>
             <Button variant="ghost" disabled={saving} onClick={() => setEditing(false)}>
               Cancel
@@ -558,9 +571,9 @@ function DossierPanel({
         </>
       )}
 
-      {!editing && (process?.notes || employee.notes) && (
+      {!editing && (process?.notes || emp.notes) && (
         <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '8px 0 0' }}>
-          {process?.notes ?? employee.notes}
+          {process?.notes ?? emp.notes}
         </p>
       )}
       {error && (
