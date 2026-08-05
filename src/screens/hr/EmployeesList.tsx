@@ -62,7 +62,9 @@ export function EmployeesList() {
     <>
       <Card
         eyebrow="Employees"
-        heading={filter === 'all' ? 'Everyone on file' : `Showing ${filter.replace('_', ' ')}`}
+        heading={
+          filter === 'all' ? "This year's new employees" : `Showing ${filter.replace('_', ' ')}`
+        }
         headingRight={
           <Button
             size="sm"

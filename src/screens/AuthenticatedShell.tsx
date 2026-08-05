@@ -32,8 +32,8 @@ export function AuthedShell() {
     { id: 'forms', label: 'Forms', icon: 'fileText' },
     { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
   ];
-  if (isHR) tabs.push({ id: 'inbox', label: 'HR Inbox', icon: 'inbox' });
-  if (isAdmin) tabs.push({ id: 'admin', label: 'Admin', icon: 'users' });
+  if (isHR) tabs.push({ id: 'inbox', label: 'HR Portal', icon: 'users' });
+  if (isAdmin) tabs.push({ id: 'admin', label: 'Admin', icon: 'key' });
 
   return (
     <AppShell>

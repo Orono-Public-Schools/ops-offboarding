@@ -81,7 +81,8 @@ function headline(tab: HrTab, ctx: HrOutletCtx): { title: string; subtitle: stri
           }
         : {
             title: `${n.employees} people on file`,
-            subtitle: 'The registry HR used to keep in the master sheet.',
+            subtitle:
+              "This year's New EE workbook, imported — new hires, CE/sub/coaching, leaves, and terminations.",
           };
     case 'onboarding': {
       const open = n.processes.filter(
