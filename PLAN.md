@@ -105,10 +105,13 @@ portal-created records survive re-imports (portal *edits* to imported docs do no
 - [x] Callables: employee CRUD + transactional EE# assignment, record create/update,
       task toggles, delete, importer (`functions/src/hr.ts`, `hrImport.ts`)
 - [x] HR-only Firestore rules for the four collections
-- [x] HR module UI: sub-tabs (Inbox · Employees · Onboarding · Offboarding · Leaves · Changes)
-      with live counts, employee list (search + status filter) + detail (edit, records
-      timeline, history), generic record lists/detail with checklist toggles, import card
-      with dry-run preview
+- [x] HR module UI: sub-tabs mirror the workbook's segmentation (Inbox · New employees ·
+      CE/Sub/Coaching · Offboarding · Leaves · Changes) with live counts. The two people
+      tabs use expandable rows — EE#, position/building, start date, progress bar, status
+      at a glance; open a row for the facts and the full checklist with working toggles
+      (sheet-parity, no click-through). Employee detail (edit, records timeline, history),
+      record lists/detail, import card with dry-run preview. Main nav says "HR Portal";
+      PersonPlate photo slots removed from HR lists.
 - [x] Parser verified locally against the real downloaded workbook (2026-08-05):
       69 employees / 39 checklists / 21 leaves / 9 changes, cross-tab merges correct
       ("Forney, Chris" ↔ "Chris Forney" by EE#), statuses derived (20 prospective /
