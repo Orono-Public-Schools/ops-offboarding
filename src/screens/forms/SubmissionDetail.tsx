@@ -5,17 +5,99 @@ import {
   allFieldsForSubmission,
   updateSubmissionStatus,
   useSubmission,
+  type FileRef,
   type Submission,
   type SubmissionStatus,
+  type TableColumn,
+  type TableRow,
 } from '../../lib/forms';
+import { fileDownloadUrl } from '../../lib/storage';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
+import { QuietLink } from '../../ds/components/core/QuietLink';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { StatusTrack } from '../../ds/components/records/StatusTrack';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
 import { RowList, DetailRow } from '../../ds/components/forms/RowList';
+
+/** Opens an attachment via a short-lived download URL; Storage rules let the
+ *  submitter, HR, and IT read it. */
+function AttachmentLink({ file }: { file: FileRef }) {
+  const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
+  return (
+    <QuietLink
+      icon="download"
+      onClick={async () => {
+        setState('busy');
+        try {
+          const url = await fileDownloadUrl(file.path);
+          window.open(url, '_blank', 'noopener');
+          setState('idle');
+        } catch (err) {
+          console.error(err);
+          setState('failed');
+        }
+      }}
+    >
+      {state === 'busy'
+        ? 'Opening…'
+        : state === 'failed'
+          ? `${file.name} — could not open`
+          : file.name}
+    </QuietLink>
+  );
+}
+
+function RowsTable({ rows, columns }: { rows: TableRow[]; columns?: TableColumn[] }) {
+  const cols = columns ?? Object.keys(rows[0] ?? {}).map((k) => ({ key: k, label: k }));
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            {cols.map((c) => (
+              <th
+                key={c.key}
+                style={{
+                  textAlign: 'left',
+                  padding: '2px 14px 4px 0',
+                  font: 'var(--type-field-label)',
+                  letterSpacing: 'var(--tracking-wider)',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {cols.map((c) => (
+                <td
+                  key={c.key}
+                  style={{
+                    padding: '3px 14px 3px 0',
+                    font: 'var(--type-body-sm)',
+                    color: 'var(--dark)',
+                    verticalAlign: 'top',
+                  }}
+                >
+                  {r[c.key] ?? '—'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 const STAGES = ['Filed', 'Received', 'Processing', 'Complete'];
 const STAGE_FOR_STATUS: Record<string, number> = { submitted: 1, processing: 2, completed: 3 };
@@ -173,8 +255,20 @@ export function SubmissionDetail() {
       <Card eyebrow="Details" heading="What you told us" pad={16}>
         <RowList>
           <DetailRow label="Filed by" value={`${s.submitterName} · ${s.submitterEmail}`} />
-          {allFieldsForSubmission(s).map(({ label, value }) => (
-            <DetailRow key={label} label={label} value={value} />
+          {allFieldsForSubmission(s).map((entry) => (
+            <DetailRow
+              key={entry.label}
+              label={entry.label}
+              value={
+                entry.file ? (
+                  <AttachmentLink file={entry.file} />
+                ) : entry.rows ? (
+                  <RowsTable rows={entry.rows} columns={entry.columns} />
+                ) : (
+                  entry.value
+                )
+              }
+            />
           ))}
         </RowList>
       </Card>

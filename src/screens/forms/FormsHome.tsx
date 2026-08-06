@@ -25,6 +25,12 @@ const MONTHS = [
   'December',
 ];
 
+const FORM_CARD_LOOK: Record<string, { icon: 'home' | 'calendar' | 'fileText'; meta: string }> = {
+  changeOfAddress: { icon: 'home', meta: '4 min' },
+  leaveOfAbsence: { icon: 'calendar', meta: '5 min' },
+  laneChange: { icon: 'fileText', meta: '8 min' },
+};
+
 function ago(ms: number | undefined): string {
   if (!ms) return '';
   const days = Math.floor((Date.now() - ms) / 86_400_000);
@@ -69,23 +75,19 @@ export function FormsHome() {
             gap: 16,
           }}
         >
-          {forms.map((f) => (
-            <ModuleCard
-              key={f.id}
-              icon={f.id === 'leaveOfAbsence' ? 'calendar' : 'home'}
-              title={f.title}
-              description={f.description}
-              meta={f.id === 'leaveOfAbsence' ? '5 min' : '4 min'}
-              onClick={() => navigate(`/forms/${f.id}`)}
-            />
-          ))}
-          <ModuleCard
-            icon="fileText"
-            title="Lane change"
-            description="Move a lane once your transcript is on file. Coming soon."
-            meta="Soon"
-            disabled
-          />
+          {forms.map((f) => {
+            const look = FORM_CARD_LOOK[f.id] ?? { icon: 'home' as const, meta: '4 min' };
+            return (
+              <ModuleCard
+                key={f.id}
+                icon={look.icon}
+                title={f.title}
+                description={f.description}
+                meta={look.meta}
+                onClick={() => navigate(`/forms/${f.id}`)}
+              />
+            );
+          })}
         </div>
       </Card>
 

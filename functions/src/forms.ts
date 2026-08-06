@@ -46,6 +46,21 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
     });
   }
 
+  // Attachments must live in the submitter's own Storage folder — the shape
+  // is validated above, the ownership only the server can check.
+  for (const section of def.sections) {
+    for (const field of section.fields) {
+      if (field.type !== 'file') continue;
+      const v = result.cleaned[field.id];
+      if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+      if (!(v as { path: string }).path.startsWith(`uploads/${uid}/`)) {
+        throw new HttpsError('invalid-argument', 'Please fix the highlighted fields.', {
+          fieldErrors: { [field.id]: 'Invalid file.' },
+        });
+      }
+    }
+  }
+
   const db = getFirestore();
   const submitterName =
     typeof request.auth?.token?.name === 'string' ? request.auth.token.name : email;

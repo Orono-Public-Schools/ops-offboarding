@@ -27,7 +27,28 @@ export type FormFieldType =
   | 'checkbox'
   /** Multi-select: value is a string[] of chosen option values. */
   | 'checkboxes'
-  | 'textarea';
+  | 'textarea'
+  /** One uploaded attachment: value is a FileRef pointing into Storage. */
+  | 'file'
+  /** Repeating rows of typed cells: value is a TableRow[]. */
+  | 'table'
+  /** Typed-name eSignature: value is the signer's typed name. */
+  | 'signature';
+
+/** A Storage upload attached to a submission. */
+export type FileRef = { path: string; name: string };
+
+/** One row of a table field, keyed by column key. */
+export type TableRow = Record<string, string>;
+
+export type TableColumn = {
+  key: string;
+  label: string;
+  required?: boolean;
+  maxLength?: number;
+  /** Relative width hint for the renderer (flex-grow). */
+  width?: number;
+};
 
 /**
  * A visibility condition. When the target field holds an array (a
@@ -52,6 +73,14 @@ export type FormField = {
   patternMessage?: string;
   /** Render + validate this field only when the condition(s) hold. */
   showIf?: ShowIf | ShowIf[];
+  /** file fields: accept attribute for the picker (e.g. ".pdf,.doc,.docx"). */
+  accept?: string;
+  /** table fields: the row shape. */
+  columns?: TableColumn[];
+  /** table fields: hard cap on rows (default 30). */
+  maxRows?: number;
+  /** signature fields: consent text rendered under the input. */
+  consent?: string;
 };
 
 export type FormSection = {
@@ -80,7 +109,8 @@ export type FormDefinition = {
 };
 
 /** A submission's raw field values, keyed by field id. */
-export type FormData = Record<string, string | boolean | string[]>;
+export type FormValue = string | boolean | string[] | FileRef | TableRow[];
+export type FormData = Record<string, FormValue>;
 
 export type SubmissionStatus = 'submitted' | 'processing' | 'completed' | 'denied';
 

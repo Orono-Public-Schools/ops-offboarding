@@ -364,10 +364,156 @@ export const leaveOfAbsence: FormDefinition = {
   ],
 };
 
+// TODO(joel): placeholder ladder inferred from the procedures' "each ten (10)
+// semester credits" language — confirm against the Master Agreement salary
+// schedule / Frontline dropdown and correct in place.
+const LANES = ['BA', 'BA+10', 'BA+20', 'BA+30', 'MA', 'MA+10', 'MA+20', 'MA+30'].map((l) => ({
+  value: l,
+  label: l,
+}));
+
+const UPLOAD_ACCEPT = '.pdf,.doc,.docx,.png,.jpg,.jpeg';
+
+/**
+ * Ported from the Frontline "Application Request for Lane Change" (licensed
+ * teachers only) + the Procedures for Lane Changes PDF (revised Oct 2019).
+ * Name/email ride along from sign-in; the printed-name/EE# repeat and the
+ * "Send Form To" routing dropdown from Frontline are dropped.
+ */
+export const laneChange: FormDefinition = {
+  id: 'laneChange',
+  title: 'Lane Change Application',
+  description:
+    'Licensed teachers only — apply to move lanes on the salary schedule once qualifying coursework is complete.',
+  version: 1,
+  summaryFields: ['fromLane', 'toLane'],
+  sections: [
+    {
+      title: 'About you',
+      description: 'Your name and district email come from your sign-in.',
+      fields: [
+        {
+          id: 'employeeId',
+          type: 'text',
+          label: 'Employee #',
+          required: true,
+          pattern: '^\\d{1,6}$',
+          patternMessage: 'Digits only.',
+          maxLength: 6,
+        },
+        {
+          id: 'currentAssignment',
+          type: 'text',
+          label: 'Current teaching assignment',
+          required: true,
+        },
+        {
+          id: 'building',
+          type: 'select',
+          label: 'Building',
+          required: true,
+          options: SCHOOL_SITES,
+        },
+      ],
+    },
+    {
+      title: 'The lane change you are requesting',
+      fields: [
+        { id: 'fromLane', type: 'select', label: 'From current lane', required: true, options: LANES },
+        { id: 'toLane', type: 'select', label: 'To new lane', required: true, options: LANES },
+      ],
+    },
+    {
+      title: 'Pre-approval comes first',
+      info: [
+        'Prior to taking advanced coursework, you obtained pre-approval for specific classes. Upload copies of your pre-approval forms below.',
+        'Reminder: prior to earning a masters degree, only four (4) credits of each lane change may be in the General Education Courses category. After earning a masters degree, up to five (5) credits of each lane change may be in the General Education Courses category.',
+        'One (1) BloomBoard Micro-Credential is equivalent to one (1) General Education Course credit. BloomBoard Micro-Credentials may not be substituted for In-Field credits.',
+      ],
+      fields: [
+        {
+          id: 'preApprovalProgram',
+          type: 'file',
+          label: 'Pre-approval of a program',
+          accept: UPLOAD_ACCEPT,
+        },
+        {
+          id: 'preApprovalGenEd',
+          type: 'file',
+          label: 'Pre-approval of general education courses',
+          accept: UPLOAD_ACCEPT,
+        },
+        {
+          id: 'preApprovalInField',
+          type: 'file',
+          label: 'Pre-approval of in-field or methods courses in your teaching field',
+          accept: UPLOAD_ACCEPT,
+        },
+        {
+          id: 'bloomboardCert',
+          type: 'file',
+          label: 'Certificate of completion of BloomBoard micro-credential',
+          accept: UPLOAD_ACCEPT,
+        },
+      ],
+    },
+    {
+      title: 'Official transcripts',
+      info: [
+        'Contact your university and have official transcripts sent directly to Human Resources:',
+        'Dr. Scott E. Alger · Orono Public Schools ISD #278 · 685 Old Crystal Bay Road N., Long Lake, MN 55356 · scott.alger@orono.k12.mn.us',
+      ],
+      fields: [],
+    },
+    {
+      title: 'Courses in this lane change',
+      fields: [
+        {
+          id: 'courses',
+          type: 'table',
+          label: 'List the courses to be included in this lane change',
+          required: true,
+          maxRows: 30,
+          columns: [
+            { key: 'courseNumber', label: 'Course #', width: 1, maxLength: 30 },
+            { key: 'title', label: 'Course title / description', required: true, width: 3 },
+            { key: 'credits', label: 'Credits', required: true, width: 1, maxLength: 10 },
+            { key: 'college', label: 'College / university', required: true, width: 2 },
+          ],
+        },
+      ],
+    },
+    {
+      title: 'Timing and procedures',
+      info: [
+        'Lane changes are processed three times a year. Complete materials received by HR by October 1 are retroactive to the beginning of the school year; by February 1, effective February 15; by May 1, effective May 15.',
+        'A teacher may make no more than one lane change request per year — a second is allowed when it is due to degree completion.',
+        'Transcripts and all necessary forms must be received by Human Resources by the first of the month for adjusted payments to be initiated by the end of that month.',
+        'For more, see the Master Agreement, Section 5.16 Lane Changes, and the Lane Change Procedures document on the Staff Intranet.',
+      ],
+      fields: [],
+    },
+    {
+      title: 'Certification',
+      fields: [
+        {
+          id: 'signature',
+          type: 'signature',
+          label: 'Teacher signature',
+          required: true,
+          consent:
+            'By my signature I certify that all information I have provided is true, accurate and complete. By typing in your name (your "eSignature"), you accept and consent to be legally bound by this document\'s statements, terms and conditions as if this document was signed by you in writing with pen on paper. You agree that no third party or other means of verification is necessary to validate your eSignature and that the lack of such third party or other means of verification will not in any way affect the enforceability of this document.',
+        },
+      ],
+    },
+  ],
+};
+
 /** Registry of live forms, keyed by form id. */
 export const FORM_DEFINITIONS: Record<string, FormDefinition> = {
   [changeOfAddress.id]: changeOfAddress,
   [leaveOfAbsence.id]: leaveOfAbsence,
+  [laneChange.id]: laneChange,
 };
 
 export function getFormDefinition(id: string): FormDefinition | null {

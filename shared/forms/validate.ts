@@ -1,4 +1,12 @@
-import type { FormData, FormDefinition, FormField, FormSection, ShowIf } from './types';
+import type {
+  FileRef,
+  FormData,
+  FormDefinition,
+  FormField,
+  FormSection,
+  ShowIf,
+  TableRow,
+} from './types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[\d\s()+.-]{7,20}$/;
@@ -17,7 +25,11 @@ export function allFields(def: FormDefinition): FormField[] {
 
 function conditionMet(cond: ShowIf, data: FormData): boolean {
   const value = data[cond.field];
-  if (Array.isArray(value)) return typeof cond.equals === 'string' && value.includes(cond.equals);
+  if (Array.isArray(value)) {
+    return (
+      typeof cond.equals === 'string' && (value as unknown[]).some((x) => x === cond.equals)
+    );
+  }
   return value === cond.equals;
 }
 
@@ -103,7 +115,106 @@ export function validateForm(def: FormDefinition, data: FormData): ValidationRes
       continue;
     }
 
-    if (Array.isArray(raw)) {
+    if (field.type === 'file') {
+      if (raw === undefined || raw === null || raw === '') {
+        if (field.required) errors[field.id] = 'Attach a file.';
+        continue;
+      }
+      const ref = raw as FileRef;
+      if (
+        typeof ref !== 'object' ||
+        Array.isArray(ref) ||
+        typeof ref.path !== 'string' ||
+        typeof ref.name !== 'string'
+      ) {
+        errors[field.id] = 'Invalid file.';
+        continue;
+      }
+      const path = ref.path.trim();
+      const name = ref.name.trim();
+      if (!path || path.length > 500 || !name || name.length > 200) {
+        errors[field.id] = 'Invalid file.';
+        continue;
+      }
+      cleaned[field.id] = { path, name };
+      continue;
+    }
+
+    if (field.type === 'table') {
+      if (raw !== undefined && !Array.isArray(raw)) {
+        errors[field.id] = 'Invalid value.';
+        continue;
+      }
+      const cols = field.columns ?? [];
+      const colByKey = new Map(cols.map((c) => [c.key, c]));
+      const rowsRaw = (raw ?? []) as unknown[];
+      const maxRows = field.maxRows ?? 30;
+      if (rowsRaw.length > maxRows) {
+        errors[field.id] = `Too many rows (max ${maxRows}).`;
+        continue;
+      }
+      const rows: TableRow[] = [];
+      let problem: string | null = null;
+      for (const r of rowsRaw) {
+        if (typeof r !== 'object' || r === null || Array.isArray(r)) {
+          problem = 'Invalid value.';
+          break;
+        }
+        const row: TableRow = {};
+        let hasContent = false;
+        for (const [k, v] of Object.entries(r as Record<string, unknown>)) {
+          const col = colByKey.get(k);
+          if (!col || typeof v !== 'string') {
+            problem = 'Invalid value.';
+            break;
+          }
+          const cell = v.trim();
+          const max = col.maxLength ?? 200;
+          if (cell.length > max) {
+            problem = `Too long (max ${max} characters).`;
+            break;
+          }
+          if (cell) {
+            row[k] = cell;
+            hasContent = true;
+          }
+        }
+        if (problem) break;
+        if (!hasContent) continue; // a fully empty row is just dropped
+        const missing = cols.find((c) => c.required && !row[c.key]);
+        if (missing) {
+          problem = `Each row needs a ${missing.label.toLowerCase()}.`;
+          break;
+        }
+        rows.push(row);
+      }
+      if (problem) {
+        errors[field.id] = problem;
+        continue;
+      }
+      if (rows.length === 0) {
+        if (field.required) errors[field.id] = 'Add at least one row.';
+        continue;
+      }
+      cleaned[field.id] = rows;
+      continue;
+    }
+
+    if (field.type === 'signature') {
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      if (!value) {
+        if (field.required) errors[field.id] = 'Type your name to sign.';
+        continue;
+      }
+      if (value.length < 2 || value.length > 120) {
+        errors[field.id] = 'Enter your full name.';
+        continue;
+      }
+      cleaned[field.id] = value;
+      continue;
+    }
+
+    if (Array.isArray(raw) || (typeof raw === 'object' && raw !== null)) {
       errors[field.id] = 'Invalid value.';
       continue;
     }
@@ -161,7 +272,9 @@ export function buildSummary(def: FormDefinition, cleaned: FormData): string {
     .map((id) => {
       const v = cleaned[id];
       if (typeof v === 'string' && v.length > 0) return labelOf(id, v);
-      if (Array.isArray(v) && v.length > 0) return v.map((x) => labelOf(id, x)).join(', ');
+      if (Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string')) {
+        return (v as string[]).map((x) => labelOf(id, x)).join(', ');
+      }
       return null;
     })
     .filter((p): p is string => p !== null);

@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../../lib/auth';
 import {
   isFieldVisible,
   isSectionVisible,
   submitForm,
   validateForm,
+  type FileRef,
   type FormData,
   type FormDefinition,
   type FormField,
+  type FormValue,
+  type TableRow,
 } from '../../lib/forms';
+import { MAX_UPLOAD_BYTES, removeFormFile, uploadFormFile } from '../../lib/storage';
 import { Button } from '../../ds/components/core/Button';
+import { Icon } from '../../ds/components/core/Icon';
 import { Field } from '../../ds/components/forms/Field';
 import { ChoiceRow } from '../../ds/components/forms/ChoiceRow';
 import { FormSection } from '../../ds/components/forms/FormSection';
@@ -72,6 +78,219 @@ const GROUP_LABEL: React.CSSProperties = {
   margin: '0 0 8px',
 };
 
+const FIELD_ERROR: React.CSSProperties = {
+  font: 'var(--type-caption)',
+  color: 'var(--accent)',
+  margin: '4px 0 0',
+};
+
+const CELL_INPUT: React.CSSProperties = {
+  width: '100%',
+  border: '1px solid var(--border-input)',
+  borderRadius: 8,
+  padding: '7px 10px',
+  font: '400 13px/1.4 var(--font-sans)',
+  color: 'var(--dark)',
+  background: 'var(--surface-card)',
+  boxSizing: 'border-box',
+};
+
+function FileField({
+  field,
+  value,
+  error,
+  onChange,
+}: {
+  field: FormField;
+  value: FormValue | undefined;
+  error?: string;
+  onChange: (v: FormValue) => void;
+}) {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const current =
+    value && typeof value === 'object' && !Array.isArray(value) ? (value as FileRef) : null;
+
+  const pick = async (file: File | undefined) => {
+    if (!file || !user) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setLocalError('That file is over 15 MB — trim it down and try again.');
+      return;
+    }
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const uploaded = await uploadFormFile(user.uid, file);
+      if (current) removeFormFile(current);
+      onChange(uploaded);
+    } catch (err) {
+      console.error(err);
+      setLocalError('The upload failed — please try again.');
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const shown = localError ?? error;
+  return (
+    <div>
+      <p style={GROUP_LABEL}>{field.label}</p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={field.accept}
+        style={{ display: 'none' }}
+        onChange={(e) => void pick(e.target.files?.[0])}
+      />
+      {current ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            border: '1px solid var(--border-input)',
+            borderRadius: 8,
+            padding: '6px 6px 6px 12px',
+            maxWidth: 440,
+          }}
+        >
+          <span style={{ display: 'flex', color: 'var(--secondary)' }}>
+            <Icon name="fileText" size={14} />
+          </span>
+          <span
+            style={{
+              font: 'var(--type-body-sm)',
+              color: 'var(--dark)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+            }}
+          >
+            {current.name}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => {
+              removeFormFile(current);
+              onChange('');
+            }}
+          >
+            Remove
+          </Button>
+        </div>
+      ) : (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon="plus"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          {busy ? 'Uploading…' : 'Attach a file'}
+        </Button>
+      )}
+      {shown && <p style={FIELD_ERROR}>{shown}</p>}
+    </div>
+  );
+}
+
+function TableField({
+  field,
+  value,
+  error,
+  onChange,
+}: {
+  field: FormField;
+  value: FormValue | undefined;
+  error?: string;
+  onChange: (v: FormValue) => void;
+}) {
+  const cols = field.columns ?? [];
+  const rows: TableRow[] = Array.isArray(value)
+    ? (value as unknown[]).filter(
+        (r): r is TableRow => typeof r === 'object' && r !== null && !Array.isArray(r),
+      )
+    : [];
+  const grid = cols.map((c) => `${c.width ?? 1}fr`).join(' ') + ' 32px';
+  const maxRows = field.maxRows ?? 30;
+
+  const setCell = (i: number, key: string, v: string) =>
+    onChange(rows.map((r, ri) => (ri === i ? { ...r, [key]: v } : r)));
+  const removeRow = (i: number) => onChange(rows.filter((_, ri) => ri !== i));
+
+  return (
+    <div>
+      <p style={GROUP_LABEL}>{field.label}</p>
+      {rows.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8 }}>
+            {cols.map((c) => (
+              <span
+                key={c.key}
+                style={{
+                  font: 'var(--type-field-label)',
+                  letterSpacing: 'var(--tracking-wider)',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                {c.label}
+              </span>
+            ))}
+            <span />
+          </div>
+          {rows.map((row, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: grid, gap: 8 }}>
+              {cols.map((c) => (
+                <input
+                  key={c.key}
+                  value={row[c.key] ?? ''}
+                  onChange={(e) => setCell(i, c.key, e.target.value)}
+                  maxLength={c.maxLength ?? 200}
+                  aria-label={`${c.label}, row ${i + 1}`}
+                  style={CELL_INPUT}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                title="Remove this row"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: 'var(--text-placeholder)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <Button
+        size="sm"
+        variant="secondary"
+        icon="plus"
+        disabled={rows.length >= maxRows}
+        onClick={() => onChange([...rows, {}])}
+      >
+        {rows.length === 0 ? 'Add the first course' : 'Add another'}
+      </Button>
+      {error && <p style={FIELD_ERROR}>{error}</p>}
+    </div>
+  );
+}
+
 function FieldControl({
   field,
   value,
@@ -79,12 +298,41 @@ function FieldControl({
   onChange,
 }: {
   field: FormField;
-  value: string | boolean | string[] | undefined;
+  value: FormValue | undefined;
   error?: string;
-  onChange: (v: string | boolean | string[]) => void;
+  onChange: (v: FormValue) => void;
 }) {
+  if (field.type === 'file') {
+    return <FileField field={field} value={value} error={error} onChange={onChange} />;
+  }
+
+  if (field.type === 'table') {
+    return <TableField field={field} value={value} error={error} onChange={onChange} />;
+  }
+
+  if (field.type === 'signature') {
+    return (
+      <div>
+        <Field
+          label={field.label}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+          placeholder="Type your full name"
+          error={error}
+        />
+        {field.consent && (
+          <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '6px 0 0' }}>
+            {field.consent}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (field.type === 'checkboxes') {
-    const values = Array.isArray(value) ? value : [];
+    const values = Array.isArray(value)
+      ? (value as unknown[]).filter((x): x is string => typeof x === 'string')
+      : [];
     const toggle = (v: string) =>
       onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
     return (
@@ -254,7 +502,7 @@ export function FormRenderer({
 
   const hasDraft = useMemo(() => Object.keys(data).length > 0, [data]);
 
-  const setField = (id: string, v: string | boolean | string[]) => {
+  const setField = (id: string, v: FormValue) => {
     setData((d) => ({ ...d, [id]: v }));
     setErrors((e) => {
       if (!e[id]) return e;
@@ -289,6 +537,12 @@ export function FormRenderer({
   };
 
   const clearDraft = () => {
+    // Uploaded attachments belong to the draft — clear them out of Storage too.
+    for (const f of def.sections.flatMap((s) => s.fields)) {
+      if (f.type !== 'file') continue;
+      const v = data[f.id];
+      if (v && typeof v === 'object' && !Array.isArray(v)) removeFormFile(v as FileRef);
+    }
     localStorage.removeItem(`${DRAFT_PREFIX}${def.id}`);
     setData({});
     setErrors({});
