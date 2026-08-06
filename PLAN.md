@@ -160,8 +160,8 @@ just those. Existing employees and records are never updated or deleted by an im
       ownership), `table` (repeating typed rows), `signature` (typed-name eSignature
       with consent text). Frontline's name/email/printed-name/Send-To fields dropped
       (sign-in covers them); HR sees attachments as download links + a real course table.
-- [ ] **Joel:** enable Firebase Storage (console → Storage → Get Started, us-central1),
-      then `firebase deploy --only storage`; uploads fail until then
+- [x] Firebase Storage enabled (2026-08-06) + rules deployed (writes: own
+      `uploads/{uid}/` only, 15MB, doc/image types; reads: submitter/HR/IT)
 - [ ] **Joel:** confirm the lane ladder (`LANES` in shared/forms/definitions.ts is a
       placeholder: BA…BA+30, MA…MA+30) against the Master Agreement / Frontline dropdown;
       also confirm Dr. Alger is still the transcripts contact
