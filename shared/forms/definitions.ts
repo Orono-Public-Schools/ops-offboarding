@@ -153,7 +153,7 @@ const IF_NOTIFIED = { field: 'supervisorNotified', equals: 'yes' };
  */
 export const leaveOfAbsence: FormDefinition = {
   id: 'leaveOfAbsence',
-  title: 'Leave of Absence — Initial Notification',
+  title: 'Leave of Absence',
   description:
     'Tell Human Resources about an upcoming leave of absence. Details route directly to HR; other district officials only see what their specific role requires.',
   version: 1,
