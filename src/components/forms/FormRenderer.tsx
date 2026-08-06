@@ -64,11 +64,11 @@ function Linkified({ text }: { text: string }) {
   );
 }
 
+/** Question labels for choice groups read as sentences, bold and dark —
+ *  distinct from the small uppercase labels on text inputs. */
 const GROUP_LABEL: React.CSSProperties = {
-  font: 'var(--type-field-label)',
-  letterSpacing: 'var(--tracking-wider)',
-  textTransform: 'uppercase',
-  color: 'var(--text-muted)',
+  font: '600 13.5px/1.4 var(--font-sans)',
+  color: 'var(--dark)',
   margin: '0 0 8px',
 };
 
@@ -309,7 +309,7 @@ export function FormRenderer({
       {visibleSections.map(({ section, fields }, i) => (
         <FormSection
           key={section.title ?? i}
-          step={i + 1}
+          eyebrow={`Step ${i + 1} of ${visibleSections.length}`}
           title={section.title ?? ''}
           description={section.description}
         >
