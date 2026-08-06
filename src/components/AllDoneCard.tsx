@@ -46,9 +46,21 @@ export function AllDoneCard({ flow, lastDay, buildingLabel }: Props) {
       eyebrow="All done"
       heading={headline}
       footer={
-        <QuietLink icon="mail" href="mailto:support@orono.k12.mn.us">
-          If something changes or you have follow-up questions, email us
-        </QuietLink>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+          {flow === 'leaving' && (
+            <QuietLink
+              icon="fileText"
+              href="/docs/termination-details.pdf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              What happens next — insurance, pension, and access after your last day
+            </QuietLink>
+          )}
+          <QuietLink icon="mail" href="mailto:support@orono.k12.mn.us">
+            If something changes or you have follow-up questions, email us
+          </QuietLink>
+        </div>
       }
     >
       <div className="flex items-start gap-3">

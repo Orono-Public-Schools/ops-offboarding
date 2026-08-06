@@ -130,6 +130,14 @@ export function HomeScreen() {
             <QuietLink icon="mail" href="mailto:hr@orono.k12.mn.us">
               Ask HR a question
             </QuietLink>
+            <QuietLink
+              icon="fileText"
+              href="/docs/onboarding-details.pdf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              New to Orono? What you need to know
+            </QuietLink>
           </div>
         }
       >

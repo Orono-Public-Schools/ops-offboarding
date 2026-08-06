@@ -6,6 +6,7 @@ import { SupervisorBanner } from '../components/SupervisorBanner';
 import { markTaskComplete } from '../lib/functions';
 import { Button } from '../ds/components/core/Button';
 import { Card } from '../ds/components/core/Card';
+import { QuietLink } from '../ds/components/core/QuietLink';
 import { RowList } from '../ds/components/forms/RowList';
 import { ChecklistItem } from '../ds/components/records/ChecklistItem';
 import { EmptyState } from '../ds/components/records/EmptyState';
@@ -165,6 +166,19 @@ export function DashboardScreen() {
             </span>
           }
           pad={16}
+          footer={
+            isLeaving ? (
+              <QuietLink
+                icon="fileText"
+                href="/docs/termination-details.pdf"
+                target="_blank"
+                rel="noreferrer"
+              >
+                What happens to your insurance, pension, and access — the district&#39;s
+                termination details
+              </QuietLink>
+            ) : undefined
+          }
         >
           {toggleError && (
             <p
