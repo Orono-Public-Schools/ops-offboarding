@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { useIsHR } from '../../lib/auth';
+import { useAuth, useIsHR } from '../../lib/auth';
 import {
   allFieldsForSubmission,
   updateSubmissionStatus,
@@ -8,10 +8,10 @@ import {
   type Submission,
   type SubmissionStatus,
 } from '../../lib/forms';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
-import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { StatusTrack } from '../../ds/components/records/StatusTrack';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
@@ -115,6 +115,7 @@ export function SubmissionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isHR = useIsHR();
+  const { user } = useAuth();
   const state = useSubmission(id ?? null);
 
   if (state.loading) {
@@ -148,13 +149,18 @@ export function SubmissionDetail() {
 
   const s = state.submission;
   const denied = s.status === 'denied';
+  // HR reading someone else's submission came from the inbox; the submitter
+  // (HR or not) came from their forms page.
+  const hrView = isHR && s.submitterUid !== user?.uid;
 
   return (
     <>
-      <PageTitle
-        eyebrow={`${s.id} · filed ${formatTs(s.createdAt)}`}
+      <ScreenHeader
+        crumb={hrView ? 'HR inbox' : 'HR forms'}
+        onBack={() => navigate(hrView ? '/hr' : '/forms')}
         title={s.formTitle}
         subtitle={denied ? 'This one came back — the note below says why.' : undefined}
+        note={`${s.id} · filed ${formatTs(s.createdAt)}`}
         actions={<StatusBadge state={s.status} size="md" />}
       />
 

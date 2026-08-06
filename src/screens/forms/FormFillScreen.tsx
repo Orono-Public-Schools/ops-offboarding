@@ -1,8 +1,8 @@
 import { useNavigate, useParams } from 'react-router';
 import { FormRenderer } from '../../components/forms/FormRenderer';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { getFormDefinition } from '../../lib/forms';
 import { Button } from '../../ds/components/core/Button';
-import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 
 export function FormFillScreen() {
@@ -27,15 +27,12 @@ export function FormFillScreen() {
 
   return (
     <>
-      <PageTitle
-        eyebrow="HR forms"
+      <ScreenHeader
+        crumb="HR forms"
+        onBack={() => navigate('/forms')}
         title={def.title}
-        subtitle={`${def.description} Your draft saves as you type — you can stop halfway.`}
-        actions={
-          <Button variant="secondary" onClick={() => navigate('/forms')}>
-            Back
-          </Button>
-        }
+        subtitle={def.description}
+        note="Your draft saves as you type — stop halfway and it will be here when you come back."
       />
       <FormRenderer def={def} onSubmitted={(id) => navigate(`/forms/submissions/${id}`)} />
     </>
