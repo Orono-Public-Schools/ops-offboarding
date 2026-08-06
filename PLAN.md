@@ -141,10 +141,24 @@ just those. Existing employees and records are never updated or deleted by an im
       (design-option artifacts: new-employees section 0058d27a…, roster 9e01fac0…)
 
 ### Phase 3 — Form engine + first forms
-- [ ] Schema-driven form renderer (field types, validation, conditional visibility, sections) + Zod shared client/server
-- [ ] Routing/approval: statuses `submitted → supervisor_approved → hr_processing → completed` (+ denied/revisions/cancelled), frozen chains, activity log
+- [x] Schema-driven form renderer + shared validator (definitions in `shared/forms/`, one
+      source for client + callable). Engine supports: text/email/phone/date/select/radio/
+      checkbox/textarea, multi-select `checkboxes` (string[]), field- AND section-level
+      `showIf` (single or ANDed conditions, array values match by inclusion), info-only
+      sections with linkified paragraphs, `blocking` sections (Send disabled client-side
+      and validator refuses server-side), option descriptions, label-aware summaries.
+- [x] Change of Address (pilot form)
+- [x] Leave of Absence — Initial Notification (2026-08-06, ported from HR's Google Form):
+      supervisor-notified gate, sites/job title/EE#, reason **category only** (MGDPA —
+      no medical detail), dates, leave type with conditional PFML / FMLA / extended-unpaid
+      explainer sections, FMLA pay-category picker (+Other), HR-meeting ask. Name/email
+      come from sign-in. Deviations from the Google Form: name fields dropped (SSO),
+      single-page conditional flow instead of paged sections.
+- [ ] Routing/approval: statuses `submitted → supervisor_approved → hr_processing → completed` (+ denied/revisions/cancelled), frozen chains, activity log (today: submitted/processing/completed/denied, HR-only status changes)
+- [ ] LOA submission → `leaves` record: HR affordance to create the leave from the
+      submission (today HR reads the inbox and keys the record by hand)
 - [ ] Email notifications (Trigger Email extension), PDF generation + Drive filing
-- [ ] Forms in order: change of address → lane change → contract change → LOA
+- [ ] Remaining forms: lane change → contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
 
 ### Phase 4 — Onboarding
