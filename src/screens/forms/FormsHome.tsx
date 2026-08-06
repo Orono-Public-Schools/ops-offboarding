@@ -72,20 +72,13 @@ export function FormsHome() {
           {forms.map((f) => (
             <ModuleCard
               key={f.id}
-              icon="home"
+              icon={f.id === 'leaveOfAbsence' ? 'calendar' : 'home'}
               title={f.title}
               description={f.description}
-              meta="4 min"
+              meta={f.id === 'leaveOfAbsence' ? '5 min' : '4 min'}
               onClick={() => navigate(`/forms/${f.id}`)}
             />
           ))}
-          <ModuleCard
-            icon="calendar"
-            title="Leave of absence"
-            description="Medical, parental, family, or personal. Coming soon."
-            meta="Soon"
-            disabled
-          />
           <ModuleCard
             icon="fileText"
             title="Lane change"

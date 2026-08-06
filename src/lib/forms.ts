@@ -13,7 +13,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app, db } from './firebase';
 import type { FormData, SubmissionStatus } from '../../shared/forms/types';
 import { getFormDefinition } from '../../shared/forms/definitions';
-import { allFields, isFieldVisible } from '../../shared/forms/validate';
+import { visibleFields } from '../../shared/forms/validate';
 
 export type { FormData, SubmissionStatus } from '../../shared/forms/types';
 export type { FormDefinition, FormField, FormSection } from '../../shared/forms/types';
@@ -22,7 +22,7 @@ export {
   getFormDefinition,
   changeOfAddress,
 } from '../../shared/forms/definitions';
-export { isFieldVisible, validateForm } from '../../shared/forms/validate';
+export { isFieldVisible, isSectionVisible, validateForm } from '../../shared/forms/validate';
 
 const functions = getFunctions(app, 'us-central1');
 
@@ -166,14 +166,25 @@ export function useSubmission(id: string | null): DetailState {
 export function allFieldsForSubmission(s: Submission): { label: string; value: string }[] {
   const def = getFormDefinition(s.formId);
   if (!def) {
-    return Object.entries(s.data).map(([k, v]) => ({ label: k, value: String(v) }));
+    return Object.entries(s.data).map(([k, v]) => ({
+      label: k,
+      value: Array.isArray(v) ? v.join(', ') : String(v),
+    }));
   }
   const entries: { label: string; value: string }[] = [];
-  for (const field of allFields(def)) {
-    if (!isFieldVisible(field, s.data)) continue;
+  for (const field of visibleFields(def, s.data)) {
     const raw = s.data[field.id];
     if (raw === undefined || raw === '') continue;
-    const value = field.type === 'checkbox' ? (raw === true ? 'Yes' : 'No') : String(raw);
+    const labelOf = (v: string) => field.options?.find((o) => o.value === v)?.label ?? v;
+    let value: string;
+    if (field.type === 'checkbox') {
+      value = raw === true ? 'Yes' : 'No';
+    } else if (Array.isArray(raw)) {
+      if (raw.length === 0) continue;
+      value = raw.map(labelOf).join(', ');
+    } else {
+      value = labelOf(String(raw));
+    }
     entries.push({ label: field.label, value });
   }
   return entries;

@@ -1,4 +1,4 @@
-import type { FormData, FormDefinition, FormField } from './types';
+import type { FormData, FormDefinition, FormField, FormSection, ShowIf } from './types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[\d\s()+.-]{7,20}$/;
@@ -15,9 +15,32 @@ export function allFields(def: FormDefinition): FormField[] {
   return def.sections.flatMap((s) => s.fields);
 }
 
+function conditionMet(cond: ShowIf, data: FormData): boolean {
+  const value = data[cond.field];
+  if (Array.isArray(value)) return typeof cond.equals === 'string' && value.includes(cond.equals);
+  return value === cond.equals;
+}
+
+function conditionsMet(showIf: ShowIf | ShowIf[] | undefined, data: FormData): boolean {
+  if (!showIf) return true;
+  const conds = Array.isArray(showIf) ? showIf : [showIf];
+  return conds.every((c) => conditionMet(c, data));
+}
+
+export function isSectionVisible(section: FormSection, data: FormData): boolean {
+  return conditionsMet(section.showIf, data);
+}
+
 export function isFieldVisible(field: FormField, data: FormData): boolean {
-  if (!field.showIf) return true;
-  return data[field.showIf.field] === field.showIf.equals;
+  return conditionsMet(field.showIf, data);
+}
+
+/** Fields that are live given the current answers: visible section AND
+ *  visible field. Hidden fields are neither validated nor kept. */
+export function visibleFields(def: FormDefinition, data: FormData): FormField[] {
+  return def.sections
+    .filter((s) => isSectionVisible(s, data))
+    .flatMap((s) => s.fields.filter((f) => isFieldVisible(f, data)));
 }
 
 export type ValidationResult = {
@@ -35,8 +58,13 @@ export type ValidationResult = {
 export function validateForm(def: FormDefinition, data: FormData): ValidationResult {
   const errors: Record<string, string> = {};
   const cleaned: FormData = {};
-  const fields = allFields(def);
-  const knownIds = new Set(fields.map((f) => f.id));
+  const knownIds = new Set(allFields(def).map((f) => f.id));
+
+  // A visible blocking section means "not yet" — the client disables Send,
+  // and this keeps a hand-crafted call from submitting anyway.
+  if (def.sections.some((s) => s.blocking === true && isSectionVisible(s, data))) {
+    errors._form = 'This form cannot be submitted yet.';
+  }
 
   for (const key of Object.keys(data)) {
     if (!knownIds.has(key)) {
@@ -44,8 +72,7 @@ export function validateForm(def: FormDefinition, data: FormData): ValidationRes
     }
   }
 
-  for (const field of fields) {
-    if (!isFieldVisible(field, data)) continue;
+  for (const field of visibleFields(def, data)) {
     const raw = data[field.id];
 
     if (field.type === 'checkbox') {
@@ -54,6 +81,30 @@ export function validateForm(def: FormDefinition, data: FormData): ValidationRes
         continue;
       }
       cleaned[field.id] = raw === true;
+      continue;
+    }
+
+    if (field.type === 'checkboxes') {
+      if (raw !== undefined && !Array.isArray(raw)) {
+        errors[field.id] = 'Invalid value.';
+        continue;
+      }
+      const values = (raw ?? []).filter((v): v is string => typeof v === 'string');
+      const allowed = new Set((field.options ?? []).map((o) => o.value));
+      if (values.some((v) => !allowed.has(v))) {
+        errors[field.id] = 'Choose from the listed options.';
+        continue;
+      }
+      if (values.length === 0) {
+        if (field.required) errors[field.id] = 'Check at least one.';
+        continue;
+      }
+      cleaned[field.id] = values;
+      continue;
+    }
+
+    if (Array.isArray(raw)) {
+      errors[field.id] = 'Invalid value.';
       continue;
     }
 
@@ -100,10 +151,19 @@ export function validateForm(def: FormDefinition, data: FormData): ValidationRes
   return { ok: Object.keys(errors).length === 0, errors, cleaned };
 }
 
-/** Build the denormalized list-view summary for a submission. */
+/** Build the denormalized list-view summary for a submission. Option values
+ *  are shown as their labels, arrays joined. */
 export function buildSummary(def: FormDefinition, cleaned: FormData): string {
+  const fieldsById = new Map(allFields(def).map((f) => [f.id, f]));
+  const labelOf = (fieldId: string, value: string): string =>
+    fieldsById.get(fieldId)?.options?.find((o) => o.value === value)?.label ?? value;
   const parts = (def.summaryFields ?? [])
-    .map((id) => cleaned[id])
-    .filter((v): v is string => typeof v === 'string' && v.length > 0);
-  return parts.length > 0 ? parts.join(', ') : def.title;
+    .map((id) => {
+      const v = cleaned[id];
+      if (typeof v === 'string' && v.length > 0) return labelOf(id, v);
+      if (Array.isArray(v) && v.length > 0) return v.map((x) => labelOf(id, x)).join(', ');
+      return null;
+    })
+    .filter((p): p is string => p !== null);
+  return parts.length > 0 ? parts.join(' · ') : def.title;
 }

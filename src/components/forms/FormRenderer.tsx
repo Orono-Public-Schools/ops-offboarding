@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   isFieldVisible,
+  isSectionVisible,
   submitForm,
   validateForm,
   type FormData,
@@ -39,6 +40,38 @@ function inputType(field: FormField): string {
   }
 }
 
+/** Bare https:// URLs in info text become real links. */
+function Linkified({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith('http') ? (
+          <a
+            key={i}
+            href={p}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+          >
+            {p}
+          </a>
+        ) : (
+          p
+        ),
+      )}
+    </>
+  );
+}
+
+const GROUP_LABEL: React.CSSProperties = {
+  font: 'var(--type-field-label)',
+  letterSpacing: 'var(--tracking-wider)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  margin: '0 0 8px',
+};
+
 function FieldControl({
   field,
   value,
@@ -46,10 +79,49 @@ function FieldControl({
   onChange,
 }: {
   field: FormField;
-  value: string | boolean | undefined;
+  value: string | boolean | string[] | undefined;
   error?: string;
-  onChange: (v: string | boolean) => void;
+  onChange: (v: string | boolean | string[]) => void;
 }) {
+  if (field.type === 'checkboxes') {
+    const values = Array.isArray(value) ? value : [];
+    const toggle = (v: string) =>
+      onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
+    return (
+      <div>
+        <p style={GROUP_LABEL}>{field.label}</p>
+        {field.helper && (
+          <p
+            style={{
+              font: 'var(--type-caption)',
+              color: 'var(--text-muted)',
+              margin: '-4px 0 8px',
+            }}
+          >
+            {field.helper}
+          </p>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {field.options?.map((o) => (
+            <ChoiceRow
+              key={o.value}
+              type="checkbox"
+              title={o.label}
+              description={o.description}
+              checked={values.includes(o.value)}
+              onChange={() => toggle(o.value)}
+            />
+          ))}
+        </div>
+        {error && (
+          <p style={{ font: 'var(--type-caption)', color: 'var(--accent)', margin: '4px 0 0' }}>
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (field.type === 'checkbox') {
     return (
       <div>
@@ -72,17 +144,18 @@ function FieldControl({
   if (field.type === 'radio') {
     return (
       <div>
-        <p
-          style={{
-            font: 'var(--type-field-label)',
-            letterSpacing: 'var(--tracking-wider)',
-            textTransform: 'uppercase',
-            color: 'var(--text-muted)',
-            margin: '0 0 8px',
-          }}
-        >
-          {field.label}
-        </p>
+        <p style={GROUP_LABEL}>{field.label}</p>
+        {field.helper && (
+          <p
+            style={{
+              font: 'var(--type-caption)',
+              color: 'var(--text-muted)',
+              margin: '-4px 0 8px',
+            }}
+          >
+            {field.helper}
+          </p>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {field.options?.map((o) => (
             <ChoiceRow
@@ -90,6 +163,7 @@ function FieldControl({
               type="radio"
               name={field.id}
               title={o.label}
+              description={o.description}
               checked={value === o.value}
               onChange={() => onChange(o.value)}
             />
@@ -180,7 +254,7 @@ export function FormRenderer({
 
   const hasDraft = useMemo(() => Object.keys(data).length > 0, [data]);
 
-  const setField = (id: string, v: string | boolean) => {
+  const setField = (id: string, v: string | boolean | string[]) => {
     setData((d) => ({ ...d, [id]: v }));
     setErrors((e) => {
       if (!e[id]) return e;
@@ -220,32 +294,50 @@ export function FormRenderer({
     setErrors({});
   };
 
+  const visibleSections = def.sections
+    .filter((s) => isSectionVisible(s, data))
+    .map((section) => ({
+      section,
+      fields: section.fields.filter((f) => isFieldVisible(f, data)),
+    }))
+    // A section earns its card with fields to fill or info to read.
+    .filter(({ section, fields }) => fields.length > 0 || (section.info?.length ?? 0) > 0);
+  const blocked = visibleSections.some(({ section }) => section.blocking === true);
+
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {def.sections.map((section, i) => {
-        const visibleFields = section.fields.filter((f) => isFieldVisible(f, data));
-        if (visibleFields.length === 0) return null;
-        return (
-          <FormSection
-            key={i}
-            step={i + 1}
-            title={section.title ?? ''}
-            description={section.description}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {visibleFields.map((field) => (
-                <FieldControl
-                  key={field.id}
-                  field={field}
-                  value={data[field.id]}
-                  error={errors[field.id]}
-                  onChange={(v) => setField(field.id, v)}
-                />
-              ))}
-            </div>
-          </FormSection>
-        );
-      })}
+      {visibleSections.map(({ section, fields }, i) => (
+        <FormSection
+          key={section.title ?? i}
+          step={i + 1}
+          title={section.title ?? ''}
+          description={section.description}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {section.info?.map((paragraph, pi) => (
+              <p
+                key={pi}
+                style={{
+                  font: 'var(--type-body-sm)',
+                  color: 'var(--text-muted)',
+                  margin: 0,
+                }}
+              >
+                <Linkified text={paragraph} />
+              </p>
+            ))}
+            {fields.map((field) => (
+              <FieldControl
+                key={field.id}
+                field={field}
+                value={data[field.id]}
+                error={errors[field.id]}
+                onChange={(v) => setField(field.id, v)}
+              />
+            ))}
+          </div>
+        </FormSection>
+      ))}
 
       {submitError && (
         <p
@@ -269,8 +361,8 @@ export function FormRenderer({
             Clear the form
           </Button>
         )}
-        <Button type="submit" variant="submit" icon="send" disabled={submitting}>
-          {submitting ? 'Sending…' : 'Send to HR'}
+        <Button type="submit" variant="submit" icon="send" disabled={submitting || blocked}>
+          {blocked ? 'Come back once your supervisor knows' : submitting ? 'Sending…' : 'Send to HR'}
         </Button>
       </div>
     </form>

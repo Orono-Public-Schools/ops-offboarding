@@ -10,7 +10,12 @@
  * copy.
  */
 
-export type FieldOption = { value: string; label: string };
+export type FieldOption = {
+  value: string;
+  label: string;
+  /** Longer explanation rendered under the option's label (radio/checkboxes). */
+  description?: string;
+};
 
 export type FormFieldType =
   | 'text'
@@ -20,7 +25,16 @@ export type FormFieldType =
   | 'select'
   | 'radio'
   | 'checkbox'
+  /** Multi-select: value is a string[] of chosen option values. */
+  | 'checkboxes'
   | 'textarea';
+
+/**
+ * A visibility condition. When the target field holds an array (a
+ * `checkboxes` value), `equals` matches if the array includes it.
+ * Multiple conditions are ANDed.
+ */
+export type ShowIf = { field: string; equals: string | boolean };
 
 export type FormField = {
   id: string;
@@ -30,20 +44,28 @@ export type FormField = {
   placeholder?: string;
   /** Small helper text rendered under the field. */
   helper?: string;
-  /** Choices for select/radio fields. */
+  /** Choices for select/radio/checkboxes fields. */
   options?: FieldOption[];
   maxLength?: number;
   /** Regex source the (string) value must match. */
   pattern?: string;
   patternMessage?: string;
-  /** Render + validate this field only when another field has a given value. */
-  showIf?: { field: string; equals: string | boolean };
+  /** Render + validate this field only when the condition(s) hold. */
+  showIf?: ShowIf | ShowIf[];
 };
 
 export type FormSection = {
   title?: string;
   description?: string;
+  /** Informational paragraphs rendered before the fields (may be the whole
+   *  section — `fields: []` makes a pure info section). Bare URLs linkify. */
+  info?: string[];
   fields: FormField[];
+  /** Render + validate this section only when the condition(s) hold. */
+  showIf?: ShowIf | ShowIf[];
+  /** While visible, the form cannot be submitted (e.g. "come back after
+   *  you've told your supervisor"). */
+  blocking?: boolean;
 };
 
 export type FormDefinition = {
@@ -58,7 +80,7 @@ export type FormDefinition = {
 };
 
 /** A submission's raw field values, keyed by field id. */
-export type FormData = Record<string, string | boolean>;
+export type FormData = Record<string, string | boolean | string[]>;
 
 export type SubmissionStatus = 'submitted' | 'processing' | 'completed' | 'denied';
 
