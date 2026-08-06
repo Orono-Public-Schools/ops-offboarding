@@ -154,12 +154,24 @@ just those. Existing employees and records are never updated or deleted by an im
       explainer sections, FMLA pay-category picker (+Other), HR-meeting ask. Name/email
       come from sign-in. Deviations from the Google Form: name fields dropped (SSO),
       single-page conditional flow instead of paged sections.
+- [x] Lane Change Application (2026-08-06, ported from Frontline + the Procedures PDF).
+      Engine gained three more field types: `file` (Storage uploads under
+      `uploads/{uid}/`, 15MB doc/image cap, submitter/HR/IT read, server verifies path
+      ownership), `table` (repeating typed rows), `signature` (typed-name eSignature
+      with consent text). Frontline's name/email/printed-name/Send-To fields dropped
+      (sign-in covers them); HR sees attachments as download links + a real course table.
+- [ ] **Joel:** enable Firebase Storage (console → Storage → Get Started, us-central1),
+      then `firebase deploy --only storage`; uploads fail until then
+- [ ] **Joel:** confirm the lane ladder (`LANES` in shared/forms/definitions.ts is a
+      placeholder: BA…BA+30, MA…MA+30) against the Master Agreement / Frontline dropdown;
+      also confirm Dr. Alger is still the transcripts contact
 - [ ] Routing/approval: statuses `submitted → supervisor_approved → hr_processing → completed` (+ denied/revisions/cancelled), frozen chains, activity log (today: submitted/processing/completed/denied, HR-only status changes)
 - [ ] LOA submission → `leaves` record: HR affordance to create the leave from the
       submission (today HR reads the inbox and keys the record by hand)
 - [ ] Email notifications (Trigger Email extension), PDF generation + Drive filing
-- [ ] Remaining forms: lane change → contract change
+- [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
+- [ ] **Later:** lifecycle cleanup for orphaned uploads (drafts abandoned before submit)
 
 ### Phase 4 — Onboarding
 - [ ] HR half: create onboarding record at hire (board date, contract sent, employee ID, IT account request)
