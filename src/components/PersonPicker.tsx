@@ -11,20 +11,6 @@ type Props = {
   onConfirm: (person: StaffRecord) => Promise<void>;
 };
 
-/* Hatched photo slot per the design system — initials-in-a-circle is
-   deliberately not offered (see src/ds readme, "People"). */
-function PersonSlot() {
-  return (
-    <div
-      className="h-9 w-9 shrink-0 rounded-lg"
-      style={{
-        background: 'repeating-linear-gradient(45deg, var(--tint) 0 4px, #f6f7fb 4px 8px)',
-        border: '1px solid var(--border-input)',
-      }}
-    />
-  );
-}
-
 export function PersonPicker({
   open,
   title,
@@ -212,7 +198,6 @@ export function PersonPicker({
                       padding: '0.5rem 0.75rem',
                     }}
                   >
-                    <PersonSlot />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold" style={{ color: '#1d2a5d' }}>
                         {person.displayName}
