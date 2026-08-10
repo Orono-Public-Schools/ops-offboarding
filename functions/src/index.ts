@@ -3,7 +3,7 @@
 // firebase-admin's initializeApp() runs in ./shared, which every module
 // imports first.
 
-export { healthcheck, enforceDomain, listAdmins, setAdminClaim } from './adminRoles';
+export { healthcheck, enforceDomain, listRoleHolders, setUserRole } from './adminRoles';
 export { syncStaffRoster, scheduledStaffRosterSync } from './staffRoster';
 export {
   startOffboarding,

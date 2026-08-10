@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { AdminListCard } from '../../components/AdminListCard';
+import { RolesCard } from '../../components/RolesCard';
+import { StaffDirectoryCard } from '../../components/StaffDirectoryCard';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -269,7 +270,7 @@ export function AdminDashboard() {
   const headline =
     tab === 'staff'
       ? staffCount
-        ? `${staffCount} people on the roster`
+        ? `${staffCount} staff synced`
         : 'Staff & access'
       : tab === 'onboarding'
         ? 'Onboarding has no settings yet'
@@ -282,7 +283,7 @@ export function AdminDashboard() {
               : `${inMotion} offboardings in motion`;
   const subtitle =
     tab === 'staff'
-      ? 'The roster sync and who can work this dashboard.'
+      ? 'The nightly staff sync, the directory, and who holds which role.'
       : tab === 'onboarding'
         ? 'When onboarding opens, new-hire settings and checklists will live here.'
         : tab === 'forms'
@@ -501,7 +502,7 @@ export function AdminDashboard() {
       {tab === 'staff' && (
         <Card
           collapsible
-          eyebrow="Roster"
+          eyebrow="Staff sync"
           heading="Synced nightly at 3:00 AM Central"
           headingRight={
             <Button
@@ -542,14 +543,16 @@ export function AdminDashboard() {
           <p
             style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '12px 0 0' }}
           >
-            Use Sync now if you’ve just edited the roster sheet and need staff to show up
+            Use Sync now if you’ve just edited the staff sheet and need someone to show up
             immediately.
           </p>
           {syncMessage && <p style={messageStyle(syncMessage.kind)}>{syncMessage.text}</p>}
         </Card>
       )}
 
-      {tab === 'staff' && <AdminListCard />}
+      {tab === 'staff' && <StaffDirectoryCard />}
+
+      {tab === 'staff' && <RolesCard />}
     </>
   );
 }

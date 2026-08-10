@@ -39,6 +39,15 @@ export function initialTasks() {
   return Object.fromEntries(TASK_KEYS.map((k) => [k, { status: 'not_started', help: null }]));
 }
 
+/** HR access level from custom claims. `it_admin` and legacy `hr: true`
+ *  count as admin level; `hr: 'staff'` is day-to-day access only. */
+export function hrLevel(token: Record<string, unknown>): 'admin' | 'staff' | null {
+  if (token.it_admin === true) return 'admin';
+  if (token.hr === true || token.hr === 'admin') return 'admin';
+  if (token.hr === 'staff') return 'staff';
+  return null;
+}
+
 export function requireAuthedDomainUser(request: {
   auth?: { uid: string; token: { email?: string } };
 }) {

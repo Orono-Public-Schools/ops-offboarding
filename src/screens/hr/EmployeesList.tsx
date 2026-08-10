@@ -27,6 +27,7 @@ import {
   type HrTaskState,
   type ProcessType,
 } from '../../lib/hr';
+import { useIsHrAdmin } from '../../lib/auth';
 import { useStaff, type StaffRecord } from '../../lib/staff';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
@@ -234,6 +235,7 @@ function DossierPanel({
   google: StaffRecord | null;
 }) {
   const navigate = useNavigate();
+  const isHrAdmin = useIsHrAdmin();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -487,9 +489,11 @@ function DossierPanel({
               Cancel
             </Button>
             <div style={{ flex: 1 }} />
-            <Button size="sm" variant="destructive" disabled={saving} onClick={remove}>
-              Remove employee
-            </Button>
+            {isHrAdmin && (
+              <Button size="sm" variant="destructive" disabled={saving} onClick={remove}>
+                Remove employee
+              </Button>
+            )}
           </div>
         </div>
       ) : (
@@ -623,6 +627,7 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
   const navigate = useNavigate();
   const ctx = useHrCtx();
   const staffState = useStaff();
+  const isHrAdminList = useIsHrAdmin();
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -969,7 +974,9 @@ export function EmployeesList({ kind }: { kind: ProcessType }) {
         )}
       </Card>
 
-      {!isCe && <ImportCard defaultOpen={!ctx.employees.loading && people.length === 0} />}
+      {!isCe && isHrAdminList && (
+        <ImportCard defaultOpen={!ctx.employees.loading && people.length === 0} />
+      )}
     </>
   );
 }

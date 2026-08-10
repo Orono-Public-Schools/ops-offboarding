@@ -125,14 +125,32 @@ export const setEoySettings = httpsCallable<
   { returnDate: string | null }
 >(functions, 'setEoySettings');
 
-export type AdminRecord = { uid: string; email: string; displayName: string | null };
+export type RoleName = 'it_admin' | 'hr_admin' | 'hr_staff';
 
-export const listAdmins = httpsCallable<void, { admins: AdminRecord[] }>(functions, 'listAdmins');
+export type RoleHolder = {
+  uid: string;
+  email: string;
+  displayName: string | null;
+  itAdmin: boolean;
+  hrRole: 'admin' | 'staff' | null;
+};
 
-export const setAdminClaim = httpsCallable<
-  { email: string; grant: boolean },
-  { success: boolean; uid: string; email: string; grant: boolean; displayName: string | null }
->(functions, 'setAdminClaim');
+export const listRoleHolders = httpsCallable<void, { holders: RoleHolder[] }>(
+  functions,
+  'listRoleHolders',
+);
+
+export const setUserRole = httpsCallable<
+  { email: string; role: RoleName; grant: boolean },
+  {
+    success: boolean;
+    uid: string;
+    email: string;
+    role: RoleName;
+    grant: boolean;
+    displayName: string | null;
+  }
+>(functions, 'setUserRole');
 
 export const transferFileOwnership = httpsCallable<
   { fileId: string; newOwnerEmail: string; googleAccessToken: string },

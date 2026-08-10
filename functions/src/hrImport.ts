@@ -2,7 +2,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { google } from 'googleapis';
 
-import { REGION, requireAuthedDomainUser } from './shared';
+import { REGION, hrLevel, requireAuthedDomainUser } from './shared';
 import { EMPLOYEE_ID_COUNTER_DOC, reconcileGoogleAccounts } from './hr';
 import {
   buildImportPlan,
@@ -105,9 +105,8 @@ export const importHrMasterSheet = onCall(
   { region: REGION, timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
     const actor = requireAuthedDomainUser(request);
-    const token = (request.auth?.token ?? {}) as Record<string, unknown>;
-    if (token.hr !== true && token.it_admin !== true) {
-      throw new HttpsError('permission-denied', 'HR access required.');
+    if (hrLevel((request.auth?.token ?? {}) as Record<string, unknown>) !== 'admin') {
+      throw new HttpsError('permission-denied', 'HR admin access required.');
     }
     const data = (request.data ?? {}) as { mode?: string; include?: unknown };
     const mode = data.mode;

@@ -20,6 +20,7 @@ import {
   type HrTaskState,
   type LeaveStatus,
 } from '../../lib/hr';
+import { useIsHrAdmin } from '../../lib/auth';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
 import { QuietLink } from '../../ds/components/core/QuietLink';
@@ -52,6 +53,7 @@ function badgeFor(r: HrRecordDoc) {
 export function HrRecordDetail() {
   const { coll, id } = useParams();
   const navigate = useNavigate();
+  const isHrAdmin = useIsHrAdmin();
   const collection = isCollection(coll) ? coll : null;
   const state = useHrRecord(collection, id ?? null);
 
@@ -386,9 +388,11 @@ export function HrRecordDetail() {
         <QuietLink onClick={() => navigate(`/hr/employees/${r.employeeRef}`)}>
           View {r.employeeName}'s full record
         </QuietLink>
-        <Button size="sm" variant="destructive" disabled={busy} onClick={remove}>
-          Delete record
-        </Button>
+        {isHrAdmin && (
+          <Button size="sm" variant="destructive" disabled={busy} onClick={remove}>
+            Delete record
+          </Button>
+        )}
       </div>
     </>
   );

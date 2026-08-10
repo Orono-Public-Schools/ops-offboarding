@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
  * Grant (or revoke) a role custom claim on a Firebase Auth user.
- * Roles: it_admin (default), hr.
+ * Roles: it_admin (default), hr_admin, hr_staff. (The admin dashboard's
+ * Access card is the everyday way to do this — the script is the backstop.)
  *
  * Usage:
- *   npm run grant-admin -- user@orono.k12.mn.us                # grant it_admin
- *   npm run grant-admin -- user@orono.k12.mn.us --role hr      # grant hr
- *   npm run grant-admin -- user@orono.k12.mn.us --revoke       # revoke it_admin
- *   npm run grant-admin -- user@orono.k12.mn.us --role hr --revoke
+ *   npm run grant-role -- user@orono.k12.mn.us                     # grant it_admin
+ *   npm run grant-role -- user@orono.k12.mn.us --role hr_admin
+ *   npm run grant-role -- user@orono.k12.mn.us --role hr_staff
+ *   npm run grant-role -- user@orono.k12.mn.us --revoke            # revoke it_admin
+ *   npm run grant-role -- user@orono.k12.mn.us --role hr_admin --revoke
  *
  * Auth: Application Default Credentials. Run once:
  *   gcloud auth application-default login
@@ -18,7 +20,7 @@ import { getAuth } from 'firebase-admin/auth';
 
 const PROJECT_ID = 'ops-offboarding';
 const ALLOWED_DOMAIN = 'orono.k12.mn.us';
-const ROLES = ['it_admin', 'hr'];
+const ROLES = ['it_admin', 'hr_admin', 'hr_staff'];
 
 function fail(msg) {
   console.error(`Error: ${msg}`);
@@ -47,10 +49,12 @@ try {
   const user = await getAuth().getUserByEmail(email);
   const existing = user.customClaims ?? {};
   const next = { ...existing };
+  // hr_admin / hr_staff share the single `hr` claim: 'admin' | 'staff'.
+  const claimKey = role === 'it_admin' ? 'it_admin' : 'hr';
   if (revoke) {
-    delete next[role];
+    delete next[claimKey];
   } else {
-    next[role] = true;
+    next[claimKey] = role === 'it_admin' ? true : role === 'hr_admin' ? 'admin' : 'staff';
   }
   await getAuth().setCustomUserClaims(user.uid, next);
   const action = revoke ? 'Revoked' : 'Granted';

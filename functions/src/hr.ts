@@ -1,7 +1,7 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
-import { REGION, deleteSubcollection, requireAuthedDomainUser } from './shared';
+import { REGION, deleteSubcollection, hrLevel, requireAuthedDomainUser } from './shared';
 import {
   EMPLOYEE_STATUSES,
   LEAVE_STATUSES,
@@ -28,9 +28,19 @@ function requireHr(request: { auth?: { uid: string; token: Record<string, unknow
   const authed = requireAuthedDomainUser(
     request as { auth?: { uid: string; token: { email?: string } } },
   );
-  const token = request.auth?.token ?? {};
-  if (token.hr !== true && token.it_admin !== true) {
+  if (hrLevel(request.auth?.token ?? {}) === null) {
     throw new HttpsError('permission-denied', 'HR access required.');
+  }
+  return authed;
+}
+
+/** Destructive/administrative HR actions: HR admins and IT admins only. */
+function requireHrAdmin(request: { auth?: { uid: string; token: Record<string, unknown> } }) {
+  const authed = requireAuthedDomainUser(
+    request as { auth?: { uid: string; token: { email?: string } } },
+  );
+  if (hrLevel(request.auth?.token ?? {}) !== 'admin') {
+    throw new HttpsError('permission-denied', 'HR admin access required.');
   }
   return authed;
 }
@@ -556,7 +566,7 @@ export async function reconcileGoogleAccounts(): Promise<{
 }
 
 export const deleteEmployee = onCall({ region: REGION }, async (request) => {
-  requireHr(request);
+  requireHrAdmin(request);
   const id = (request.data as { id?: string } | undefined)?.id;
   if (!id || typeof id !== 'string') {
     throw new HttpsError('invalid-argument', 'Missing employee id.');
@@ -583,7 +593,7 @@ export const deleteEmployee = onCall({ region: REGION }, async (request) => {
 });
 
 export const deleteHrRecord = onCall({ region: REGION }, async (request) => {
-  requireHr(request);
+  requireHrAdmin(request);
   const raw = (request.data ?? {}) as Record<string, unknown>;
   const collection = parseCollection(raw.collection);
   const id = raw.id;

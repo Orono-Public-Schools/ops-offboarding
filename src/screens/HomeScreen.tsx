@@ -191,7 +191,7 @@ export function HomeScreen() {
             <ModuleCard
               icon="key"
               title="IT admin"
-              description="Offboarding dashboard, roster sync, and settings."
+              description="Offboarding dashboard, staff sync, roles, and settings."
               onClick={() => navigate('/admin')}
             />
           )}

@@ -17,9 +17,13 @@ service cloud.firestore {
       return isAuthed() && request.auth.token.it_admin == true;
     }
 
+    // hr claim is 'admin' | 'staff' (legacy grants used `true` = admin level).
     function isHR() {
       return isAuthed()
-        && (request.auth.token.hr == true || request.auth.token.it_admin == true);
+        && (request.auth.token.hr == true
+            || request.auth.token.hr == 'admin'
+            || request.auth.token.hr == 'staff'
+            || request.auth.token.it_admin == true);
     }
 
     // Offboarding records. Document ID == user's Firebase UID, so rules

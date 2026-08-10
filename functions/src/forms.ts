@@ -1,7 +1,7 @@
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
-import { REGION, requireAuthedDomainUser } from './shared';
+import { REGION, hrLevel, requireAuthedDomainUser } from './shared';
 import { getFormDefinition } from './shared-gen/forms/definitions';
 import { buildSummary, validateForm } from './shared-gen/forms/validate';
 import type { FormData, SubmissionStatus } from './shared-gen/forms/types';
@@ -18,8 +18,7 @@ type UpdateSubmissionStatusPayload = {
 };
 
 function isHrRequest(request: { auth?: { token: Record<string, unknown> } }): boolean {
-  const token = request.auth?.token ?? {};
-  return token.hr === true || token.it_admin === true;
+  return hrLevel(request.auth?.token ?? {}) !== null;
 }
 
 function newReqId(): string {

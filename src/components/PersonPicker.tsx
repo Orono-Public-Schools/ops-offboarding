@@ -183,7 +183,7 @@ export function PersonPicker({
           )}
           {empty && (
             <p className="py-6 text-center text-sm" style={{ color: '#94a3b8' }}>
-              The staff list is empty. Ask IT to sync the roster from the admin dashboard.
+              The staff list is empty. Ask IT to run the staff sync from the admin dashboard.
             </p>
           )}
           {!loading && !empty && query.trim() && results.length === 0 && (
