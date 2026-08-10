@@ -108,6 +108,7 @@ function FileField({
 }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const current =
@@ -150,19 +151,20 @@ function FileField({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 9,
+            background: 'var(--surface-inset)',
             border: '1px solid var(--border-input)',
             borderRadius: 8,
-            padding: '6px 6px 6px 12px',
+            padding: '8px 8px 8px 12px',
             maxWidth: 440,
           }}
         >
           <span style={{ display: 'flex', color: 'var(--secondary)' }}>
-            <Icon name="fileText" size={14} />
+            <Icon name="fileText" size={15} />
           </span>
           <span
             style={{
-              font: 'var(--type-body-sm)',
+              font: '600 12.5px/1.4 var(--font-sans)',
               color: 'var(--dark)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -172,28 +174,100 @@ function FileField({
           >
             {current.name}
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
+          <button
+            type="button"
+            title="Remove this file"
             disabled={busy}
             onClick={() => {
               removeFormFile(current);
               onChange('');
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(var(--accent-rgb), 0.10)';
+              e.currentTarget.style.color = 'var(--accent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-placeholder)';
+            }}
+            style={{
+              width: 22,
+              height: 22,
+              border: 'none',
+              background: 'transparent',
+              borderRadius: 6,
+              color: 'var(--text-placeholder)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: '0 0 auto',
+              transition: 'background 0.15s, color 0.15s',
+            }}
           >
-            Remove
-          </Button>
+            <Icon name="x" size={13} />
+          </button>
         </div>
       ) : (
-        <Button
-          size="sm"
-          variant="secondary"
-          icon="plus"
+        <button
+          type="button"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            void pick(e.dataTransfer.files?.[0]);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 9,
+            width: '100%',
+            maxWidth: 440,
+            padding: '10px 14px',
+            borderRadius: 8,
+            border: `1px dashed ${dragOver ? 'var(--secondary)' : 'var(--border-input)'}`,
+            background: dragOver ? 'var(--tint)' : 'transparent',
+            cursor: busy ? 'default' : 'pointer',
+            textAlign: 'left',
+            transition: 'background 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            if (!busy) e.currentTarget.style.background = 'var(--tint)';
+          }}
+          onMouseLeave={(e) => {
+            if (!dragOver) e.currentTarget.style.background = 'transparent';
+          }}
         >
-          {busy ? 'Uploading…' : 'Attach a file'}
-        </Button>
+          <span style={{ display: 'flex', color: 'var(--secondary)' }}>
+            <Icon name="plus" size={14} />
+          </span>
+          <span style={{ minWidth: 0 }}>
+            <span
+              style={{
+                display: 'block',
+                font: '600 12.5px/1.4 var(--font-sans)',
+                color: 'var(--secondary)',
+              }}
+            >
+              {busy ? 'Uploading…' : 'Attach a file'}
+            </span>
+            <span
+              style={{
+                display: 'block',
+                font: 'var(--type-caption)',
+                color: 'var(--text-placeholder)',
+              }}
+            >
+              PDF, Word, or image — drop it here or click to browse
+            </span>
+          </span>
+        </button>
       )}
       {shown && <p style={FIELD_ERROR}>{shown}</p>}
     </div>
