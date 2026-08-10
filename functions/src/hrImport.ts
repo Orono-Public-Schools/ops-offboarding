@@ -236,6 +236,7 @@ export const importHrMasterSheet = onCall(
             status: rec.status,
             statusRaw: rec.statusRaw,
             reason: rec.reason,
+            submissionId: null,
             tasks: {},
           });
         } else {

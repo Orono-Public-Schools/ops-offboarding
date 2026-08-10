@@ -385,9 +385,16 @@ export function HrRecordDetail() {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <QuietLink onClick={() => navigate(`/hr/employees/${r.employeeRef}`)}>
-          View {r.employeeName}'s full record
-        </QuietLink>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <QuietLink onClick={() => navigate(`/hr/employees/${r.employeeRef}`)}>
+            View {r.employeeName}'s full record
+          </QuietLink>
+          {r.submissionId && (
+            <QuietLink onClick={() => navigate(`/forms/submissions/${r.submissionId}`)}>
+              View the original notification
+            </QuietLink>
+          )}
+        </div>
         {isHrAdmin && (
           <Button size="sm" variant="destructive" disabled={busy} onClick={remove}>
             Delete record

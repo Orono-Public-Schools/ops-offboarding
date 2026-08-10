@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
 import { REGION, deleteSubcollection, hrLevel, requireAuthedDomainUser } from './shared';
@@ -335,6 +335,7 @@ export const createHrRecord = onCall({ region: REGION }, async (request) => {
     doc.status = raw.status === undefined ? 'in_process' : parseLeaveStatus(raw.status);
     doc.statusRaw = null;
     doc.reason = optString(raw.reason, 'reason', 200);
+    doc.submissionId = null;
   } else {
     doc.type = type;
     doc.submissionId = null;
@@ -342,6 +343,147 @@ export const createHrRecord = onCall({ region: REGION }, async (request) => {
 
   const ref = await db.collection(collection).add(doc);
   return { id: ref.id };
+});
+
+// The LOA form's machine values, translated to the wording HR uses on leave
+// records. Reason stays a category — the MGDPA stance carries through.
+const LOA_REASON_LABELS: Record<string, string> = {
+  own_health: 'Medical',
+  family_health: "Family member's health",
+  bonding: 'Bonding',
+  military: 'Military family leave',
+  safety: 'Safety leave',
+  extended_unpaid: 'Unpaid',
+};
+
+const LOA_TYPE_LABELS: Record<string, string> = {
+  pfml: 'Minnesota PFML',
+  fmla: 'FMLA',
+  extended_unpaid: 'Extended unpaid',
+  unsure: 'Undecided — employee needs more information',
+};
+
+const LOA_CATEGORY_LABELS: Record<string, string> = {
+  esst: 'ESST',
+  personal: 'Personal leave',
+  vacation: 'Vacation',
+  floating_holiday: 'Floating holiday',
+  unpaid: 'Unpaid',
+  other: 'Other',
+};
+
+/**
+ * Turns a Leave of Absence submission into a `leaves` record — the bridge
+ * between the forms inbox and HR's leave tracking. HR picks the employee in
+ * the UI (matching is a suggestion there, the choice is explicit here). The
+ * submission gets a `leaveId` back-link, which also guards against doubles.
+ */
+export const createLeaveFromSubmission = onCall({ region: REGION }, async (request) => {
+  const actor = requireHr(request);
+  const raw = (request.data ?? {}) as Record<string, unknown>;
+  const submissionId = raw.submissionId;
+  const employeeRef = raw.employeeRef;
+  if (!submissionId || typeof submissionId !== 'string') {
+    throw new HttpsError('invalid-argument', 'Missing submission id.');
+  }
+  if (!employeeRef || typeof employeeRef !== 'string') {
+    throw new HttpsError('invalid-argument', 'Missing employeeRef.');
+  }
+
+  const db = getFirestore();
+  const subRef = db.collection('submissions').doc(submissionId);
+  const empRef = db.collection('employees').doc(employeeRef);
+  const leaveRef = db.collection('leaves').doc();
+
+  await db.runTransaction(async (tx) => {
+    const [subSnap, empSnap] = await Promise.all([tx.get(subRef), tx.get(empRef)]);
+    if (!subSnap.exists) throw new HttpsError('not-found', 'Submission not found.');
+    if (!empSnap.exists) throw new HttpsError('not-found', 'Employee not found.');
+    const sub = subSnap.data() as Record<string, unknown>;
+    if (sub.formId !== 'leaveOfAbsence') {
+      throw new HttpsError(
+        'failed-precondition',
+        'Only Leave of Absence submissions can become leave records.',
+      );
+    }
+    const priorId = sub.leaveId;
+    if (typeof priorId === 'string' && priorId) {
+      const prior = await tx.get(db.collection('leaves').doc(priorId));
+      if (prior.exists) {
+        throw new HttpsError('already-exists', 'This submission already has a leave record.');
+      }
+      // The linked record was deleted — fall through and let HR recreate it.
+    }
+
+    const emp = empSnap.data() as Record<string, unknown>;
+    const data = (sub.data ?? {}) as Record<string, unknown>;
+    const str = (key: string) => (typeof data[key] === 'string' ? (data[key] as string).trim() : '');
+
+    const details: Record<string, string> = {};
+    if (str('anticipatedStart')) details.anticipatedStart = str('anticipatedStart');
+    if (str('anticipatedEnd')) details.anticipatedEnd = str('anticipatedEnd');
+
+    // Everything the leave sheet has no column for lands in the notes, so
+    // nothing the employee told HR gets lost between the two views.
+    const lines = [`Created from submission ${submissionId} (${sub.submitterEmail}).`];
+    if (str('leaveType')) {
+      lines.push(`Leave type: ${LOA_TYPE_LABELS[str('leaveType')] ?? str('leaveType')}.`);
+    }
+    const categories = Array.isArray(data.leaveCategories) ? (data.leaveCategories as string[]) : [];
+    if (categories.length > 0) {
+      const labels = categories.map((c) =>
+        c === 'other' && str('leaveCategoriesOther')
+          ? `Other (${str('leaveCategoriesOther')})`
+          : (LOA_CATEGORY_LABELS[c] ?? c),
+      );
+      lines.push(`Pay categories: ${labels.join(', ')}.`);
+    }
+    if (str('meetingRequested') === 'yes') lines.push('The employee asked for an HR meeting.');
+    const formEeNum = Number(str('employeeId'));
+    const empEeNum = (emp.employeeId as number | null) ?? null;
+    if (Number.isFinite(formEeNum) && formEeNum > 0 && empEeNum !== null && formEeNum !== empEeNum) {
+      lines.push(`Note: the form lists EE# ${formEeNum}, but this employee record has EE# ${empEeNum}.`);
+    }
+
+    const sites = Array.isArray(data.sites) ? (data.sites as string[]) : [];
+    tx.set(leaveRef, {
+      employeeRef,
+      employeeName: displayName({
+        firstName: (emp.firstName as string) ?? '',
+        lastName: (emp.lastName as string) ?? '',
+        nameRaw: (emp.nameRaw as string) ?? '',
+      }),
+      employeeIdNum: empEeNum,
+      building: (emp.building as string | null) ?? (sites.join(', ') || null),
+      position: str('jobTitle') || (emp.position as string | null) || null,
+      details,
+      tasks: {},
+      notes: lines.join('\n'),
+      source: 'manual',
+      importBatchId: null,
+      status: 'in_process',
+      statusRaw: null,
+      reason: LOA_REASON_LABELS[str('reason')] ?? null,
+      submissionId,
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: actor.email,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: actor.email,
+    });
+    tx.update(subRef, {
+      leaveId: leaveRef.id,
+      updatedAt: FieldValue.serverTimestamp(),
+      activityLog: FieldValue.arrayUnion({
+        ts: Timestamp.now(),
+        actor: actor.uid,
+        actorEmail: actor.email,
+        action: 'leave_created',
+        note: null,
+      }),
+    });
+  });
+
+  return { id: leaveRef.id };
 });
 
 export const updateHrRecord = onCall({ region: REGION }, async (request) => {

@@ -96,6 +96,8 @@ export type LeaveRecord = HrRecordBase & {
   statusRaw: string | null;
   /** Category only ("Maternity", "Medical") — never medical detail. */
   reason: string | null;
+  /** Set when an LOA form submission created this record. */
+  submissionId: string | null;
 };
 
 export type ChangeRecord = HrRecordBase & {

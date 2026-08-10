@@ -35,6 +35,7 @@ export {
   assignEmployeeId,
   deleteEmployee,
   createHrRecord,
+  createLeaveFromSubmission,
   updateHrRecord,
   setHrTask,
   deleteHrRecord,

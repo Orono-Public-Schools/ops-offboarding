@@ -49,6 +49,12 @@ export const updateSubmissionStatus = httpsCallable<
   { success: boolean }
 >(functions, 'updateSubmissionStatus');
 
+/** HR: turn an LOA submission into a `leaves` record (links back via leaveId). */
+export const createLeaveFromSubmission = httpsCallable<
+  { submissionId: string; employeeRef: string },
+  { id: string }
+>(functions, 'createLeaveFromSubmission');
+
 export type ActivityEntry = {
   ts: Timestamp | null;
   actor: string;
@@ -68,6 +74,8 @@ export type Submission = {
   submitterName: string;
   data: FormData;
   summary: string;
+  /** Set once HR creates the linked leave record (LOA submissions only). */
+  leaveId?: string | null;
   activityLog: ActivityEntry[];
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;

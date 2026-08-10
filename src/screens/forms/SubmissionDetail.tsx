@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useAuth, useIsHR } from '../../lib/auth';
 import {
   allFieldsForSubmission,
+  createLeaveFromSubmission,
   updateSubmissionStatus,
   useSubmission,
   type FileRef,
@@ -11,6 +12,7 @@ import {
   type TableColumn,
   type TableRow,
 } from '../../lib/forms';
+import { useEmployees, type EmployeeDoc } from '../../lib/hr';
 import { fileDownloadUrl } from '../../lib/storage';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Button } from '../../ds/components/core/Button';
@@ -117,9 +119,137 @@ function actionLabel(action: string): string {
       return 'Completed';
     case 'status_denied':
       return 'Denied';
+    case 'leave_created':
+      return 'Leave record created';
     default:
       return action;
   }
+}
+
+/** Best guess at which employee record an LOA submission belongs to: their
+ *  sign-in email, then the EE# they typed, then an exact name match. HR
+ *  confirms or overrides the pick — the guess never creates anything. */
+function matchEmployee(s: Submission, employees: EmployeeDoc[]): string {
+  const email = s.submitterEmail.toLowerCase();
+  const byEmail = employees.find((e) => (e.email ?? '').toLowerCase() === email);
+  if (byEmail) return byEmail.id;
+  const ee = Number(s.data.employeeId);
+  if (Number.isFinite(ee) && ee > 0) {
+    const byId = employees.find((e) => e.employeeId === ee);
+    if (byId) return byId.id;
+  }
+  const name = s.submitterName.trim().toLowerCase();
+  const byName = employees.find(
+    (e) => `${e.firstName} ${e.lastName}`.trim().toLowerCase() === name,
+  );
+  return byName?.id ?? '';
+}
+
+function employeeOptionLabel(e: EmployeeDoc): string {
+  const name =
+    e.lastName && e.firstName ? `${e.lastName}, ${e.firstName}` : e.nameRaw || e.lastName;
+  const extra = [e.employeeId ? `EE# ${e.employeeId}` : null, e.building]
+    .filter(Boolean)
+    .join(' · ');
+  return extra ? `${name} — ${extra}` : name;
+}
+
+/** HR-only, LOA submissions: hands the notification off to the Leaves tab. */
+function LeaveRecordCard({ submission }: { submission: Submission }) {
+  const navigate = useNavigate();
+  const employees = useEmployees(!submission.leaveId);
+  const [choice, setChoice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (submission.leaveId) {
+    return (
+      <Card eyebrow="Leave record" heading="On the Leaves tab" pad={16}>
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+          This notification already has a leave record — dates and status live there now.
+        </p>
+        <Button
+          variant="secondary"
+          onClick={() => navigate(`/hr/records/leaves/${submission.leaveId}`)}
+        >
+          Open the leave record
+        </Button>
+      </Card>
+    );
+  }
+
+  const list = employees.items ?? [];
+  const selected = choice ?? matchEmployee(submission, list);
+
+  const create = async () => {
+    if (!selected) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await createLeaveFromSubmission({ submissionId: submission.id, employeeRef: selected });
+      // The live snapshot picks up leaveId and flips this card to the link.
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not create the leave record.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card eyebrow="Leave record" heading="Start the leave record" pad={16}>
+      <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+        Copies the dates and reason category onto a new record under Leaves, linked back to this
+        notification. Everything else lands in the record's notes.
+      </p>
+      {employees.loading ? (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
+          Loading employees…
+        </p>
+      ) : employees.error ? (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
+          {employees.error}
+        </p>
+      ) : (
+        <>
+          <Field
+            label="Employee"
+            as="select"
+            value={selected}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChoice(e.target.value)}
+            options={[
+              { value: '', label: 'Pick the employee…' },
+              ...list.map((e) => ({ value: e.id, label: employeeOptionLabel(e) })),
+            ]}
+            help={
+              selected
+                ? undefined
+                : 'No employee record matched this submitter — pick them by hand, or add them under New employees first.'
+            }
+          />
+          <div className="mt-4 flex justify-end">
+            <Button variant="primary" icon="plus" disabled={!selected || busy} onClick={create}>
+              {busy ? 'Working…' : 'Create leave record'}
+            </Button>
+          </div>
+        </>
+      )}
+      {error && (
+        <p
+          style={{
+            font: 'var(--type-body-sm)',
+            color: 'var(--accent)',
+            background: 'rgba(var(--accent-rgb), 0.08)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            textAlign: 'center',
+            margin: '12px 0 0',
+          }}
+        >
+          {error}
+        </p>
+      )}
+    </Card>
+  );
 }
 
 function HrActions({ submission }: { submission: Submission }) {
@@ -272,6 +402,10 @@ export function SubmissionDetail() {
           ))}
         </RowList>
       </Card>
+
+      {isHR && s.formId === 'leaveOfAbsence' && (s.leaveId || !denied) && (
+        <LeaveRecordCard submission={s} />
+      )}
 
       {isHR && <HrActions submission={s} />}
 
