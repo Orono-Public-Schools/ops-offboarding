@@ -125,13 +125,14 @@ export const setEoySettings = httpsCallable<
   { returnDate: string | null }
 >(functions, 'setEoySettings');
 
-export type RoleName = 'it_admin' | 'hr_admin' | 'hr_staff';
+export type RoleName = 'it_admin' | 'it_support' | 'hr_admin' | 'hr_staff';
 
 export type RoleHolder = {
   uid: string;
   email: string;
   displayName: string | null;
   itAdmin: boolean;
+  itSupport: boolean;
   hrRole: 'admin' | 'staff' | null;
 };
 

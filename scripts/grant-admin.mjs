@@ -20,7 +20,7 @@ import { getAuth } from 'firebase-admin/auth';
 
 const PROJECT_ID = 'ops-offboarding';
 const ALLOWED_DOMAIN = 'orono.k12.mn.us';
-const ROLES = ['it_admin', 'hr_admin', 'hr_staff'];
+const ROLES = ['it_admin', 'it_support', 'hr_admin', 'hr_staff'];
 
 function fail(msg) {
   console.error(`Error: ${msg}`);
@@ -50,11 +50,16 @@ try {
   const existing = user.customClaims ?? {};
   const next = { ...existing };
   // hr_admin / hr_staff share the single `hr` claim: 'admin' | 'staff'.
-  const claimKey = role === 'it_admin' ? 'it_admin' : 'hr';
+  const claimKey =
+    role === 'it_admin' ? 'it_admin' : role === 'it_support' ? 'it_support' : 'hr';
   if (revoke) {
     delete next[claimKey];
   } else {
-    next[claimKey] = role === 'it_admin' ? true : role === 'hr_admin' ? 'admin' : 'staff';
+    // One role per person — a grant replaces whatever they held.
+    delete next.it_admin;
+    delete next.it_support;
+    delete next.hr;
+    next[claimKey] = role === 'hr_admin' ? 'admin' : role === 'hr_staff' ? 'staff' : true;
   }
   await getAuth().setCustomUserClaims(user.uid, next);
   const action = revoke ? 'Revoked' : 'Granted';

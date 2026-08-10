@@ -4,7 +4,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import { google } from 'googleapis';
 
-import { ALLOWED_DOMAIN, REGION, requireAuthedDomainUser } from './shared';
+import { ALLOWED_DOMAIN, REGION, isTechRole, requireAuthedDomainUser } from './shared';
 import { reconcileGoogleAccounts } from './hr';
 
 // Spreadsheet that drives the staff picker. Sync via syncStaffRoster.
@@ -137,8 +137,8 @@ export const syncStaffRoster = onCall(
   { region: REGION, timeoutSeconds: 240, memory: '512MiB' },
   async (request) => {
     const { uid } = requireAuthedDomainUser(request);
-    if (request.auth?.token.it_admin !== true) {
-      throw new HttpsError('permission-denied', 'IT admin only.');
+    if (!isTechRole((request.auth?.token ?? {}) as Record<string, unknown>)) {
+      throw new HttpsError('permission-denied', 'IT access required.');
     }
     return performStaffRosterSync('manual', uid);
   },

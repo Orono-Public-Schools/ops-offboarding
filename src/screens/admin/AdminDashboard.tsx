@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { RolesCard } from '../../components/RolesCard';
+import { AccessCard } from '../../components/AccessCard';
 import { StaffDirectoryCard } from '../../components/StaffDirectoryCard';
+import { useIsAdmin } from '../../lib/auth';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -147,9 +148,15 @@ function Row({ offboarding }: { offboarding: OffboardingSummary }) {
 export function AdminDashboard() {
   const state = useAllOffboardings();
   const navigate = useNavigate();
+  const isItAdmin = useIsAdmin();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const tab: AdminTab = isAdminTab(tabParam) ? tabParam : 'staff';
+  // IT support works the offboarding + staff tabs; the rest is IT-admin turf.
+  const visibleTabs = isItAdmin
+    ? ADMIN_TABS
+    : ADMIN_TABS.filter((t) => t.id === 'staff' || t.id === 'offboarding');
+  const requested: AdminTab = isAdminTab(tabParam) ? tabParam : 'staff';
+  const tab: AdminTab = visibleTabs.some((t) => t.id === requested) ? requested : 'staff';
   const [filter, setFilter] = useState<FilterType>('all');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{
@@ -314,7 +321,7 @@ export function AdminDashboard() {
 
       <TabBar
         tone="inverse"
-        tabs={ADMIN_TABS}
+        tabs={visibleTabs}
         active={tab}
         aria-label="Admin sections"
         onSelect={(id) => navigate(`/admin?tab=${id}`, { replace: true })}
@@ -439,7 +446,7 @@ export function AdminDashboard() {
         </Card>
       )}
 
-      {tab === 'offboarding' && (
+      {tab === 'offboarding' && isItAdmin && (
         <Card collapsible eyebrow="Settings" heading="What the summer responder promises" pad={16}>
           <p
             style={{
@@ -552,7 +559,7 @@ export function AdminDashboard() {
 
       {tab === 'staff' && <StaffDirectoryCard />}
 
-      {tab === 'staff' && <RolesCard />}
+      {tab === 'staff' && isItAdmin && <AccessCard />}
     </>
   );
 }

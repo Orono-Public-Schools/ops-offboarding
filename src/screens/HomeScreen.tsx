@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
 import { computeProgress } from '../lib/admin';
-import { useAuth, useIsAdmin, useIsHR } from '../lib/auth';
+import { useAuth, useIsHR, useIsTech } from '../lib/auth';
 import { useOffboarding } from '../lib/offboarding';
 import { useMySubmissions, type Submission } from '../lib/forms';
 import { Card } from '../ds/components/core/Card';
@@ -58,7 +58,7 @@ export function HomeScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isHR = useIsHR();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsTech();
   const offb = useOffboarding(user?.uid ?? null);
   const subs = useMySubmissions(user?.uid ?? null);
 

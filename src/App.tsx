@@ -1,5 +1,5 @@
 import { Navigate, Outlet, Route, Routes, useParams } from 'react-router';
-import { AuthProvider, useAuth, useIsAdmin } from './lib/auth';
+import { AuthProvider, useAuth, useIsTech } from './lib/auth';
 import { type OffboardingDoc } from './lib/offboarding';
 import { AdminDashboard } from './screens/admin/AdminDashboard';
 import { AdminOffboardingDetail } from './screens/admin/AdminOffboardingDetail';
@@ -41,8 +41,10 @@ function AppLayout() {
 }
 
 function AdminGate() {
-  const isAdmin = useIsAdmin();
-  if (!isAdmin) return <Navigate to="/" replace />;
+  // IT support shares the admin area; the dashboard itself trims what
+  // they see (no roles, no settings, no forms/onboarding tabs).
+  const isTech = useIsTech();
+  if (!isTech) return <Navigate to="/" replace />;
   return <Outlet />;
 }
 

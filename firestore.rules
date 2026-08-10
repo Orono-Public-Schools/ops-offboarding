@@ -17,6 +17,12 @@ service cloud.firestore {
       return isAuthed() && request.auth.token.it_admin == true;
     }
 
+    // Tech branch: IT support sees offboarding checklists (to work help
+    // requests and device/account tasks) but never HR personnel data.
+    function isTech() {
+      return isItAdmin() || (isAuthed() && request.auth.token.it_support == true);
+    }
+
     // hr claim is 'admin' | 'staff' (legacy grants used `true` = admin level).
     function isHR() {
       return isAuthed()
@@ -31,16 +37,16 @@ service cloud.firestore {
     // "doesn't exist yet" from "denied" for first-time users.
     // All writes go through Cloud Functions for validation + audit.
     match /offboardings/{offboardingId} {
-      allow read: if isSelf(offboardingId) || isItAdmin();
+      allow read: if isSelf(offboardingId) || isTech();
       allow write: if false;
 
       match /fileScan/{fileId} {
-        allow read: if isSelf(offboardingId) || isItAdmin();
+        allow read: if isSelf(offboardingId) || isTech();
         allow write: if false;
       }
 
       match /auditLog/{logId} {
-        allow read: if isSelf(offboardingId) || isItAdmin();
+        allow read: if isSelf(offboardingId) || isTech();
         allow write: if false;
       }
     }

@@ -19,7 +19,11 @@ const OAUTH_SCOPES = [
 const ACCESS_TOKEN_KEY = 'oronohr:googleAccessToken';
 
 /** hr is 'admin' | 'staff'; legacy grants used `true` (= admin level). */
-type AuthClaims = { it_admin?: boolean; hr?: boolean | 'admin' | 'staff' };
+type AuthClaims = {
+  it_admin?: boolean;
+  it_support?: boolean;
+  hr?: boolean | 'admin' | 'staff';
+};
 
 type AuthState = {
   user: User | null;
@@ -77,6 +81,13 @@ export function useIsHR(): boolean {
 export function useIsHrAdmin(): boolean {
   const { claims } = useAuth();
   return Boolean(claims?.it_admin || claims?.hr === true || claims?.hr === 'admin');
+}
+
+/** Tech branch (IT support or IT admin): offboarding dashboard, help
+ *  requests, staff sync — never HR personnel data. */
+export function useIsTech(): boolean {
+  const { claims } = useAuth();
+  return Boolean(claims?.it_admin || claims?.it_support);
 }
 
 export async function signInWithGoogle() {

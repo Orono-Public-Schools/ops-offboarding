@@ -19,13 +19,14 @@ export const enforceDomain = beforeUserCreated((event) => {
   }
 });
 
-export type RoleName = 'it_admin' | 'hr_admin' | 'hr_staff';
+export type RoleName = 'it_admin' | 'it_support' | 'hr_admin' | 'hr_staff';
 
 type RoleHolder = {
   uid: string;
   email: string;
   displayName: string | null;
   itAdmin: boolean;
+  itSupport: boolean;
   /** hr claim level; legacy `hr: true` reads as 'admin'. */
   hrRole: 'admin' | 'staff' | null;
 };
@@ -46,18 +47,20 @@ export const listRoleHolders = onCall<void, Promise<{ holders: RoleHolder[] }>>(
       for (const user of page.users) {
         const claims = user.customClaims ?? {};
         const itAdmin = claims.it_admin === true;
+        const itSupport = claims.it_support === true;
         const hrRole =
           claims.hr === true || claims.hr === 'admin'
             ? ('admin' as const)
             : claims.hr === 'staff'
               ? ('staff' as const)
               : null;
-        if (!itAdmin && !hrRole) continue;
+        if (!itAdmin && !itSupport && !hrRole) continue;
         holders.push({
           uid: user.uid,
           email: user.email ?? '',
           displayName: user.displayName ?? null,
           itAdmin,
+          itSupport,
           hrRole,
         });
       }
@@ -71,9 +74,10 @@ export const listRoleHolders = onCall<void, Promise<{ holders: RoleHolder[] }>>(
 type SetUserRolePayload = { email?: string; role?: RoleName; grant?: boolean };
 
 /**
- * Grants or revokes one role. IT-admin changes need an IT admin; HR role
- * changes need admin level (IT admin or HR admin). Granting hr_admin over
- * hr_staff (or vice versa) simply replaces the hr claim.
+ * Grants or revokes one role. One role per person: a grant REPLACES whatever
+ * role the person held (moving them between columns); a revoke drops them to
+ * plain staff. Tech-branch changes (it_admin, it_support) need an IT admin;
+ * HR-branch changes need admin level (IT admin or HR admin).
  */
 export const setUserRole = onCall<SetUserRolePayload>({ region: REGION }, async (request) => {
   const { uid: callerUid } = requireAuthedDomainUser(request);
@@ -82,10 +86,10 @@ export const setUserRole = onCall<SetUserRolePayload>({ region: REGION }, async 
   const grant = request.data?.grant === true;
   const email = request.data?.email?.trim().toLowerCase();
 
-  if (role !== 'it_admin' && role !== 'hr_admin' && role !== 'hr_staff') {
+  if (role !== 'it_admin' && role !== 'it_support' && role !== 'hr_admin' && role !== 'hr_staff') {
     throw new HttpsError('invalid-argument', 'Unknown role.');
   }
-  if (role === 'it_admin') {
+  if (role === 'it_admin' || role === 'it_support') {
     if (callerToken.it_admin !== true) {
       throw new HttpsError('permission-denied', 'IT admin only.');
     }
@@ -120,15 +124,17 @@ export const setUserRole = onCall<SetUserRolePayload>({ region: REGION }, async 
     preCreated = true;
   }
 
-  // Lockout guards: nobody revokes the access that lets them stand here.
-  if (!grant && user.uid === callerUid) {
-    if (role === 'it_admin') {
+  // Lockout guards: nobody removes (or moves themselves out of) the access
+  // that lets them stand here.
+  if (user.uid === callerUid) {
+    const losesItAdmin = user.customClaims?.it_admin === true && !(grant && role === 'it_admin');
+    if ((grant && losesItAdmin) || (!grant && role === 'it_admin')) {
       throw new HttpsError(
         'failed-precondition',
-        'You can’t revoke your own admin access. Ask another admin to do it.',
+        'You can’t remove your own IT admin access. Ask another admin to do it.',
       );
     }
-    if (role === 'hr_admin' && callerToken.it_admin !== true) {
+    if (!grant && role === 'hr_admin' && callerToken.it_admin !== true) {
       throw new HttpsError(
         'failed-precondition',
         'You can’t revoke your own HR admin access. Ask another admin to do it.',
@@ -136,12 +142,19 @@ export const setUserRole = onCall<SetUserRolePayload>({ region: REGION }, async 
     }
   }
 
+  // One role per person: a grant clears every other role claim first, so
+  // "Add to a column" is a move. A revoke clears just that role.
   const next: Record<string, unknown> = { ...(user.customClaims ?? {}) };
-  if (role === 'it_admin') {
-    if (grant) next.it_admin = true;
-    else delete next.it_admin;
+  if (grant) {
+    delete next.it_admin;
+    delete next.it_support;
+    delete next.hr;
+    if (role === 'it_admin') next.it_admin = true;
+    else if (role === 'it_support') next.it_support = true;
+    else next.hr = role === 'hr_admin' ? 'admin' : 'staff';
   } else {
-    if (grant) next.hr = role === 'hr_admin' ? 'admin' : 'staff';
+    if (role === 'it_admin') delete next.it_admin;
+    else if (role === 'it_support') delete next.it_support;
     else delete next.hr;
   }
   await auth.setCustomUserClaims(user.uid, next);
