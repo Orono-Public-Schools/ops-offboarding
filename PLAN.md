@@ -15,7 +15,15 @@ North star: **replace HR's master Google Sheet** (new employees, LOAs, terminati
 - **Same repo, same Firebase project** (`ops-offboarding` — project IDs are immutable; invisible to users).
 - **Hosting:** new site `oronohr.web.app` (target `app`), old site `ops-offboarding.web.app` (target `legacy`) kept serving the app during transition, then flipped to a redirect. Custom domain `hr.orono.k12.mn.us` planned once the rebrand ships. Remember at cutover: Firebase Auth authorized domains + `authDomain`, OAuth consent screen app name → "OronoHR".
 - **Security posture carried over:** all writes via callables, Firestore rules deny-all for writes, per-action audit logs, domain-locked Google SSO.
-- **Roles via custom claims:** `it_admin` (system admin + offboarding dashboard), `hr` (HR-only side), everyone else `staff`. Supervisors get no standing role — approval rights come from the frozen routing chain on each submission (PaperPal pattern). `useIsHR()` treats `it_admin` as HR-capable. Grant via `npm run grant-role -- email --role hr`.
+- **Roles via custom claims** (reworked 2026-08-10): `it_admin` (everything), `hr: 'admin'`
+  (full HR + sheet import + deletions + HR role management), `hr: 'staff'` (day-to-day HR,
+  no import/deletions), everyone else staff. Legacy `hr: true` reads as admin level
+  everywhere (functions `hrLevel()`, firestore.rules, client hooks). Supervisors get no
+  standing role — approval rights come from the frozen routing chain on each submission
+  (PaperPal pattern). Managed in the admin dashboard's Access card (listRoleHolders /
+  setUserRole callables, adminAudit trail, lockout guards); `npm run grant-role -- email
+  --role hr_admin|hr_staff|it_admin` is the CLI backstop. The admin Staff tab also carries
+  a searchable staff directory (sync sheet has no department column — building shown).
 - **Theme tokens** live in `src/index.css` (Tailwind v4 `@theme` + CSS vars) sourced from `.claude/skills/style/SKILL.md`. Brand hexes appear only there. Navy/blue primary, red reserved for destructive/danger.
 - **Form schemas live in code** (versioned, typed, Zod-validated client + server); **routing/visibility/audience config lives in Firestore** (admin-editable). No drag-and-drop form builder.
 - **Employee data model mirrors HR's sheet** (columns to be captured from the real sheet before building `employees`).
