@@ -2,6 +2,7 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
 import { REGION, hrLevel, requireAuthedDomainUser } from './shared';
+import { notifyStatusChanged, notifySubmitted } from './notifications';
 import { getFormDefinition } from './shared-gen/forms/definitions';
 import { buildSummary, validateForm } from './shared-gen/forms/validate';
 import type { FormData, SubmissionStatus } from './shared-gen/forms/types';
@@ -93,6 +94,16 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
         updatedAt: FieldValue.serverTimestamp(),
         completedAt: null,
       });
+      // Email is best-effort — notifySubmitted logs its own failures and
+      // never breaks the submission.
+      await notifySubmitted({
+        id,
+        formId: def.id,
+        formTitle: def.title,
+        submitterName,
+        submitterEmail: email,
+        summary: buildSummary(def, result.cleaned),
+      });
       return { id };
     } catch (err) {
       const code = (err as { code?: number | string })?.code;
@@ -130,7 +141,7 @@ export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(
     const db = getFirestore();
     const ref = db.collection('submissions').doc(id);
 
-    await db.runTransaction(async (tx) => {
+    const facts = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists) {
         throw new HttpsError('not-found', 'Submission not found.');
@@ -151,7 +162,19 @@ export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(
           note,
         }),
       });
+      return {
+        formId: (snap.get('formId') as string) ?? '',
+        formTitle: (snap.get('formTitle') as string) ?? 'Form',
+        submitterName: (snap.get('submitterName') as string) ?? '',
+        submitterEmail: (snap.get('submitterEmail') as string) ?? '',
+        summary: (snap.get('summary') as string) ?? '',
+      };
     });
+
+    if (facts.submitterEmail) {
+      // Best-effort — logs its own failures, never breaks the status change.
+      await notifyStatusChanged({ id, ...facts }, status, note, email);
+    }
 
     return { success: true };
   },

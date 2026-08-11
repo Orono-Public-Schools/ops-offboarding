@@ -119,6 +119,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // A role holder's personal email-notification overrides. Each person
+    // reads their own; writes go through the setNotificationPrefs callable.
+    match /notificationPrefs/{uid} {
+      allow read: if isAuthed() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Default deny.
     match /{document=**} {
       allow read, write: if false;

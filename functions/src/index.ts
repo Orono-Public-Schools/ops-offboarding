@@ -29,6 +29,7 @@ export {
 } from './drive';
 export { promoteGroupOwner } from './groups';
 export { submitForm, updateSubmissionStatus } from './forms';
+export { setNotificationSettings, setNotificationPrefs } from './notifications';
 export {
   createEmployee,
   updateEmployee,
