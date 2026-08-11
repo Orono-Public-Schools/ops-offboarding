@@ -280,7 +280,7 @@ export function NotificationSettingsCard() {
               setDraft({ ...draft, defaultRecipient: e.target.value })
             }
             placeholder="hr@orono.k12.mn.us"
-            help="Forms with no recipients of their own email this address. Leave blank for inbox-only."
+            help="When a form has no recipients listed below, its notifications come here instead. Leave blank and those forms stay inbox-only."
             optional
           />
           {FORMS.map((f) => (
