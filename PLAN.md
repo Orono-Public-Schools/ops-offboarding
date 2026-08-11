@@ -247,13 +247,14 @@ even as it_admin.
       Eventarc-based function in the project (first deploy can race agent
       provisioning — just retry). PaperPal still runs the real extension;
       port it onto this mailer before March 2027.
-- [ ] **Joel:** mint the SMTP credential (app password for a no-reply
-      account, or PaperPal's), then:
+- [ ] **Joel:** create `noreply-hr@orono.k12.mn.us` (hide from GAL, exclude
+      from offboarding sweeps), enable 2SV, mint an app password, then:
       `firebase functions:secrets:set SMTP_CONNECTION_URI` with
-      `smtps://no-reply%40orono.k12.mn.us:APP_PASSWORD@smtp.gmail.com:465`
-      (note the %40), adjust MAIL_FROM in functions/.env if the account
-      differs, and redeploy: `firebase deploy --only functions:sendQueuedMail`.
-      Until then queued mail errors harmlessly with an auth failure.
+      `smtps://noreply-hr%40orono.k12.mn.us:APP_PASSWORD@smtp.gmail.com:465`
+      (%40 for the @, app password without spaces), and redeploy:
+      `firebase deploy --only functions:sendQueuedMail`. MAIL_FROM in
+      functions/.env already matches. Until then queued mail errors
+      harmlessly with an auth failure.
 - [ ] PDF generation + Drive filing
 - [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
