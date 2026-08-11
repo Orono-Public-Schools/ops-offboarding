@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AccessCard } from '../../components/AccessCard';
 import { StaffDirectoryCard } from '../../components/StaffDirectoryCard';
-import { MyNotificationPrefsCard, NotificationSettingsCard } from '../hr/NotificationCards';
+import { NotificationSettingsCard } from '../hr/NotificationCards';
 import { useIsAdmin } from '../../lib/auth';
 import {
   computeProgress,
@@ -295,7 +295,7 @@ export function AdminDashboard() {
       : tab === 'onboarding'
         ? 'When onboarding opens, new-hire settings and checklists will live here.'
         : tab === 'forms'
-          ? 'Who hears about submissions by email, and your own per-form overrides. Routing and visibility settings arrive with the next batch of forms.'
+          ? 'Who hears about submissions by email. Personal always/never overrides live on each account page; routing and visibility settings arrive with the next batch of forms.'
           : 'Everyone with an active checklist shows here. Open a row for per-task status and the audit trail.';
 
   const messageStyle = (kind: 'ok' | 'error'): React.CSSProperties => ({
@@ -494,12 +494,7 @@ export function AdminDashboard() {
         />
       )}
 
-      {tab === 'forms' && (
-        <>
-          <NotificationSettingsCard />
-          <MyNotificationPrefsCard />
-        </>
-      )}
+      {tab === 'forms' && <NotificationSettingsCard />}
 
       {tab === 'staff' && <StaffDirectoryCard />}
 

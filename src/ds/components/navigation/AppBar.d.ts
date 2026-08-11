@@ -8,5 +8,7 @@ import * as React from 'react';
 export interface AppBarProps extends React.HTMLAttributes<HTMLDivElement> {
   person?: { name: string; role: string };
   onSignOut?: () => void;
+  /** Makes the name/email block a link to the person's account page. */
+  onPersonClick?: () => void;
 }
 export declare function AppBar(props: AppBarProps): JSX.Element;

@@ -59,6 +59,7 @@ export function MyNotificationPrefsCard() {
   const { user } = useAuth();
   const prefs = useMyNotificationPrefs(user?.uid ?? null);
   const [overrides, setOverrides] = useState<Record<string, PrefChoice | 'default'>>({});
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const choiceFor = (formId: string): PrefChoice | 'default' =>
@@ -66,29 +67,32 @@ export function MyNotificationPrefsCard() {
 
   const pick = (formId: string, choice: PrefChoice | 'default') => {
     setOverrides((o) => ({ ...o, [formId]: choice }));
+    setStatus('saving');
     setError(null);
     const forms: Record<string, PrefChoice | null> = {};
     for (const f of FORMS) {
       const c = formId === f.id ? choice : choiceFor(f.id);
       forms[f.id] = c === 'default' ? null : c;
     }
-    setNotificationPrefs({ forms }).catch((err) => {
-      console.error(err);
-      setOverrides((o) => {
-        const next = { ...o };
-        delete next[formId];
-        return next;
+    setNotificationPrefs({ forms })
+      .then(() => setStatus('saved'))
+      .catch((err) => {
+        console.error(err);
+        setOverrides((o) => {
+          const next = { ...o };
+          delete next[formId];
+          return next;
+        });
+        setStatus('idle');
+        setError('Could not save that preference. Please try again.');
       });
-      setError('Could not save that preference. Please try again.');
-    });
   };
 
   return (
-    <Card collapsible eyebrow="Your email" heading="When a request lands" pad={16}>
+    <Card collapsible defaultOpen eyebrow="Your email" heading="When a request lands" pad={16}>
       <p style={caption}>
-        Per form: follow the admin setup below, always get the email yourself, or never get it —
-        "never" wins even if you're on the recipient list. Status updates go to submitters
-        automatically either way.
+        Per form: follow the admin setup, always get the email yourself, or never get it —
+        "never" wins even if you're on the recipient list. Choices save the moment you click.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {FORMS.map((f) => (
@@ -116,6 +120,18 @@ export function MyNotificationPrefsCard() {
           </div>
         ))}
       </div>
+      {status !== 'idle' && !error && (
+        <p
+          style={{
+            font: 'var(--type-body-sm)',
+            color: 'var(--text-muted)',
+            margin: '12px 0 0',
+            textAlign: 'right',
+          }}
+        >
+          {status === 'saving' ? 'Saving…' : 'Saved.'}
+        </p>
+      )}
       {error && (
         <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: '12px 0 0' }}>
           {error}

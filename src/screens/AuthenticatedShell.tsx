@@ -40,6 +40,7 @@ export function AuthedShell() {
       <AppBar
         person={{ name: user?.displayName ?? 'Staff member', role: user?.email ?? '' }}
         onSignOut={() => signOut()}
+        onPersonClick={() => navigate('/account')}
       />
       <TabBar
         tabs={tabs}

@@ -8,6 +8,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { FormFillScreen } from './screens/forms/FormFillScreen';
 import { FormsHome } from './screens/forms/FormsHome';
 import { SubmissionDetail } from './screens/forms/SubmissionDetail';
+import { AccountScreen } from './screens/AccountScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { EmployeeDetail } from './screens/hr/EmployeeDetail';
 import { EmployeeNew } from './screens/hr/EmployeeNew';
@@ -59,6 +60,7 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomeScreen />} />
+          <Route path="/account" element={<AccountScreen />} />
           <Route path="/offboarding" element={<OffboardingModule />}>
             <Route index element={<DashboardScreen />} />
             <Route path="tasks/:taskKey" element={<TaskRoute />} />

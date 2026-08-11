@@ -8,9 +8,10 @@ import { Icon } from '../core/Icon.jsx';
    click it. Widths animate on the system's 200ms easing; press nudges down 1px
    rather than diagonally, to match every other control. */
 
-export function AppBar({ person, onSignOut, style, ...rest }) {
+export function AppBar({ person, onSignOut, onPersonClick, style, ...rest }) {
   const [hot, setHot] = React.useState(false);
   const [down, setDown] = React.useState(false);
+  const [personHot, setPersonHot] = React.useState(false);
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, ...style }} {...rest}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -24,7 +25,25 @@ export function AppBar({ person, onSignOut, style, ...rest }) {
       </span>
       {person ? (
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+          {/* With onPersonClick the name block doubles as the account link —
+              same quiet affordance pattern as the sign-out reveal. */}
+          <span
+            role={onPersonClick ? 'button' : undefined}
+            tabIndex={onPersonClick ? 0 : undefined}
+            aria-label={onPersonClick ? 'Your account' : undefined}
+            onClick={onPersonClick}
+            onKeyDown={onPersonClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onPersonClick(); } : undefined}
+            onMouseEnter={onPersonClick ? () => setPersonHot(true) : undefined}
+            onMouseLeave={onPersonClick ? () => setPersonHot(false) : undefined}
+            style={{
+              textAlign: 'right', display: 'flex', flexDirection: 'column',
+              cursor: onPersonClick ? 'pointer' : 'default',
+              borderRadius: 'var(--radius-input)',
+              padding: '3px 8px', margin: '-3px -8px',
+              background: personHot ? 'rgba(255,255,255,0.08)' : 'transparent',
+              transition: 'background var(--dur-fast) var(--ease)',
+            }}
+          >
             <span style={{ font: 'var(--type-caption)', fontWeight: 600, color: '#fff' }}>{person.name}</span>
             <span style={{ font: 'var(--type-caption)', fontSize: 11, color: 'var(--on-dark-faint)' }}>{person.role}</span>
           </span>
