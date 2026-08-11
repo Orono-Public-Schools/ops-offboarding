@@ -232,7 +232,16 @@ even as it_admin.
 - [ ] Routing/approval: statuses `submitted → supervisor_approved → hr_processing → completed` (+ denied/revisions/cancelled), frozen chains, activity log (today: submitted/processing/completed/denied, HR-only status changes)
 - [ ] LOA submission → `leaves` record: HR affordance to create the leave from the
       submission (today HR reads the inbox and keys the record by hand)
-- [ ] Email notifications (Trigger Email extension), PDF generation + Drive filing
+- [x] Email notifications (2026-08-11): submit + status callables queue `mail/`
+      docs through PaperPal's branded template. Layered config, loose to tight:
+      master switches + default address → per-form recipients/toggles
+      (`appSettings/notifications`, HR-admin card on the inbox) → personal
+      always/never per form (`notificationPrefs/{uid}`, own card on the inbox;
+      "never" beats any list). Submitter status emails uniform on purpose.
+      Settings live on the HR inbox, not /admin — HR admins can't reach /admin.
+- [ ] **Joel:** install the Trigger Email extension (needs an SMTP credential
+      only he can mint); queued mail sits unsent in `mail/` until then
+- [ ] PDF generation + Drive filing
 - [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
 - [ ] **Later:** lifecycle cleanup for orphaned uploads (drafts abandoned before submit)
