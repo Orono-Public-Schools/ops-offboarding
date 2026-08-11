@@ -121,7 +121,7 @@ export function AccessCard() {
   };
 
   return (
-    <Card collapsible defaultOpen eyebrow="Access" heading="Who can do what" pad={16}>
+    <Card collapsible eyebrow="Access" heading="Who can do what" pad={16}>
       <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
         One role per person — adding someone to a column moves them there. Changes take effect
         after they sign out and back in.

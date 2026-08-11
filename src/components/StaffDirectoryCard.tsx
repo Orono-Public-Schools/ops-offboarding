@@ -68,7 +68,6 @@ export function StaffDirectoryCard() {
   return (
     <Card
       collapsible
-      defaultOpen
       eyebrow="Directory"
       heading={
         state.loading

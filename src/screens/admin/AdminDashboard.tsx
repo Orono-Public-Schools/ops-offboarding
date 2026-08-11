@@ -506,6 +506,10 @@ export function AdminDashboard() {
         />
       )}
 
+      {tab === 'staff' && <StaffDirectoryCard />}
+
+      {tab === 'staff' && isItAdmin && <AccessCard />}
+
       {tab === 'staff' && (
         <Card
           collapsible
@@ -556,10 +560,6 @@ export function AdminDashboard() {
           {syncMessage && <p style={messageStyle(syncMessage.kind)}>{syncMessage.text}</p>}
         </Card>
       )}
-
-      {tab === 'staff' && <StaffDirectoryCard />}
-
-      {tab === 'staff' && isItAdmin && <AccessCard />}
     </>
   );
 }
