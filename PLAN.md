@@ -153,6 +153,33 @@ just those. Existing employees and records are never updated or deleted by an im
       if role/building questions outgrow sorting; mobile pass on the Dossier
       (design-option artifacts: new-employees section 0058d27a…, roster 9e01fac0…)
 
+**Task assignment** (planned 2026-08-11, decisions locked with Joel): checklist
+tasks get owners.
+- `TaskState` gains `assignee` (email, null = unassigned) — shown on every
+  checklist row (record detail + Dossier), set from a small assign control on
+  the row. `setHrTask` grows an assignment path (or a sibling callable).
+- **Assignable people: role holders who can open /hr** — `hr_staff`,
+  `hr_admin`, `it_admin`. `it_support` is deliberately excluded for now: they
+  can't read HR collections (MGDPA stance), so an assignment would be invisible
+  to them. Later: bring them in via a scoped "your tasks" mirror or a rules
+  carve-out — decide when a real case shows up.
+- New `listAssignableStaff` callable (requireHr — `listRoleHolders` is
+  admin-only, and hr_staff needs the picker too); same claims enumeration,
+  trimmed payload.
+- **Standing defaults per task key** in `appSettings/hrTaskDefaults`
+  (`{ "new_hire.synergy": email, ... }`), managed from an admin card, applied
+  at record creation everywhere records are born (manual create, importer,
+  LOA-to-leave button), overridable per record.
+- **"Assigned to you" surfacing:** a "Mine" chip on the record-list tabs plus
+  an open-tasks-across-records card on the HR inbox. Client-side filtering —
+  HR readers already stream the collections.
+- **Assignment email rides the Trigger Email build** (below): one branded
+  template serves "you've been assigned a task" and form-status notifications.
+- [ ] Schema + assignment callable path + `listAssignableStaff`
+- [ ] Assign control on checklist rows; Mine chip + inbox card
+- [ ] Admin defaults card + apply-at-creation in all three creation paths
+- [ ] Assignment emails, together with the notifications build
+
 ### Phase 3 — Form engine + first forms
 - [x] Schema-driven form renderer + shared validator (definitions in `shared/forms/`, one
       source for client + callable). Engine supports: text/email/phone/date/select/radio/
