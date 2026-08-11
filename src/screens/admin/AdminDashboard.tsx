@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AccessCard } from '../../components/AccessCard';
 import { StaffDirectoryCard } from '../../components/StaffDirectoryCard';
+import { MyNotificationPrefsCard, NotificationSettingsCard } from '../hr/NotificationCards';
 import { useIsAdmin } from '../../lib/auth';
 import {
   computeProgress,
@@ -282,7 +283,7 @@ export function AdminDashboard() {
       : tab === 'onboarding'
         ? 'Onboarding has no settings yet'
         : tab === 'forms'
-          ? 'Forms run themselves for now'
+          ? 'The HR inbox, tuned here'
           : inMotion === 0
             ? 'Nothing in motion'
             : inMotion === 1
@@ -294,7 +295,7 @@ export function AdminDashboard() {
       : tab === 'onboarding'
         ? 'When onboarding opens, new-hire settings and checklists will live here.'
         : tab === 'forms'
-          ? 'Submissions land in the HR inbox; routing settings arrive with the next batch of forms.'
+          ? 'Who hears about submissions by email, and your own per-form overrides. Routing and visibility settings arrive with the next batch of forms.'
           : 'Everyone with an active checklist shows here. Open a row for per-task status and the audit trail.';
 
   const messageStyle = (kind: 'ok' | 'error'): React.CSSProperties => ({
@@ -494,16 +495,10 @@ export function AdminDashboard() {
       )}
 
       {tab === 'forms' && (
-        <EmptyState
-          icon="fileText"
-          line="No form settings yet"
-          note="Staff submissions land in the HR inbox. Per-form routing and visibility settings arrive with the next batch of forms."
-          action={
-            <Button variant="secondary" onClick={() => navigate('/hr')}>
-              Open the HR inbox
-            </Button>
-          }
-        />
+        <>
+          <NotificationSettingsCard />
+          <MyNotificationPrefsCard />
+        </>
       )}
 
       {tab === 'staff' && <StaffDirectoryCard />}

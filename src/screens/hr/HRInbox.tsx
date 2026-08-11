@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { type SubmissionStatus } from '../../lib/forms';
 import { useHrCtx } from './HRModule';
-import { MyNotificationPrefsCard, NotificationSettingsCard } from './NotificationCards';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { Button } from '../../ds/components/core/Button';
@@ -42,7 +41,6 @@ export function HRInbox() {
   });
 
   return (
-    <>
     <Card
       eyebrow="Inbox"
       heading={filter === 'open' ? 'Waiting on a decision' : `Showing ${filter}`}
@@ -103,8 +101,5 @@ export function HRInbox() {
         </RowList>
       )}
     </Card>
-    <MyNotificationPrefsCard />
-    <NotificationSettingsCard />
-    </>
   );
 }
