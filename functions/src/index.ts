@@ -30,6 +30,7 @@ export {
 export { promoteGroupOwner } from './groups';
 export { submitForm, updateSubmissionStatus } from './forms';
 export { setNotificationSettings, setNotificationPrefs } from './notifications';
+export { sendQueuedMail } from './mailer';
 export {
   createEmployee,
   updateEmployee,

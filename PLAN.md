@@ -239,8 +239,21 @@ even as it_admin.
       always/never per form (`notificationPrefs/{uid}`, own card on the inbox;
       "never" beats any list). Submitter status emails uniform on purpose.
       Settings live on the HR inbox, not /admin — HR admins can't reach /admin.
-- [ ] **Joel:** install the Trigger Email extension (needs an SMTP credential
-      only he can mint); queued mail sits unsent in `mail/` until then
+- [x] Self-managed mailer (2026-08-11): Firebase Extensions is being
+      decommissioned (March 2027), so the Trigger Email extension was never
+      installed. `sendQueuedMail` (functions/src/mailer.ts) is our own
+      Firestore trigger on `mail/{id}` — nodemailer over SMTP, same doc
+      contract, stamps `delivery.state` like the extension did. First
+      Eventarc-based function in the project (first deploy can race agent
+      provisioning — just retry). PaperPal still runs the real extension;
+      port it onto this mailer before March 2027.
+- [ ] **Joel:** mint the SMTP credential (app password for a no-reply
+      account, or PaperPal's), then:
+      `firebase functions:secrets:set SMTP_CONNECTION_URI` with
+      `smtps://no-reply%40orono.k12.mn.us:APP_PASSWORD@smtp.gmail.com:465`
+      (note the %40), adjust MAIL_FROM in functions/.env if the account
+      differs, and redeploy: `firebase deploy --only functions:sendQueuedMail`.
+      Until then queued mail errors harmlessly with an auth failure.
 - [ ] PDF generation + Drive filing
 - [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
