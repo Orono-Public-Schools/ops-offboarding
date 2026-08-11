@@ -205,6 +205,30 @@ tasks get owners.
 - [ ] **Joel:** confirm the lane ladder (`LANES` in shared/forms/definitions.ts is a
       placeholder: BA…BA+30, MA…MA+30) against the Master Agreement / Frontline dropdown;
       also confirm Dr. Alger is still the transcripts contact
+**Form audience** (planned 2026-08-11, decisions locked with Joel): per-form
+visibility by role branch — Joel's call: tech shouldn't see every lane change,
+even as it_admin.
+- Each form definition carries a default `audience: ('hr' | 'tech')[]`; an
+  admin-editable override lives in Firestore (`appSettings/formConfig`). All
+  three current forms default to `['hr']`.
+- The audience is **stamped onto the submission at submit** (PaperPal
+  freeze-at-submit pattern), so rules enforce per-document: readable by the
+  submitter, their future routing chain, and anyone whose branch is in the
+  audience. Config changes affect new submissions only.
+- Branch membership for submissions: hr = `hr: staff|admin|legacy true`;
+  tech = `it_admin|it_support`. Note this *narrows* it_admin — for
+  submissions only, it_admin no longer piggybacks on HR admin level. Records
+  (employees/processes/leaves/changes) stay as today: HR branch + it_admin,
+  it_support stays walled off (reconfirmed 2026-08-11).
+- Status changes follow visibility: acting on a submission requires your
+  branch in its audience.
+- Inbox queries filter `where('audience', 'array-contains', branch)`;
+  pre-audience submissions get a one-time backfill to `['hr']`.
+- [ ] Audience defaults in definitions + stamp at submit + rules + backfill
+- [ ] Inbox/query updates per branch
+- [ ] Admin card for audience overrides (folds into the routing/visibility
+      config UI below)
+
 - [ ] Routing/approval: statuses `submitted → supervisor_approved → hr_processing → completed` (+ denied/revisions/cancelled), frozen chains, activity log (today: submitted/processing/completed/denied, HR-only status changes)
 - [ ] LOA submission → `leaves` record: HR affordance to create the leave from the
       submission (today HR reads the inbox and keys the record by hand)
