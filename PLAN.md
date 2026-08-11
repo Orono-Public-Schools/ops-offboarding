@@ -235,10 +235,12 @@ even as it_admin.
 - [x] Email notifications (2026-08-11): submit + status callables queue `mail/`
       docs through PaperPal's branded template. Layered config, loose to tight:
       master switches + default address → per-form recipients/toggles
-      (`appSettings/notifications`, HR-admin card on the inbox) → personal
-      always/never per form (`notificationPrefs/{uid}`, own card on the inbox;
-      "never" beats any list). Submitter status emails uniform on purpose.
-      Settings live on the HR inbox, not /admin — HR admins can't reach /admin.
+      (`appSettings/notifications`) → personal always/never per form
+      (`notificationPrefs/{uid}`; "never" beats any list). Submitter status
+      emails uniform on purpose. Both cards live on Admin → Forms (moved off
+      the HR inbox 2026-08-11 at Joel's ask) — which makes them it_admin-only
+      until admin access widens; the callables still allow hr_admin
+      (settings) and any HR role (prefs) if a surface returns for them.
 - [x] Self-managed mailer (2026-08-11): Firebase Extensions is being
       decommissioned (March 2027), so the Trigger Email extension was never
       installed. `sendQueuedMail` (functions/src/mailer.ts) is our own
