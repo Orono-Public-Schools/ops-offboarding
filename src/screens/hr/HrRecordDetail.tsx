@@ -396,7 +396,7 @@ export function HrRecordDetail() {
           )}
         </div>
         {isHrAdmin && (
-          <Button size="sm" variant="destructive" disabled={busy} onClick={remove}>
+          <Button size="sm" variant="destructiveInverse" disabled={busy} onClick={remove}>
             Delete record
           </Button>
         )}

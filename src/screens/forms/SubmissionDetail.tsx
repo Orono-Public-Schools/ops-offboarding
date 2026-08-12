@@ -286,7 +286,11 @@ function HrActions({ submission }: { submission: Submission }) {
       />
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         {submission.status !== 'denied' && (
-          <Button variant="destructive" disabled={pending !== null} onClick={() => act('denied')}>
+          <Button
+            variant="destructiveGhost"
+            disabled={pending !== null}
+            onClick={() => act('denied')}
+          >
             {pending === 'denied' ? 'Working…' : 'Deny'}
           </Button>
         )}
@@ -428,7 +432,7 @@ export function SubmissionDetail() {
           )}
           <Button
             size="sm"
-            variant="destructive"
+            variant="destructiveInverse"
             disabled={deleting}
             onClick={async () => {
               if (!window.confirm('Delete this submission? This cannot be undone.')) return;

@@ -48,6 +48,24 @@ const BUTTON_VARIANTS = {
       borderColor: 'rgba(255, 255, 255, 0.45)',
     },
   },
+  /* Zero red at rest (the Access-card principle): reads as a ghost until
+     approached, then names its danger. For destructive actions that share a
+     row with the primary path — Deny beside Complete. */
+  destructiveGhost: {
+    color: 'var(--text-muted)', background: 'transparent', border: '1px solid transparent',
+    shadow: 'none',
+    hover: { color: 'var(--accent)', background: 'rgba(var(--accent-rgb), 0.08)' },
+  },
+  /* Red control on the navy shell — the app bar sign-out formula: deep red
+     fill at rest so it reads red without glowing, full accent on hover. */
+  destructiveInverse: {
+    color: '#f6cdcd', background: 'rgba(var(--accent-rgb), 0.55)',
+    border: '1px solid rgba(var(--accent-rgb), 0.75)', shadow: 'none',
+    hover: {
+      color: '#fff', background: 'var(--gradient-accent)',
+      borderColor: 'transparent', boxShadow: 'var(--shadow-accent)',
+    },
+  },
 };
 
 const BUTTON_SIZES = {

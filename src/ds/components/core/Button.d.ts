@@ -11,7 +11,15 @@ import type { IconName } from './Icon';
  * @startingPoint section="Controls" subtitle="Button variants and sizes" viewport="700x220"
  */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'submit' | 'secondary' | 'destructive' | 'ghost' | 'inverse';
+  variant?:
+    | 'primary'
+    | 'submit'
+    | 'secondary'
+    | 'destructive'
+    | 'ghost'
+    | 'inverse'
+    | 'destructiveGhost'
+    | 'destructiveInverse';
   size?: 'sm' | 'md' | 'lg';
   /** Leading icon name. On submit buttons it animates on hover. */
   icon?: IconName;
