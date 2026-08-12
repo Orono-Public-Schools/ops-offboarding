@@ -118,6 +118,39 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
   throw new HttpsError('internal', 'Could not allocate a submission id. Please try again.');
 });
 
+/** HR admins only, like every other deletion. Clears the back-link on a
+ *  linked leave record so nothing points at a missing document. */
+export const deleteSubmission = onCall<{ id?: string }>({ region: REGION }, async (request) => {
+  const { email } = requireAuthedDomainUser(request);
+  if (hrLevel(request.auth?.token ?? {}) !== 'admin') {
+    throw new HttpsError('permission-denied', 'HR admin access required.');
+  }
+  const id = request.data?.id;
+  if (!id || typeof id !== 'string') {
+    throw new HttpsError('invalid-argument', 'Missing submission id.');
+  }
+
+  const db = getFirestore();
+  const ref = db.collection('submissions').doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Submission not found.');
+
+  const leaveId = snap.get('leaveId') as unknown;
+  if (typeof leaveId === 'string' && leaveId) {
+    const leaveRef = db.collection('leaves').doc(leaveId);
+    if ((await leaveRef.get()).exists) {
+      await leaveRef.update({
+        submissionId: null,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: email,
+      });
+    }
+  }
+
+  await ref.delete();
+  return { success: true };
+});
+
 const HR_SETTABLE_STATUSES = new Set<SubmissionStatus>(['processing', 'completed', 'denied']);
 
 export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(

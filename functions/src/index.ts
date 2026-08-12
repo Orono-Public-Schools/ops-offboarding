@@ -28,7 +28,7 @@ export {
   createHandoffDoc,
 } from './drive';
 export { promoteGroupOwner } from './groups';
-export { submitForm, updateSubmissionStatus } from './forms';
+export { submitForm, updateSubmissionStatus, deleteSubmission } from './forms';
 export { setNotificationSettings, setNotificationPrefs } from './notifications';
 export { sendQueuedMail } from './mailer';
 export {

@@ -49,6 +49,12 @@ export const updateSubmissionStatus = httpsCallable<
   { success: boolean }
 >(functions, 'updateSubmissionStatus');
 
+/** HR admins: remove a submission (clears any leave record's back-link). */
+export const deleteSubmission = httpsCallable<{ id: string }, { success: boolean }>(
+  functions,
+  'deleteSubmission',
+);
+
 /** HR: turn an LOA submission into a `leaves` record (links back via leaveId). */
 export const createLeaveFromSubmission = httpsCallable<
   { submissionId: string; employeeRef: string },

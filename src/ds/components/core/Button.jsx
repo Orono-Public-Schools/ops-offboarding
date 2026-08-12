@@ -38,6 +38,16 @@ const BUTTON_VARIANTS = {
     color: 'var(--text-muted)', background: 'transparent', border: '1px solid transparent',
     shadow: 'none', hover: { background: 'rgba(100, 116, 139, 0.08)', color: 'var(--text-body)' },
   },
+  /* Quiet button for the navy shell — ghost reads invisible there. White
+     hairline so it still has a button's silhouette (PaperPal's btn-cancel). */
+  inverse: {
+    color: 'rgba(255, 255, 255, 0.75)', background: 'transparent',
+    border: '1px solid rgba(255, 255, 255, 0.28)', shadow: 'none',
+    hover: {
+      background: 'rgba(255, 255, 255, 0.1)', color: '#fff',
+      borderColor: 'rgba(255, 255, 255, 0.45)',
+    },
+  },
 };
 
 const BUTTON_SIZES = {

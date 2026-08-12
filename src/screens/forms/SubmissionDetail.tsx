@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { useAuth, useIsHR } from '../../lib/auth';
+import { useAuth, useIsHR, useIsHrAdmin } from '../../lib/auth';
 import {
   allFieldsForSubmission,
   createLeaveFromSubmission,
+  deleteSubmission,
   displayId,
   updateSubmissionStatus,
   useSubmission,
@@ -328,8 +329,11 @@ export function SubmissionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isHR = useIsHR();
+  const isHrAdmin = useIsHrAdmin();
   const { user } = useAuth();
   const state = useSubmission(id ?? null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (state.loading) {
     return (
@@ -409,6 +413,41 @@ export function SubmissionDetail() {
       )}
 
       {isHR && <HrActions submission={s} />}
+
+      {isHrAdmin && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          {deleteError && (
+            <span style={{ font: 'var(--type-body-sm)', color: '#ffb4b4' }}>{deleteError}</span>
+          )}
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={deleting}
+            onClick={async () => {
+              if (!window.confirm('Delete this submission? This cannot be undone.')) return;
+              setDeleting(true);
+              setDeleteError(null);
+              try {
+                await deleteSubmission({ id: s.id });
+                navigate(hrView ? '/hr' : '/forms', { replace: true });
+              } catch (err) {
+                console.error(err);
+                setDeleteError('Could not delete the submission.');
+                setDeleting(false);
+              }
+            }}
+          >
+            {deleting ? 'Deleting…' : 'Delete submission'}
+          </Button>
+        </div>
+      )}
 
       <Card eyebrow="Activity" heading="Everything that's happened" pad={16}>
         <RowList>

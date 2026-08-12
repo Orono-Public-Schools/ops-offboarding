@@ -697,7 +697,7 @@ export function FormRenderer({
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {hasDraft && (
-          <Button type="button" variant="ghost" onClick={clearDraft} disabled={submitting}>
+          <Button type="button" variant="inverse" onClick={clearDraft} disabled={submitting}>
             Clear the form
           </Button>
         )}
