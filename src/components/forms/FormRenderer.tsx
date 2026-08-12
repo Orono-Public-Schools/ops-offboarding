@@ -15,6 +15,7 @@ import {
 import { MAX_UPLOAD_BYTES, removeFormFile, uploadFormFile } from '../../lib/storage';
 import { Button } from '../../ds/components/core/Button';
 import { Icon } from '../../ds/components/core/Icon';
+import { DateField } from './DateField';
 import { Field } from '../../ds/components/forms/Field';
 import { ChoiceRow } from '../../ds/components/forms/ChoiceRow';
 import { FormSection } from '../../ds/components/forms/FormSection';
@@ -35,8 +36,6 @@ function loadDraft(formId: string): FormData {
 
 function inputType(field: FormField): string {
   switch (field.type) {
-    case 'date':
-      return 'date';
     case 'email':
       return 'email';
     case 'phone':
@@ -500,6 +499,20 @@ function FieldControl({
     );
   }
 
+  if (field.type === 'date') {
+    return (
+      <DateField
+        label={field.label}
+        value={typeof value === 'string' ? value : ''}
+        onChange={onChange}
+        placeholder={field.placeholder}
+        help={error ? undefined : field.helper}
+        error={error}
+        optional={!field.required}
+      />
+    );
+  }
+
   if (field.type === 'select') {
     return (
       <Field
@@ -535,7 +548,6 @@ function FieldControl({
     <Field
       label={field.label}
       type={inputType(field)}
-      icon={field.type === 'date' ? 'calendar' : undefined}
       value={typeof value === 'string' ? value : ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
       placeholder={field.placeholder}
