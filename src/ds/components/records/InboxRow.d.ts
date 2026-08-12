@@ -18,5 +18,10 @@ export interface InboxRowProps extends React.HTMLAttributes<HTMLDivElement> {
   unread?: boolean;
   /** Hover-revealed actions; replaces the chevron. */
   actions?: React.ReactNode;
+  /** CSS color: paints a status rail on the left edge; with `unread`, the
+   *  row sits on a faint secondary tint. */
+  rail?: string;
+  /** Show the trailing chevron (default true). */
+  chevron?: boolean;
 }
 export declare function InboxRow(props: InboxRowProps): JSX.Element;

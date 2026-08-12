@@ -194,6 +194,11 @@ export type SubmissionEntry = {
   columns?: TableColumn[];
 };
 
+/** "REQ-35091" (legacy PaperPal-style ids) and "35091" both display "#35091". */
+export function displayId(id: string): string {
+  return `#${id.replace(/^REQ-/, '')}`;
+}
+
 export function allFieldsForSubmission(s: Submission): SubmissionEntry[] {
   const def = getFormDefinition(s.formId);
   if (!def) {

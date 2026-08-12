@@ -65,6 +65,7 @@ export const sendQueuedMail = onDocumentCreated(
         subject,
         html,
       });
+      logger.info('sendQueuedMail delivered', { id: snap.id, to, subject });
       await snap.ref.update({
         delivery: {
           state: 'SUCCESS',

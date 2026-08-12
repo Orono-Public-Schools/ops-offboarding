@@ -4,6 +4,7 @@ import { useAuth, useIsHR } from '../../lib/auth';
 import {
   allFieldsForSubmission,
   createLeaveFromSubmission,
+  displayId,
   updateSubmissionStatus,
   useSubmission,
   type FileRef,
@@ -372,7 +373,7 @@ export function SubmissionDetail() {
         onBack={() => navigate(hrView ? '/hr' : '/forms')}
         title={s.formTitle}
         subtitle={denied ? 'This one came back — the note below says why.' : undefined}
-        note={`${s.id} · filed ${formatTs(s.createdAt)}`}
+        note={`${displayId(s.id)} · filed ${formatTs(s.createdAt)}`}
         actions={<StatusBadge state={s.status} size="md" />}
       />
 

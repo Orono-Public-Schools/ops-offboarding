@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 import { computeProgress } from '../lib/admin';
 import { useAuth, useIsHR, useIsTech } from '../lib/auth';
 import { useOffboarding } from '../lib/offboarding';
-import { useMySubmissions, type Submission } from '../lib/forms';
+import { displayId, useMySubmissions, type Submission } from '../lib/forms';
 import { Card } from '../ds/components/core/Card';
 import { QuietLink } from '../ds/components/core/QuietLink';
 import { StatusBadge } from '../ds/components/core/StatusBadge';
@@ -110,8 +110,8 @@ export function HomeScreen() {
               <RequestRow
                 key={s.id}
                 title={s.formTitle}
-                kind={`${s.id} · ${filedAgo(s)}`}
-                status={<StatusBadge state={s.status} />}
+                kind={`${displayId(s.id)} · ${filedAgo(s)}`}
+                status={<StatusBadge variant="dot" state={s.status} />}
                 track={<StatusTrack stages={STAGES} current={STAGE_FOR_STATUS[s.status] ?? 1} />}
                 onClick={() => navigate(`/forms/submissions/${s.id}`)}
               />

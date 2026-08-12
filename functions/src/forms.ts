@@ -22,8 +22,11 @@ function isHrRequest(request: { auth?: { token: Record<string, unknown> } }): bo
   return hrLevel(request.auth?.token ?? {}) !== null;
 }
 
-function newReqId(): string {
-  return `REQ-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
+/* Bare five digits — displayed as "#35091". The REQ- prefix was a
+   PaperPal-ism, retired 2026-08-11; legacy REQ- doc ids still exist and
+   every display path strips them. */
+function newSubmissionId(): string {
+  return String(Math.floor(Math.random() * 100000)).padStart(5, '0');
 }
 
 export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (request) => {
@@ -67,7 +70,7 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
 
   // Random 5-digit ids; create() fails if taken, so retry a few times.
   for (let attempt = 0; attempt < 5; attempt++) {
-    const id = newReqId();
+    const id = newSubmissionId();
     const ref = db.collection('submissions').doc(id);
     try {
       await ref.create({

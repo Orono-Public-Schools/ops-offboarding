@@ -425,7 +425,9 @@ export const createLeaveFromSubmission = onCall({ region: REGION }, async (reque
 
     // Everything the leave sheet has no column for lands in the notes, so
     // nothing the employee told HR gets lost between the two views.
-    const lines = [`Created from submission ${submissionId} (${sub.submitterEmail}).`];
+    const lines = [
+      `Created from submission #${submissionId.replace(/^REQ-/, '')} (${sub.submitterEmail}).`,
+    ];
     if (str('leaveType')) {
       lines.push(`Leave type: ${LOA_TYPE_LABELS[str('leaveType')] ?? str('leaveType')}.`);
     }

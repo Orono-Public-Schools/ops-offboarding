@@ -12,9 +12,30 @@ const BADGE_STATES = {
   paid:       { label: 'Paid',       color: 'var(--status-paid)',       rgb: 'var(--success-rgb)', icon: 'check' },
 };
 
-export function StatusBadge({ state = 'submitted', label, icon = true, size = 'md', style, children, ...rest }) {
+export function StatusBadge({ state = 'submitted', label, icon = true, size = 'md', variant = 'pill', style, children, ...rest }) {
   const s = BADGE_STATES[state] || BADGE_STATES.submitted;
   const small = size === 'sm';
+  /* variant="dot": the color system without the button anatomy — a 7px dot
+     and a colored word, no fill, no icon. For list rows; pills keep detail
+     headers. (Design review 2026-08-11, treatment S2.) */
+  if (variant === 'dot') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          font: 'var(--type-badge)', fontSize: small ? 11 : 12,
+          color: s.color, whiteSpace: 'nowrap',
+          ...style,
+        }}
+        {...rest}
+      >
+        <span aria-hidden="true" style={{
+          width: 7, height: 7, borderRadius: 'var(--radius-pill)', background: 'currentColor',
+        }} />
+        {children || label || s.label}
+      </span>
+    );
+  }
   return (
     <span
       style={{

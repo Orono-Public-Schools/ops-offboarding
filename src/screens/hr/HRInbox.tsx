@@ -26,6 +26,14 @@ function ago(ms: number | undefined): string {
   return `${days}d`;
 }
 
+/* The Rail treatment: status lives on the row's left edge. */
+const RAIL_COLORS: Record<SubmissionStatus, string> = {
+  submitted: 'var(--status-submitted)',
+  processing: 'var(--status-processing)',
+  completed: 'var(--status-completed)',
+  denied: 'var(--status-denied)',
+};
+
 export function HRInbox() {
   const navigate = useNavigate();
   const state = useHrCtx().submissions;
@@ -91,10 +99,12 @@ export function HRInbox() {
                 />
               }
               request={s.formTitle}
-              kind={`${s.id} · ${s.summary}`}
-              status={<StatusBadge state={s.status} />}
+              kind={s.summary}
+              status={<StatusBadge variant="dot" state={s.status} />}
               time={ago(s.createdAt?.toMillis())}
               unread={s.status === 'submitted'}
+              rail={RAIL_COLORS[s.status] ?? 'var(--status-draft)'}
+              chevron={false}
               onClick={() => navigate(`/forms/submissions/${s.id}`)}
             />
           ))}

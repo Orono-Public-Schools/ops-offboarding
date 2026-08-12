@@ -92,6 +92,11 @@ function emailHtml({
   `;
 }
 
+/** "REQ-35091" (legacy) and "35091" both read "#35091". */
+function displayId(id: string): string {
+  return `#${id.replace(/^REQ-/, '')}`;
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -103,6 +108,7 @@ function escapeHtml(s: string): string {
 /** Queues a doc the Trigger Email extension sends. No-op on an empty list. */
 async function queueMail(db: Firestore, to: string[], subject: string, html: string) {
   if (to.length === 0) return;
+  logger.info('queueMail', { to, subject });
   await db.collection('mail').add({
     to,
     message: { subject, html },
@@ -155,12 +161,12 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
     await queueMail(
       db,
       [...recipients],
-      `[OronoHR] ${sub.formTitle} from ${sub.submitterName} — ${sub.id}`,
+      `[OronoHR] ${sub.formTitle} from ${sub.submitterName} — ${displayId(sub.id)}`,
       emailHtml({
         heading: `New ${sub.formTitle} submission`,
         body: `
           <p><strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request.</p>
-          <p style="color: #64748b; font-size: 13px;">${summary}${sub.id}</p>
+          <p style="color: #64748b; font-size: 13px;">${summary}${displayId(sub.id)}</p>
         `,
         link: `${APP_URL}/forms/submissions/${sub.id}`,
         linkLabel: 'Open the request',
@@ -217,13 +223,13 @@ export async function notifyStatusChanged(
     await queueMail(
       db,
       [sub.submitterEmail],
-      `[OronoHR] ${copy.subject} — ${sub.formTitle} ${sub.id}`,
+      `[OronoHR] ${copy.subject} — ${sub.formTitle} ${displayId(sub.id)}`,
       emailHtml({
         heading: copy.heading,
         body: `
           <p>Your ${escapeHtml(sub.formTitle)} request ${copy.body}.</p>
           ${noteBlock}
-          <p style="color: #64748b; font-size: 13px;">${sub.id}</p>
+          <p style="color: #64748b; font-size: 13px;">${displayId(sub.id)}</p>
         `,
         link: `${APP_URL}/forms/submissions/${sub.id}`,
         linkLabel: 'View your request',

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../lib/auth';
-import { FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
+import { displayId, FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
@@ -109,8 +109,8 @@ export function FormsHome() {
               <InboxRow
                 key={s.id}
                 request={s.formTitle}
-                kind={`${s.id} · ${ago(s.createdAt?.toMillis())}`}
-                status={<StatusBadge state={s.status} />}
+                kind={`${displayId(s.id)} · ${ago(s.createdAt?.toMillis())}`}
+                status={<StatusBadge variant="dot" state={s.status} />}
                 onClick={() => navigate(`/forms/submissions/${s.id}`)}
               />
             ))}
