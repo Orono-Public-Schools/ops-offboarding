@@ -108,7 +108,7 @@ function escapeHtml(s: string): string {
 /** Queues a doc the Trigger Email extension sends. No-op on an empty list. */
 async function queueMail(db: Firestore, to: string[], subject: string, html: string) {
   if (to.length === 0) return;
-  logger.info('queueMail', { to, subject });
+  logger.info(`queueMail to=${to.join(',')} subject=${subject}`);
   await db.collection('mail').add({
     to,
     message: { subject, html },

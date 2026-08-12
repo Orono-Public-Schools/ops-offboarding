@@ -175,11 +175,11 @@ export function AdminOffboardingDetail() {
 
   const statusBadge =
     o.status === 'in_progress' ? (
-      <StatusBadge state="processing" label="In progress" size="md" />
+      <StatusBadge state="processing" label="In progress" size="md" on="dark" />
     ) : o.status === 'completed' ? (
-      <StatusBadge state="completed" size="md" />
+      <StatusBadge state="completed" size="md" on="dark" />
     ) : (
-      <StatusBadge state="draft" label={o.status} size="md" />
+      <StatusBadge state="draft" label={o.status} size="md" on="dark" />
     );
 
   const daysLine =

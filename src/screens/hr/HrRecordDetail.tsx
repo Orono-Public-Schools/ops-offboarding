@@ -36,17 +36,18 @@ function isCollection(v: string | undefined): v is HrRecordCollection {
 }
 
 function badgeFor(r: HrRecordDoc) {
+  // These sit in the PageTitle on the navy shell, hence on="dark".
   if (r.collection === 'leaves') {
     const b = LEAVE_STATUS_BADGE[r.status as LeaveStatus] ?? LEAVE_STATUS_BADGE.in_process;
-    return <StatusBadge state={b.state} label={b.label} />;
+    return <StatusBadge state={b.state} label={b.label} on="dark" />;
   }
   const { done, total } = taskProgress(r);
   const complete =
     r.collection === 'changes' ? total > 0 && done >= total : r.status === 'complete';
   return complete ? (
-    <StatusBadge state="completed" />
+    <StatusBadge state="completed" on="dark" />
   ) : (
-    <StatusBadge state="processing" label="Open" />
+    <StatusBadge state="processing" label="Open" on="dark" />
   );
 }
 

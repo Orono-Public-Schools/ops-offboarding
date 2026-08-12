@@ -46,7 +46,8 @@ export const sendQueuedMail = onDocumentCreated(
     const html = typeof data.message?.html === 'string' ? data.message.html : null;
 
     const fail = async (error: string) => {
-      logger.error('sendQueuedMail failed', { id: snap.id, error });
+      // Plain-string message — the CLI log viewer drops structured payloads.
+      logger.error(`sendQueuedMail FAILED id=${snap.id}: ${error}`);
       await snap.ref.update({
         delivery: { state: 'ERROR', error, endTime: FieldValue.serverTimestamp() },
       });
@@ -58,14 +59,25 @@ export const sendQueuedMail = onDocumentCreated(
     }
 
     try {
-      const transport = nodemailer.createTransport(SMTP_CONNECTION_URI.value());
+      const uri = SMTP_CONNECTION_URI.value();
+      // Surface how the secret parses (user + host only — never the password)
+      // so a malformed URI (unencoded @, stray spaces) is obvious in logs.
+      try {
+        const parsed = new URL(uri);
+        logger.info(
+          `sendQueuedMail smtp user=${decodeURIComponent(parsed.username)} host=${parsed.hostname} port=${parsed.port}`,
+        );
+      } catch {
+        logger.error('sendQueuedMail: SMTP_CONNECTION_URI is not a parseable URL.');
+      }
+      const transport = nodemailer.createTransport(uri);
       const info = await transport.sendMail({
         from: MAIL_FROM.value(),
         to,
         subject,
         html,
       });
-      logger.info('sendQueuedMail delivered', { id: snap.id, to, subject });
+      logger.info(`sendQueuedMail DELIVERED id=${snap.id} to=${to.join(',')} subject=${subject}`);
       await snap.ref.update({
         delivery: {
           state: 'SUCCESS',

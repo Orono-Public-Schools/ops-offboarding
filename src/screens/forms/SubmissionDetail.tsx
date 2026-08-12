@@ -326,7 +326,7 @@ export function SubmissionDetail() {
         title={s.formTitle}
         subtitle={denied ? 'This one came back — the note below says why.' : undefined}
         note={`${displayId(s.id)} · filed ${formatTs(s.createdAt)}`}
-        actions={<StatusBadge state={s.status} size="md" />}
+        actions={<StatusBadge state={s.status} size="md" on="dark" />}
       />
 
       {!denied && (
