@@ -32,7 +32,13 @@ const BUTTON_VARIANTS = {
     border: '1px solid transparent', shadow: 'var(--shadow-accent)',
     wipe: 'var(--accent)', hover: {},
   },
-  secondary: { ...outline('var(--secondary-rgb)', 'var(--secondary)'), shadow: 'none' },
+  /* Solid tint, not the washed outline (retired 2026-08-11 — it read as a
+     disabled pill everywhere it appeared). Navy text on the brand's light
+     blue: quiet but unmistakably a button. */
+  secondary: {
+    color: 'var(--dark)', background: 'var(--tint)', border: '1px solid transparent',
+    shadow: 'none', hover: { background: '#dde1f0' },
+  },
   destructive: { ...outline('var(--accent-rgb)', 'var(--accent)'), shadow: 'none' },
   ghost: {
     color: 'var(--text-muted)', background: 'transparent', border: '1px solid transparent',

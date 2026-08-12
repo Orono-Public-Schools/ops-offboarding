@@ -266,8 +266,15 @@ export function validateForm(def: FormDefinition, data: FormData): ValidationRes
  *  are shown as their labels, arrays joined. */
 export function buildSummary(def: FormDefinition, cleaned: FormData): string {
   const fieldsById = new Map(allFields(def).map((f) => [f.id, f]));
-  const labelOf = (fieldId: string, value: string): string =>
-    fieldsById.get(fieldId)?.options?.find((o) => o.value === value)?.label ?? value;
+  const labelOf = (fieldId: string, value: string): string => {
+    const field = fieldsById.get(fieldId);
+    // Dates read MM-DD-YYYY everywhere people see them; ISO stays stored.
+    if (field?.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [y, m, d] = value.split('-');
+      return `${m}-${d}-${y}`;
+    }
+    return field?.options?.find((o) => o.value === value)?.label ?? value;
+  };
   const parts = (def.summaryFields ?? [])
     .map((id) => {
       const v = cleaned[id];

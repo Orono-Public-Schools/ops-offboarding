@@ -2,106 +2,24 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useAuth, useIsHR, useIsHrAdmin } from '../../lib/auth';
 import {
-  allFieldsForSubmission,
   createLeaveFromSubmission,
   deleteSubmission,
   displayId,
   updateSubmissionStatus,
   useSubmission,
-  type FileRef,
   type Submission,
   type SubmissionStatus,
-  type TableColumn,
-  type TableRow,
 } from '../../lib/forms';
 import { useEmployees, type EmployeeDoc } from '../../lib/hr';
-import { fileDownloadUrl } from '../../lib/storage';
+import { SubmissionFacts } from './SubmissionFacts';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
-import { QuietLink } from '../../ds/components/core/QuietLink';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { StatusTrack } from '../../ds/components/records/StatusTrack';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
 import { RowList, DetailRow } from '../../ds/components/forms/RowList';
-
-/** Opens an attachment via a short-lived download URL; Storage rules let the
- *  submitter, HR, and IT read it. */
-function AttachmentLink({ file }: { file: FileRef }) {
-  const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
-  return (
-    <QuietLink
-      icon="download"
-      onClick={async () => {
-        setState('busy');
-        try {
-          const url = await fileDownloadUrl(file.path);
-          window.open(url, '_blank', 'noopener');
-          setState('idle');
-        } catch (err) {
-          console.error(err);
-          setState('failed');
-        }
-      }}
-    >
-      {state === 'busy'
-        ? 'Opening…'
-        : state === 'failed'
-          ? `${file.name} — could not open`
-          : file.name}
-    </QuietLink>
-  );
-}
-
-function RowsTable({ rows, columns }: { rows: TableRow[]; columns?: TableColumn[] }) {
-  const cols = columns ?? Object.keys(rows[0] ?? {}).map((k) => ({ key: k, label: k }));
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <thead>
-          <tr>
-            {cols.map((c) => (
-              <th
-                key={c.key}
-                style={{
-                  textAlign: 'left',
-                  padding: '2px 14px 4px 0',
-                  font: 'var(--type-field-label)',
-                  letterSpacing: 'var(--tracking-wider)',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              {cols.map((c) => (
-                <td
-                  key={c.key}
-                  style={{
-                    padding: '3px 14px 3px 0',
-                    font: 'var(--type-body-sm)',
-                    color: 'var(--dark)',
-                    verticalAlign: 'top',
-                  }}
-                >
-                  {r[c.key] ?? '—'}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 const STAGES = ['Filed', 'Received', 'Processing', 'Complete'];
 const STAGE_FOR_STATUS: Record<string, number> = { submitted: 1, processing: 2, completed: 3 };
@@ -254,9 +172,12 @@ function LeaveRecordCard({ submission }: { submission: Submission }) {
   );
 }
 
-function HrActions({ submission }: { submission: Submission }) {
+function HrActions({ submission, hrView }: { submission: Submission; hrView: boolean }) {
+  const navigate = useNavigate();
+  const isHrAdmin = useIsHrAdmin();
   const [note, setNote] = useState('');
   const [pending, setPending] = useState<SubmissionStatus | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const act = async (status: SubmissionStatus) => {
@@ -273,6 +194,20 @@ function HrActions({ submission }: { submission: Submission }) {
     }
   };
 
+  const remove = async () => {
+    if (!window.confirm('Delete this submission? This cannot be undone.')) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteSubmission({ id: submission.id });
+      navigate(hrView ? '/hr' : '/forms', { replace: true });
+    } catch (err) {
+      console.error(err);
+      setError('Could not delete the submission.');
+      setDeleting(false);
+    }
+  };
+
   return (
     <Card eyebrow="Decision" heading="Move this request" pad={16}>
       <Field
@@ -285,6 +220,18 @@ function HrActions({ submission }: { submission: Submission }) {
         optional
       />
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {/* Housekeeping sits far left, away from the decision verbs; red only
+            on approach, like everything destructive at rest. */}
+        {isHrAdmin && (
+          <Button
+            variant="destructiveGhost"
+            disabled={pending !== null || deleting}
+            onClick={remove}
+            style={{ marginRight: 'auto' }}
+          >
+            {deleting ? 'Deleting…' : 'Delete submission'}
+          </Button>
+        )}
         {submission.status !== 'denied' && (
           <Button
             variant="destructiveGhost"
@@ -333,11 +280,8 @@ export function SubmissionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isHR = useIsHR();
-  const isHrAdmin = useIsHrAdmin();
   const { user } = useAuth();
   const state = useSubmission(id ?? null);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (state.loading) {
     return (
@@ -392,66 +336,14 @@ export function SubmissionDetail() {
       )}
 
       <Card eyebrow="Details" heading="What you told us" pad={16}>
-        <RowList>
-          <DetailRow label="Filed by" value={`${s.submitterName} · ${s.submitterEmail}`} />
-          {allFieldsForSubmission(s).map((entry) => (
-            <DetailRow
-              key={entry.label}
-              label={entry.label}
-              value={
-                entry.file ? (
-                  <AttachmentLink file={entry.file} />
-                ) : entry.rows ? (
-                  <RowsTable rows={entry.rows} columns={entry.columns} />
-                ) : (
-                  entry.value
-                )
-              }
-            />
-          ))}
-        </RowList>
+        <SubmissionFacts submission={s} />
       </Card>
 
       {isHR && s.formId === 'leaveOfAbsence' && (s.leaveId || !denied) && (
         <LeaveRecordCard submission={s} />
       )}
 
-      {isHR && <HrActions submission={s} />}
-
-      {isHrAdmin && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          {deleteError && (
-            <span style={{ font: 'var(--type-body-sm)', color: '#ffb4b4' }}>{deleteError}</span>
-          )}
-          <Button
-            size="sm"
-            variant="destructiveInverse"
-            disabled={deleting}
-            onClick={async () => {
-              if (!window.confirm('Delete this submission? This cannot be undone.')) return;
-              setDeleting(true);
-              setDeleteError(null);
-              try {
-                await deleteSubmission({ id: s.id });
-                navigate(hrView ? '/hr' : '/forms', { replace: true });
-              } catch (err) {
-                console.error(err);
-                setDeleteError('Could not delete the submission.');
-                setDeleting(false);
-              }
-            }}
-          >
-            {deleting ? 'Deleting…' : 'Delete submission'}
-          </Button>
-        </div>
-      )}
+      {isHR && <HrActions submission={s} hrView={hrView} />}
 
       <Card eyebrow="Activity" heading="Everything that's happened" pad={16}>
         <RowList>
