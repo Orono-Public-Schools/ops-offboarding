@@ -91,8 +91,9 @@ export function MyNotificationPrefsCard() {
   return (
     <Card collapsible defaultOpen eyebrow="Your email" heading="When a request lands" pad={16}>
       <p style={caption}>
-        Per form: follow the admin setup, always get the email yourself, or never get it —
-        "never" wins even if you're on the recipient list. Choices save the moment you click.
+        Per form: follow the admin setup, always get the email (even for requests you filed
+        yourself), or never get it — "never" wins even if you're on the recipient list.
+        Choices save the moment you click.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {FORMS.map((f) => (

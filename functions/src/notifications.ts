@@ -143,6 +143,10 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
           ? [settings.defaultRecipient]
           : [];
     const recipients = new Set(base.map((e) => e.toLowerCase()));
+    // Nobody is alerted about their own filing — unless they explicitly say
+    // "always" below. Personal choices beat this heuristic in BOTH
+    // directions, matching "never wins even if you're on the list".
+    recipients.delete(sub.submitterEmail.toLowerCase());
 
     // Personal overrides — the prefs collection only ever holds role holders,
     // so reading it whole stays cheap.
@@ -154,7 +158,6 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
       if (choice === 'always') recipients.add(email);
       if (choice === 'never') recipients.delete(email);
     }
-    recipients.delete(sub.submitterEmail.toLowerCase());
     if (recipients.size === 0) return;
 
     const summary = sub.summary ? `${escapeHtml(sub.summary)} &middot; ` : '';
