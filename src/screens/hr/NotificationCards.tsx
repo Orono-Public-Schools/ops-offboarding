@@ -263,7 +263,7 @@ export function NotificationSettingsCard() {
               flexWrap: 'wrap',
             }}
           >
-            <span style={rowLabel}>Status emails to submitters</span>
+            <span style={rowLabel}>Submitter emails: filing receipt + status updates</span>
             <TriChoice
               value={draft.notifyStatus ? 'on' : 'off'}
               choices={[

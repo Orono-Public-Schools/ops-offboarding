@@ -128,11 +128,32 @@ type SubmissionFacts = {
   summary: string;
 };
 
-/** Resolves who hears about a new submission and queues the email. */
+/** Queues the submitter's filing receipt and the staff alert. */
 export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
   try {
     const db = getFirestore();
     const settings = await loadSettings(db);
+
+    // Receipt to the submitter — rides the same switch as status emails,
+    // since both are the submitter's side of the conversation.
+    if (settings.notifyStatus) {
+      const summary = sub.summary ? `${escapeHtml(sub.summary)} &middot; ` : '';
+      await queueMail(
+        db,
+        [sub.submitterEmail],
+        `[OronoHR] Filed — ${sub.formTitle} ${displayId(sub.id)}`,
+        emailHtml({
+          heading: 'Your request is in',
+          body: `
+            <p>Your ${escapeHtml(sub.formTitle)} request has been filed with Human Resources. You&rsquo;ll get an email when it moves.</p>
+            <p style="color: #64748b; font-size: 13px;">${summary}${displayId(sub.id)}</p>
+          `,
+          link: `${APP_URL}/forms/submissions/${sub.id}`,
+          linkLabel: 'Follow your request',
+        }),
+      );
+    }
+
     const pf = settings.perForm[sub.formId] ?? {};
     if (!(pf.notifySubmit ?? settings.notifySubmit)) return;
 
