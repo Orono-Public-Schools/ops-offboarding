@@ -252,15 +252,18 @@ even as it_admin.
 - [x] Mailer moved off SMTP (2026-10-05): the `noreply-hr@` app password
       started failing with 535 BadCredentials, so `sendQueuedMail` now sends
       through the Gmail API as the MAIL_FROM mailbox via a
-      domain-wide-delegated service account (scope `gmail.send`) — the
-      OPSTech Site pattern; no mailbox password involved. Admin → Forms has
+      dedicated domain-wide-delegated service account (scope `gmail.send`
+      only), signed keylessly through IAM — no mailbox password or key. Admin → Forms has
       a "Send me a test email" button (`sendTestEmail`) that reports the
       real delivery result.
-- [ ] **Joel:** put the delegated service account's JSON key in this
-      project: `firebase functions:secrets:set GMAIL_SA_KEY --data-file
-      key.json`, then `firebase deploy --only functions:sendQueuedMail`.
-      Until then the deployed mailer is still the SMTP one. Afterwards the
-      old `SMTP_CONNECTION_URI` secret and the app password can be deleted.
+- [ ] **Joel:** one-time mailer setup (keyless — no JSON key anywhere):
+      create service account `oronohr-mailer` in this project (no roles);
+      on it, grant the default compute account
+      (`671076042374-compute@developer.gserviceaccount.com`) "Service
+      Account Token Creator"; then in the Workspace Admin console add its
+      OAuth client ID under domain-wide delegation with scope
+      `https://www.googleapis.com/auth/gmail.send`. Afterwards the old
+      `SMTP_CONNECTION_URI` secret and the app password can be deleted.
 - [ ] PDF generation + Drive filing
 - [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
