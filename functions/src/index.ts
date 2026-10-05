@@ -29,7 +29,7 @@ export {
 } from './drive';
 export { promoteGroupOwner } from './groups';
 export { submitForm, updateSubmissionStatus, deleteSubmission } from './forms';
-export { setNotificationSettings, setNotificationPrefs } from './notifications';
+export { setNotificationSettings, setNotificationPrefs, sendTestEmail } from './notifications';
 export { sendQueuedMail } from './mailer';
 export {
   createEmployee,

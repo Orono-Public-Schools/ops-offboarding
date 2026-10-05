@@ -33,6 +33,13 @@ export const setNotificationPrefs = httpsCallable<
   { success: boolean }
 >(functions, 'setNotificationPrefs');
 
+/** Mails the caller a test message and reports the mailer's real outcome
+ *  ('pending' = queued but not stamped within the wait). */
+export const sendTestEmail = httpsCallable<
+  void,
+  { state: 'sent' | 'error' | 'pending'; to: string; error: string | null }
+>(functions, 'sendTestEmail', { timeout: 60_000 });
+
 type SettingsState = { loading: boolean; settings: NotificationSettings };
 
 /** Live admin notification settings; defaults until the doc exists. */

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth, useIsHrAdmin } from '../../lib/auth';
 import { FORM_DEFINITIONS } from '../../lib/forms';
 import {
+  sendTestEmail,
   setNotificationPrefs,
   setNotificationSettings,
   useMyNotificationPrefs,
@@ -92,8 +93,8 @@ export function MyNotificationPrefsCard() {
     <Card collapsible defaultOpen eyebrow="Your email" heading="When a request lands" pad={16}>
       <p style={caption}>
         Per form: follow the admin setup, always get the email (even for requests you filed
-        yourself), or never get it — "never" wins even if you're on the recipient list.
-        Choices save the moment you click.
+        yourself), or never get it — "never" wins even if you're on the recipient list. Choices save
+        the moment you click.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {FORMS.map((f) => (
@@ -174,6 +175,7 @@ export function NotificationSettingsCard() {
     forms: Record<string, FormDraft>;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   // Seed the draft once the settings land; live edits stay untouched after.
@@ -219,6 +221,32 @@ export function NotificationSettingsCard() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendTest = async () => {
+    setTesting(true);
+    setMessage(null);
+    try {
+      const { data } = await sendTestEmail();
+      setMessage(
+        data.state === 'sent'
+          ? { kind: 'ok', text: `Test email delivered to ${data.to}.` }
+          : data.state === 'pending'
+            ? {
+                kind: 'ok',
+                text: `Test email queued for ${data.to}, but the mailer hasn't reported back yet — check your inbox in a minute.`,
+              }
+            : { kind: 'err', text: `The mailer couldn't send it: ${data.error}` },
+      );
+    } catch (err) {
+      console.error(err);
+      setMessage({
+        kind: 'err',
+        text: err instanceof Error ? err.message : 'Could not send the test email.',
+      });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -318,7 +346,22 @@ export function NotificationSettingsCard() {
               />
             </div>
           ))}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Button
+              variant="secondary"
+              icon="mail"
+              disabled={testing}
+              onClick={() => void sendTest()}
+            >
+              {testing ? 'Sending…' : 'Send me a test email'}
+            </Button>
             <Button variant="primary" icon="save" disabled={saving} onClick={() => void save()}>
               {saving ? 'Saving…' : 'Save notification settings'}
             </Button>

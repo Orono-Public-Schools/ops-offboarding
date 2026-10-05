@@ -299,8 +299,15 @@ export const setNotificationSettings = onCall({ region: REGION }, async (request
     const v = (value ?? {}) as Record<string, unknown>;
     const entry: { recipients?: string[]; notifySubmit?: boolean } = {};
     if (v.recipients !== undefined) {
-      if (!Array.isArray(v.recipients) || v.recipients.length > 20 || !v.recipients.every(isEmailish)) {
-        throw new HttpsError('invalid-argument', `Recipients for ${formId} must be up to 20 emails.`);
+      if (
+        !Array.isArray(v.recipients) ||
+        v.recipients.length > 20 ||
+        !v.recipients.every(isEmailish)
+      ) {
+        throw new HttpsError(
+          'invalid-argument',
+          `Recipients for ${formId} must be up to 20 emails.`,
+        );
       }
       if (v.recipients.length > 0) entry.recipients = v.recipients.map((e) => e.toLowerCase());
     }
@@ -325,6 +332,50 @@ export const setNotificationSettings = onCall({ region: REGION }, async (request
       updatedBy: request.auth?.token?.email ?? null,
     });
   return { success: true };
+});
+
+/**
+ * Queues a test message to the caller's own address and waits for
+ * sendQueuedMail to stamp the result, so the admin card can show the real
+ * SMTP outcome instead of "queued". Only ever mails the caller.
+ */
+export const sendTestEmail = onCall({ region: REGION }, async (request) => {
+  const { email } = requireAuthedDomainUser(request);
+  if (hrLevel(request.auth?.token ?? {}) !== 'admin') {
+    throw new HttpsError('permission-denied', 'HR admin access required.');
+  }
+
+  const db = getFirestore();
+  logger.info(`sendTestEmail to=${email}`);
+  const ref = await db.collection('mail').add({
+    to: [email],
+    message: {
+      subject: '[OronoHR] Test email',
+      html: emailHtml({
+        heading: 'Email is working',
+        body: `
+          <p>This is a test message sent from the OronoHR admin panel by ${escapeHtml(email)}.</p>
+          <p style="color: #64748b; font-size: 13px;">If you can read this, notifications are being delivered.</p>
+        `,
+        link: `${APP_URL}/admin`,
+        linkLabel: 'Back to OronoHR',
+      }),
+    },
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  // The mailer is a separate trigger; give it room for a cold start.
+  for (let i = 0; i < 25; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const delivery = (await ref.get()).get('delivery') as
+      | { state?: string; error?: string | null }
+      | undefined;
+    if (delivery?.state === 'SUCCESS') return { state: 'sent' as const, to: email, error: null };
+    if (delivery?.state === 'ERROR') {
+      return { state: 'error' as const, to: email, error: delivery.error ?? 'Unknown error.' };
+    }
+  }
+  return { state: 'pending' as const, to: email, error: null };
 });
 
 /** A role holder's own always/never overrides, keyed by form id. */
