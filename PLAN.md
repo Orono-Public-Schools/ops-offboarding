@@ -256,14 +256,15 @@ even as it_admin.
       only), signed keylessly through IAM — no mailbox password or key. Admin → Forms has
       a "Send me a test email" button (`sendTestEmail`) that reports the
       real delivery result.
-- [ ] **Joel:** one-time mailer setup (keyless — no JSON key anywhere):
+- [x] One-time mailer setup done, test email delivered 2026-10-05 (keyless — no JSON key anywhere):
       create service account `oronohr-mailer` in this project (no roles);
       on it, grant the default compute account
       (`671076042374-compute@developer.gserviceaccount.com`) "Service
       Account Token Creator"; then in the Workspace Admin console add its
       OAuth client ID under domain-wide delegation with scope
-      `https://www.googleapis.com/auth/gmail.send`. Afterwards the old
-      `SMTP_CONNECTION_URI` secret and the app password can be deleted.
+      `https://www.googleapis.com/auth/gmail.send`.
+- [ ] **Joel:** delete the now-unused `SMTP_CONNECTION_URI` secret and the
+      `noreply-hr@` app password.
 - [ ] PDF generation + Drive filing
 - [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
