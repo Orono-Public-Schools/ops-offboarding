@@ -48,47 +48,96 @@ async function loadSettings(db: Firestore): Promise<NotificationSettings> {
 }
 
 // ---------------------------------------------------------------------------
-// Template — PaperPal's branded wrapper, rebadged for OronoHR.
+// Template — "Letterhead": near-plain text under one navy rule, so it reads
+// like a note from HR and renders the same in every mail client. Tables and
+// inline styles only; the wordmark is live text, so nothing depends on an
+// image loading.
+
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+const HR_ADDRESS = 'hr@orono.k12.mn.us';
+
+/** "Oct 5, 2026", in the district's timezone. */
+function today(): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date());
+}
 
 function emailHtml({
   heading,
   body,
+  note,
+  facts = [],
   link,
   linkLabel = 'Open in OronoHR',
 }: {
   heading: string;
+  /** One paragraph of trusted HTML — escape anything user-typed first. */
   body: string;
+  /** Plain text from HR; escaped here. */
+  note?: string | null;
+  /** Label/value rows, plain text; escaped here. */
+  facts?: Array<[string, string]>;
   link: string;
   linkLabel?: string;
 }): string {
-  return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto;">
-      <div style="background: linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%); padding: 28px 32px; border-radius: 12px 12px 0 0;">
-        <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+  const rule = 'padding-bottom: 14px; border-bottom: 2px solid #1d2a5d;';
+  const noteBlock = note
+    ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 16px;">
           <tr>
-            <td style="vertical-align: middle; width: 40px;">
-              <img src="${APP_URL}/OronoIcon.png" alt="OronoHR" width="36" height="36" style="display: block; border-radius: 8px;" />
-            </td>
-            <td style="vertical-align: middle; padding-left: 12px;">
-              <h1 style="color: white; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.5px;">OronoHR</h1>
-              <p style="color: rgba(255,255,255,0.6); font-size: 11px; margin: 2px 0 0; letter-spacing: 0.3px;">Orono Public Schools</p>
+            <td style="border-left: 3px solid #4356a9; padding: 2px 0 2px 14px; font-size: 15px; line-height: 1.6; color: #334155;">
+              <strong style="display: block; font-size: 13px; color: #4356a9;">Note from HR</strong>
+              ${escapeHtml(note)}
             </td>
           </tr>
-        </table>
-      </div>
-      <div style="background: #ffffff; padding: 28px 32px; border: 1px solid #e2e5ea; border-top: none;">
-        <h2 style="color: #1d2a5d; font-size: 16px; margin: 0 0 16px; font-weight: 700;">${heading}</h2>
-        <div style="color: #334155; font-size: 14px; line-height: 1.7;">${body}</div>
-        <div style="margin-top: 28px;">
-          <a href="${link}" style="display: inline-block; background: linear-gradient(135deg, #1d2a5d 0%, #2d3f89 100%); color: white; text-decoration: none; padding: 11px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; letter-spacing: 0.3px;">${linkLabel}</a>
-        </div>
-      </div>
-      <div style="background: #f8f9fb; padding: 16px 32px; border: 1px solid #e2e5ea; border-top: none; border-radius: 0 0 12px 12px;">
-        <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">
-          Orono Public Schools &middot; OronoHR &middot; Staff forms &amp; HR
-        </p>
-      </div>
-    </div>
+        </table>`
+    : '';
+  const factRows = facts
+    .map(
+      ([label, value]) => `
+          <tr>
+            <td style="padding: 8px 18px 8px 0; border-top: 1px solid #e2e5ea; font-size: 13px; color: #64748b; white-space: nowrap; vertical-align: top;">${escapeHtml(label)}</td>
+            <td width="100%" style="padding: 8px 0; border-top: 1px solid #e2e5ea; font-size: 13px; font-weight: 600; color: #1d2a5d;">${escapeHtml(value)}</td>
+          </tr>`,
+    )
+    .join('');
+  const factsBlock = factRows
+    ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 18px;">${factRows}
+        </table>`
+    : '';
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #ffffff;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; font-family: ${FONT}; color: #334155; text-align: left;">
+            <tr>
+              <td style="padding: 28px 24px 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="${rule} font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: #1d2a5d;">Orono<span style="color: #ad2122;">HR</span></td>
+                    <td align="right" style="${rule} font-size: 12px; color: #64748b;">${today()}</td>
+                  </tr>
+                </table>
+                <h1 style="margin: 22px 0 0; font-size: 20px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; color: #1d2a5d;">${heading}</h1>
+                <p style="margin: 14px 0 0; font-size: 15px; line-height: 1.6; color: #334155;">${body}</p>${noteBlock}${factsBlock}
+                <p style="margin: 20px 0 0; font-size: 15px; line-height: 1.6;">
+                  <a href="${link}" style="color: #2d3f89; font-weight: 600; text-decoration: underline;">${linkLabel}</a>
+                </p>
+                <p style="margin: 22px 0 0; font-size: 13px; line-height: 1.6; color: #64748b;">
+                  Human Resources, Orono Public Schools<br />
+                  This mailbox is not read. Reach HR at <a href="mailto:${HR_ADDRESS}" style="color: #64748b;">${HR_ADDRESS}</a>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   `;
 }
 
@@ -128,6 +177,15 @@ type SubmissionFacts = {
   summary: string;
 };
 
+/** The label/value rows under a submission email. */
+function factRows(sub: SubmissionFacts, withSubmitter = false): Array<[string, string]> {
+  const rows: Array<[string, string]> = [];
+  if (withSubmitter) rows.push(['From', sub.submitterName]);
+  rows.push(['Form', sub.formTitle], ['Request', displayId(sub.id)]);
+  if (sub.summary) rows.push(['Details', sub.summary]);
+  return rows;
+}
+
 /** Queues the submitter's filing receipt and the staff alert. */
 export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
   try {
@@ -137,17 +195,14 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
     // Receipt to the submitter — rides the same switch as status emails,
     // since both are the submitter's side of the conversation.
     if (settings.notifyStatus) {
-      const summary = sub.summary ? `${escapeHtml(sub.summary)} &middot; ` : '';
       await queueMail(
         db,
         [sub.submitterEmail],
         `[OronoHR] Filed — ${sub.formTitle} ${displayId(sub.id)}`,
         emailHtml({
           heading: 'Your request is in',
-          body: `
-            <p>Your ${escapeHtml(sub.formTitle)} request has been filed with Human Resources. You&rsquo;ll get an email when it moves.</p>
-            <p style="color: #64748b; font-size: 13px;">${summary}${displayId(sub.id)}</p>
-          `,
+          body: `Your ${escapeHtml(sub.formTitle)} request has been filed with Human Resources. You&rsquo;ll get an email when it moves.`,
+          facts: factRows(sub),
           link: `${APP_URL}/forms/submissions/${sub.id}`,
           linkLabel: 'Follow your request',
         }),
@@ -181,17 +236,14 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
     }
     if (recipients.size === 0) return;
 
-    const summary = sub.summary ? `${escapeHtml(sub.summary)} &middot; ` : '';
     await queueMail(
       db,
       [...recipients],
       `[OronoHR] ${sub.formTitle} from ${sub.submitterName} — ${displayId(sub.id)}`,
       emailHtml({
-        heading: `New ${sub.formTitle} submission`,
-        body: `
-          <p><strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request.</p>
-          <p style="color: #64748b; font-size: 13px;">${summary}${displayId(sub.id)}</p>
-        `,
+        heading: `New ${escapeHtml(sub.formTitle)} submission`,
+        body: `<strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request. It is waiting in the HR inbox.`,
+        facts: factRows(sub, true),
         link: `${APP_URL}/forms/submissions/${sub.id}`,
         linkLabel: 'Open the request',
       }),
@@ -236,25 +288,15 @@ export async function notifyStatusChanged(
     const settings = await loadSettings(db);
     if (!settings.notifyStatus) return;
 
-    const noteBlock = note
-      ? `
-        <div style="background: #eaecf5; border-left: 3px solid #4356a9; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0;">
-          <p style="color: #4356a9; font-weight: 600; margin: 0 0 4px; font-size: 13px;">Note from HR</p>
-          <p style="color: #334155; margin: 0;">${escapeHtml(note)}</p>
-        </div>
-      `
-      : '';
     await queueMail(
       db,
       [sub.submitterEmail],
       `[OronoHR] ${copy.subject} — ${sub.formTitle} ${displayId(sub.id)}`,
       emailHtml({
         heading: copy.heading,
-        body: `
-          <p>Your ${escapeHtml(sub.formTitle)} request ${copy.body}.</p>
-          ${noteBlock}
-          <p style="color: #64748b; font-size: 13px;">${displayId(sub.id)}</p>
-        `,
+        body: `Your ${escapeHtml(sub.formTitle)} request ${copy.body}.`,
+        note,
+        facts: factRows(sub),
         link: `${APP_URL}/forms/submissions/${sub.id}`,
         linkLabel: 'View your request',
       }),
@@ -353,10 +395,8 @@ export const sendTestEmail = onCall({ region: REGION }, async (request) => {
       subject: '[OronoHR] Test email',
       html: emailHtml({
         heading: 'Email is working',
-        body: `
-          <p>This is a test message sent from the OronoHR admin panel by ${escapeHtml(email)}.</p>
-          <p style="color: #64748b; font-size: 13px;">If you can read this, notifications are being delivered.</p>
-        `,
+        body: `This is a test message sent from the OronoHR admin panel. If you can read it, notifications are being delivered.`,
+        facts: [['Sent by', email]],
         link: `${APP_URL}/admin`,
         linkLabel: 'Back to OronoHR',
       }),
