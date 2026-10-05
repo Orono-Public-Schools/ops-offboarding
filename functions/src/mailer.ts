@@ -2,7 +2,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import * as logger from 'firebase-functions/logger';
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
+import MailComposer from 'nodemailer/lib/mail-composer';
 
 import { REGION } from './shared';
 
@@ -13,21 +14,29 @@ import { REGION } from './shared';
  * { subject, html } } — get sent and stamped with a `delivery` result the
  * way the extension did.
  *
- * SMTP_CONNECTION_URI is a Cloud Secret, e.g.
- *   smtps://no-reply%40orono.k12.mn.us:APP_PASSWORD@smtp.gmail.com:465
- * (percent-encode the @ in the username). Set it with
- *   firebase functions:secrets:set SMTP_CONNECTION_URI
+ * Sends through the Gmail API as the MAIL_FROM mailbox, impersonated by a
+ * domain-wide-delegated service account (scope gmail.send) — the OPSTech
+ * Site pattern. No mailbox password or app password is involved, so a
+ * password change or 2SV policy can't break delivery.
+ *
+ * GMAIL_SA_KEY is a Cloud Secret holding the service account's JSON key:
+ *   firebase functions:secrets:set GMAIL_SA_KEY --data-file key.json
  * then redeploy this function to pick up the new version.
  */
-const SMTP_CONNECTION_URI = defineSecret('SMTP_CONNECTION_URI');
+const GMAIL_SA_KEY = defineSecret('GMAIL_SA_KEY');
 
-/** Display From; override in functions/.env if the sender account differs. */
+/** Display From; the address in it is the mailbox the mail is sent as. */
 const MAIL_FROM = defineString('MAIL_FROM', {
-  default: 'OronoHR <no-reply@orono.k12.mn.us>',
+  default: 'OronoHR <noreply-hr@orono.k12.mn.us>',
 });
 
+/** "OronoHR <noreply-hr@…>" → "noreply-hr@…"; a bare address passes through. */
+function senderAddress(from: string): string {
+  return (from.match(/<([^>]+)>/)?.[1] ?? from).trim();
+}
+
 export const sendQueuedMail = onDocumentCreated(
-  { document: 'mail/{id}', region: REGION, secrets: [SMTP_CONNECTION_URI], retry: false },
+  { document: 'mail/{id}', region: REGION, secrets: [GMAIL_SA_KEY], retry: false },
   async (event) => {
     const snap = event.data;
     if (!snap) return;
@@ -59,30 +68,29 @@ export const sendQueuedMail = onDocumentCreated(
     }
 
     try {
-      const uri = SMTP_CONNECTION_URI.value();
-      // Surface how the secret parses (user + host only — never the password)
-      // so a malformed URI (unencoded @, stray spaces) is obvious in logs.
-      try {
-        const parsed = new URL(uri);
-        logger.info(
-          `sendQueuedMail smtp user=${decodeURIComponent(parsed.username)} host=${parsed.hostname} port=${parsed.port}`,
-        );
-      } catch {
-        logger.error('sendQueuedMail: SMTP_CONNECTION_URI is not a parseable URL.');
-      }
-      const transport = nodemailer.createTransport(uri);
-      const info = await transport.sendMail({
-        from: MAIL_FROM.value(),
-        to,
-        subject,
-        html,
+      const from = MAIL_FROM.value();
+      const sender = senderAddress(from);
+      const key = JSON.parse(GMAIL_SA_KEY.value()) as { client_email: string; private_key: string };
+      // Who is sending as whom — never the key itself — so a missing
+      // delegation grant or wrong mailbox is obvious in logs.
+      logger.info(`sendQueuedMail gmail sa=${key.client_email} as=${sender}`);
+      const auth = new google.auth.JWT({
+        email: key.client_email,
+        key: key.private_key,
+        scopes: ['https://www.googleapis.com/auth/gmail.send'],
+        subject: sender,
+      });
+      const mime = await new MailComposer({ from, to, subject, html }).compile().build();
+      const res = await google.gmail({ version: 'v1', auth }).users.messages.send({
+        userId: 'me',
+        requestBody: { raw: mime.toString('base64url') },
       });
       logger.info(`sendQueuedMail DELIVERED id=${snap.id} to=${to.join(',')} subject=${subject}`);
       await snap.ref.update({
         delivery: {
           state: 'SUCCESS',
           error: null,
-          messageId: info.messageId ?? null,
+          messageId: res.data.id ?? null,
           endTime: FieldValue.serverTimestamp(),
         },
       });

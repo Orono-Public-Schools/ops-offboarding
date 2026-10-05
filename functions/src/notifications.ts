@@ -105,7 +105,7 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Queues a doc the Trigger Email extension sends. No-op on an empty list. */
+/** Queues a doc sendQueuedMail (./mailer) sends. No-op on an empty list. */
 async function queueMail(db: Firestore, to: string[], subject: string, html: string) {
   if (to.length === 0) return;
   logger.info(`queueMail to=${to.join(',')} subject=${subject}`);
@@ -337,7 +337,7 @@ export const setNotificationSettings = onCall({ region: REGION }, async (request
 /**
  * Queues a test message to the caller's own address and waits for
  * sendQueuedMail to stamp the result, so the admin card can show the real
- * SMTP outcome instead of "queued". Only ever mails the caller.
+ * delivery outcome instead of "queued". Only ever mails the caller.
  */
 export const sendTestEmail = onCall({ region: REGION }, async (request) => {
   const { email } = requireAuthedDomainUser(request);

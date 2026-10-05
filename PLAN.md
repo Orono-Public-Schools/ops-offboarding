@@ -244,19 +244,23 @@ even as it_admin.
 - [x] Self-managed mailer (2026-08-11): Firebase Extensions is being
       decommissioned (March 2027), so the Trigger Email extension was never
       installed. `sendQueuedMail` (functions/src/mailer.ts) is our own
-      Firestore trigger on `mail/{id}` — nodemailer over SMTP, same doc
-      contract, stamps `delivery.state` like the extension did. First
-      Eventarc-based function in the project (first deploy can race agent
-      provisioning — just retry). PaperPal still runs the real extension;
-      port it onto this mailer before March 2027.
-- [ ] **Joel:** create `noreply-hr@orono.k12.mn.us` (hide from GAL, exclude
-      from offboarding sweeps), enable 2SV, mint an app password, then:
-      `firebase functions:secrets:set SMTP_CONNECTION_URI` with
-      `smtps://noreply-hr%40orono.k12.mn.us:APP_PASSWORD@smtp.gmail.com:465`
-      (%40 for the @, app password without spaces), and redeploy:
-      `firebase deploy --only functions:sendQueuedMail`. MAIL_FROM in
-      functions/.env already matches. Until then queued mail errors
-      harmlessly with an auth failure.
+      Firestore trigger on `mail/{id}`, same doc contract, stamps
+      `delivery.state` like the extension did. First Eventarc-based
+      function in the project (first deploy can race agent provisioning —
+      just retry). PaperPal still runs the real extension; port it onto
+      this mailer before March 2027.
+- [x] Mailer moved off SMTP (2026-10-05): the `noreply-hr@` app password
+      started failing with 535 BadCredentials, so `sendQueuedMail` now sends
+      through the Gmail API as the MAIL_FROM mailbox via a
+      domain-wide-delegated service account (scope `gmail.send`) — the
+      OPSTech Site pattern; no mailbox password involved. Admin → Forms has
+      a "Send me a test email" button (`sendTestEmail`) that reports the
+      real delivery result.
+- [ ] **Joel:** put the delegated service account's JSON key in this
+      project: `firebase functions:secrets:set GMAIL_SA_KEY --data-file
+      key.json`, then `firebase deploy --only functions:sendQueuedMail`.
+      Until then the deployed mailer is still the SMTP one. Afterwards the
+      old `SMTP_CONNECTION_URI` secret and the app password can be deleted.
 - [ ] PDF generation + Drive filing
 - [ ] Remaining forms: contract change
 - [ ] Admin config UI: form routing, visibility, active/inactive
