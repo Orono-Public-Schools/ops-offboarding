@@ -76,7 +76,7 @@ export function SignInScreen() {
             transition: 'var(--transition-control)',
           }}
         >
-          <img src="/google-g.png" alt="" style={{ width: 18, height: 18 }} />
+          <img src="/google-g.svg" alt="" style={{ width: 18, height: 18 }} />
           {pending ? 'Signing in…' : 'Sign in with Google'}
         </button>
 

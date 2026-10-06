@@ -151,8 +151,7 @@ export function HomeScreen() {
           <ModuleCard
             icon="fileText"
             title="HR forms"
-            description="Change of address today; leave, lane changes, and more on the way."
-            meta="4 min"
+            description="Leave of absence, lane change, change of address — filed online, tracked here."
             onClick={() => navigate('/forms')}
           />
           <ModuleCard
@@ -182,15 +181,15 @@ export function HomeScreen() {
           {isHR && (
             <ModuleCard
               icon="inbox"
-              title="HR inbox"
-              description="Submissions from staff, waiting on a decision."
+              title="HR Portal"
+              description="The inbox, employee records, onboarding and leave checklists."
               onClick={() => navigate('/hr')}
             />
           )}
           {isAdmin && (
             <ModuleCard
               icon="key"
-              title="IT admin"
+              title="Admin"
               description="Offboarding dashboard, staff sync, roles, and settings."
               onClick={() => navigate('/admin')}
             />
