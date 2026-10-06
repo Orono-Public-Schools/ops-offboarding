@@ -26,9 +26,7 @@ export function allFields(def: FormDefinition): FormField[] {
 function conditionMet(cond: ShowIf, data: FormData): boolean {
   const value = data[cond.field];
   if (Array.isArray(value)) {
-    return (
-      typeof cond.equals === 'string' && (value as unknown[]).some((x) => x === cond.equals)
-    );
+    return typeof cond.equals === 'string' && (value as unknown[]).some((x) => x === cond.equals);
   }
   return value === cond.equals;
 }

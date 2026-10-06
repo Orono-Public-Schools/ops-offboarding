@@ -123,8 +123,8 @@ export function AccessCard() {
   return (
     <Card collapsible eyebrow="Access" heading="Who can do what" pad={16}>
       <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
-        One role per person — adding someone to a column moves them there. Changes take effect
-        after they sign out and back in.
+        One role per person — adding someone to a column moves them there. Changes take effect after
+        they sign out and back in.
       </p>
 
       <div style={{ overflowX: 'auto', marginBottom: 14 }}>
@@ -375,11 +375,7 @@ export function AccessCard() {
 
       <PersonPicker
         open={pickerRole !== null}
-        title={
-          pickerRole
-            ? `Add ${COLUMNS.find((c) => c.role === pickerRole)?.label ?? ''}`
-            : ''
-        }
+        title={pickerRole ? `Add ${COLUMNS.find((c) => c.role === pickerRole)?.label ?? ''}` : ''}
         description="One role per person — if they already hold a role, this moves them."
         confirmLabel={(selected) =>
           selected

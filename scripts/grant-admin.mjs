@@ -50,8 +50,7 @@ try {
   const existing = user.customClaims ?? {};
   const next = { ...existing };
   // hr_admin / hr_staff share the single `hr` claim: 'admin' | 'staff'.
-  const claimKey =
-    role === 'it_admin' ? 'it_admin' : role === 'it_support' ? 'it_support' : 'hr';
+  const claimKey = role === 'it_admin' ? 'it_admin' : role === 'it_support' ? 'it_support' : 'hr';
   if (revoke) {
     delete next[claimKey];
   } else {

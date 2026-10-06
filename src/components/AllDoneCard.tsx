@@ -46,7 +46,9 @@ export function AllDoneCard({ flow, lastDay, buildingLabel }: Props) {
       eyebrow="All done"
       heading={headline}
       footer={
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}
+        >
           {flow === 'leaving' && (
             <QuietLink
               icon="fileText"

@@ -702,7 +702,11 @@ export function FormRenderer({
           </Button>
         )}
         <Button type="submit" variant="submit" icon="send" disabled={submitting || blocked}>
-          {blocked ? 'Come back once your supervisor knows' : submitting ? 'Sending…' : 'Send to HR'}
+          {blocked
+            ? 'Come back once your supervisor knows'
+            : submitting
+              ? 'Sending…'
+              : 'Send to HR'}
         </Button>
       </div>
     </form>

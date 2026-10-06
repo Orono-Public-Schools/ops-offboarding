@@ -126,7 +126,7 @@ export function StaffDirectoryCard() {
                     onClick={() =>
                       setSort((s) => ({
                         key: c.key,
-                        dir: s.key === c.key ? ((-s.dir) as 1 | -1) : 1,
+                        dir: s.key === c.key ? (-s.dir as 1 | -1) : 1,
                       }))
                     }
                     style={{

@@ -140,9 +140,7 @@ export function DateField({
 }) {
   const [text, setText] = useState(() => isoToMdy(value));
   const [open, setOpen] = useState(false);
-  const [month, setMonth] = useState<Date>(() =>
-    isIsoDate(value) ? parseIso(value) : new Date(),
-  );
+  const [month, setMonth] = useState<Date>(() => (isIsoDate(value) ? parseIso(value) : new Date()));
   const wrapRef = useRef<HTMLDivElement>(null);
   const focused = useRef(false);
 

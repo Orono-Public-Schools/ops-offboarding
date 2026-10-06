@@ -417,7 +417,8 @@ export const createLeaveFromSubmission = onCall({ region: REGION }, async (reque
 
     const emp = empSnap.data() as Record<string, unknown>;
     const data = (sub.data ?? {}) as Record<string, unknown>;
-    const str = (key: string) => (typeof data[key] === 'string' ? (data[key] as string).trim() : '');
+    const str = (key: string) =>
+      typeof data[key] === 'string' ? (data[key] as string).trim() : '';
 
     const details: Record<string, string> = {};
     if (str('anticipatedStart')) details.anticipatedStart = str('anticipatedStart');
@@ -431,7 +432,9 @@ export const createLeaveFromSubmission = onCall({ region: REGION }, async (reque
     if (str('leaveType')) {
       lines.push(`Leave type: ${LOA_TYPE_LABELS[str('leaveType')] ?? str('leaveType')}.`);
     }
-    const categories = Array.isArray(data.leaveCategories) ? (data.leaveCategories as string[]) : [];
+    const categories = Array.isArray(data.leaveCategories)
+      ? (data.leaveCategories as string[])
+      : [];
     if (categories.length > 0) {
       const labels = categories.map((c) =>
         c === 'other' && str('leaveCategoriesOther')
@@ -443,8 +446,15 @@ export const createLeaveFromSubmission = onCall({ region: REGION }, async (reque
     if (str('meetingRequested') === 'yes') lines.push('The employee asked for an HR meeting.');
     const formEeNum = Number(str('employeeId'));
     const empEeNum = (emp.employeeId as number | null) ?? null;
-    if (Number.isFinite(formEeNum) && formEeNum > 0 && empEeNum !== null && formEeNum !== empEeNum) {
-      lines.push(`Note: the form lists EE# ${formEeNum}, but this employee record has EE# ${empEeNum}.`);
+    if (
+      Number.isFinite(formEeNum) &&
+      formEeNum > 0 &&
+      empEeNum !== null &&
+      formEeNum !== empEeNum
+    ) {
+      lines.push(
+        `Note: the form lists EE# ${formEeNum}, but this employee record has EE# ${empEeNum}.`,
+      );
     }
 
     const sites = Array.isArray(data.sites) ? (data.sites as string[]) : [];

@@ -189,8 +189,7 @@ export const leaveOfAbsence: FormDefinition = {
     },
     {
       title: 'About you',
-      description:
-        'Your name and district email come from your sign-in, so HR already has them.',
+      description: 'Your name and district email come from your sign-in, so HR already has them.',
       showIf: IF_NOTIFIED,
       fields: [
         {
@@ -419,7 +418,13 @@ export const laneChange: FormDefinition = {
     {
       title: 'The lane change you are requesting',
       fields: [
-        { id: 'fromLane', type: 'select', label: 'From current lane', required: true, options: LANES },
+        {
+          id: 'fromLane',
+          type: 'select',
+          label: 'From current lane',
+          required: true,
+          options: LANES,
+        },
         { id: 'toLane', type: 'select', label: 'To new lane', required: true, options: LANES },
       ],
     },
