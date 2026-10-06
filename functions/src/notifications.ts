@@ -119,7 +119,7 @@ function emailHtml({
               <td style="padding: 28px 24px 24px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td style="${rule} font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: #1d2a5d;">Orono<span style="color: #4356a9;">HR</span></td>
+                    <td style="${rule} font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: #1d2a5d;">Orono<span style="color: #ad2122;">HR</span></td>
                     <td align="right" style="${rule} font-size: 12px; color: #64748b;">${today()}</td>
                   </tr>
                 </table>
