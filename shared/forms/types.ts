@@ -128,11 +128,7 @@ export type FormData = Record<string, FormValue>;
  * in HR's inbox.
  */
 export type SubmissionStatus =
-  | 'submitted'
-  | 'supervisor_approved'
-  | 'processing'
-  | 'completed'
-  | 'denied';
+  'submitted' | 'supervisor_approved' | 'processing' | 'completed' | 'denied';
 
 export const SUBMISSION_STATUSES: SubmissionStatus[] = [
   'submitted',

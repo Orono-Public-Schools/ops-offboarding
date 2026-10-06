@@ -15,9 +15,7 @@ export type StaffRecord = {
 };
 
 type State =
-  | { loading: true }
-  | { loading: false; error: Error }
-  | { loading: false; staff: StaffRecord[] };
+  { loading: true } | { loading: false; error: Error } | { loading: false; staff: StaffRecord[] };
 
 let cached: { staff: StaffRecord[]; ts: number } | null = null;
 

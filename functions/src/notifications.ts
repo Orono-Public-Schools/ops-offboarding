@@ -487,8 +487,7 @@ export const sendTestEmail = onCall({ region: REGION }, async (request) => {
   for (let i = 0; i < 25; i++) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const delivery = (await ref.get()).get('delivery') as
-      | { state?: string; error?: string | null }
-      | undefined;
+      { state?: string; error?: string | null } | undefined;
     if (delivery?.state === 'SUCCESS') return { state: 'sent' as const, to: email, error: null };
     if (delivery?.state === 'ERROR') {
       return { state: 'error' as const, to: email, error: delivery.error ?? 'Unknown error.' };

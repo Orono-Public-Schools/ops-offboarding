@@ -85,9 +85,7 @@ export type AuditEntry = {
 };
 
 type AuditState =
-  | { loading: true }
-  | { loading: false; error: Error }
-  | { loading: false; entries: AuditEntry[] };
+  { loading: true } | { loading: false; error: Error } | { loading: false; entries: AuditEntry[] };
 
 export function useAuditLog(uid: string | null, limitN = 25): AuditState {
   const [state, setState] = useState<AuditState>({ loading: true });
