@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../lib/auth';
-import { displayId, FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
+import { badgeFor, displayId, FORM_DEFINITIONS, isOpen, useMySubmissions } from '../../lib/forms';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
@@ -48,7 +48,7 @@ export function FormsHome() {
   usePageTitle('Forms');
   const mine = subs.submissions ?? [];
 
-  const open = mine.filter((s) => s.status === 'submitted' || s.status === 'processing');
+  const open = mine.filter(isOpen);
   const now = new Date();
   const headline =
     open.length === 1
@@ -112,7 +112,7 @@ export function FormsHome() {
                 key={s.id}
                 request={s.formTitle}
                 kind={`${displayId(s.id)} · ${ago(s.createdAt?.toMillis())}`}
-                status={<StatusBadge variant="dot" state={s.status} />}
+                status={<StatusBadge variant="dot" {...badgeFor(s)} />}
                 onClick={() => navigate(`/forms/submissions/${s.id}`)}
               />
             ))}

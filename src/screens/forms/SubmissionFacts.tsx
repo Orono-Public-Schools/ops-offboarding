@@ -7,6 +7,7 @@ import {
   type FileRef,
   type FormData,
   type FormField,
+  type Person,
   type Submission,
   type TableColumn,
   type TableRow,
@@ -156,6 +157,19 @@ function factFor(field: FormField, data: FormData): Fact | null {
   }
   if (field.type === 'checkbox') {
     return { label: field.label, value: raw === true ? 'Yes' : 'No' };
+  }
+  if (field.type === 'person') {
+    if (typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const p = raw as Person;
+    return {
+      label: field.label,
+      value: (
+        <>
+          {p.name}
+          <span style={{ color: 'var(--text-muted)' }}> · {p.email}</span>
+        </>
+      ),
+    };
   }
   if (Array.isArray(raw)) {
     if (raw.length === 0) return null;

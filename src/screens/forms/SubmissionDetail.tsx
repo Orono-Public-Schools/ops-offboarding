@@ -3,9 +3,12 @@ import { useNavigate, useParams } from 'react-router';
 import { usePageTitle } from '../../lib/title';
 import { useAuth, useIsHR, useIsHrAdmin } from '../../lib/auth';
 import {
+  badgeFor,
   createLeaveFromSubmission,
+  decideSubmission,
   deleteSubmission,
   displayId,
+  trackFor,
   updateSubmissionStatus,
   useSubmission,
   type Submission,
@@ -22,9 +25,6 @@ import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
 import { RowList, DetailRow } from '../../ds/components/forms/RowList';
 
-const STAGES = ['Filed', 'Received', 'Processing', 'Complete'];
-const STAGE_FOR_STATUS: Record<string, number> = { submitted: 1, processing: 2, completed: 3 };
-
 function formatTs(ts: { toDate: () => Date } | null): string {
   if (!ts) return '';
   return ts.toDate().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -40,6 +40,10 @@ function actionLabel(action: string): string {
       return 'Completed';
     case 'status_denied':
       return 'Denied';
+    case 'supervisor_approved':
+      return 'Approved by supervisor';
+    case 'supervisor_denied':
+      return 'Returned by supervisor';
     case 'leave_created':
       return 'Leave record created';
     default:
@@ -173,6 +177,78 @@ function LeaveRecordCard({ submission }: { submission: Submission }) {
   );
 }
 
+/** The named supervisor's card: one note, two verbs. Shown only while the
+ *  request is waiting on them. */
+function ApproverActions({ submission }: { submission: Submission }) {
+  const [note, setNote] = useState('');
+  const [pending, setPending] = useState<'approve' | 'deny' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const act = async (decision: 'approve' | 'deny') => {
+    setError(null);
+    setPending(decision);
+    try {
+      await decideSubmission({ id: submission.id, decision, note: note.trim() || null });
+      setNote('');
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not record your decision.');
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <Card
+      eyebrow="Your approval"
+      heading={`${submission.submitterName} named you as their supervisor`}
+      pad={16}
+    >
+      <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+        Approve and it goes to Human Resources; return it and it comes back to them with your note.
+        Either way they get an email.
+      </p>
+      <Field
+        label="Note to the submitter"
+        as="textarea"
+        rows={2}
+        value={note}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNote(e.target.value)}
+        placeholder="Optional — they see it in their activity trail."
+        optional
+      />
+      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button variant="destructiveGhost" disabled={pending !== null} onClick={() => act('deny')}>
+          {pending === 'deny' ? 'Working…' : 'Return it'}
+        </Button>
+        <Button
+          variant="primary"
+          icon="check"
+          disabled={pending !== null}
+          onClick={() => act('approve')}
+        >
+          {pending === 'approve' ? 'Working…' : 'Approve'}
+        </Button>
+      </div>
+      {error && (
+        <p
+          style={{
+            font: 'var(--type-body-sm)',
+            color: 'var(--accent)',
+            background: 'rgba(var(--accent-rgb), 0.08)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            textAlign: 'center',
+            margin: '12px 0 0',
+          }}
+        >
+          {error}
+        </p>
+      )}
+    </Card>
+  );
+}
+
 function HrActions({ submission, hrView }: { submission: Submission; hrView: boolean }) {
   const navigate = useNavigate();
   const isHrAdmin = useIsHrAdmin();
@@ -211,6 +287,12 @@ function HrActions({ submission, hrView }: { submission: Submission; hrView: boo
 
   return (
     <Card eyebrow="Decision" heading="Move this request" pad={16}>
+      {submission.pendingApprover && (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+          Still waiting on {submission.routing?.approver.name ?? 'the supervisor'}. Acting here
+          takes it off their list — HR's call is final.
+        </p>
+      )}
       <Field
         label="Note to the submitter"
         as="textarea"
@@ -242,7 +324,7 @@ function HrActions({ submission, hrView }: { submission: Submission; hrView: boo
             {pending === 'denied' ? 'Working…' : 'Deny'}
           </Button>
         )}
-        {submission.status === 'submitted' && (
+        {(submission.status === 'submitted' || submission.status === 'supervisor_approved') && (
           <Button variant="secondary" disabled={pending !== null} onClick={() => act('processing')}>
             {pending === 'processing' ? 'Working…' : 'Pick up'}
           </Button>
@@ -318,26 +400,51 @@ export function SubmissionDetail() {
 
   const s = state.submission;
   const denied = s.status === 'denied';
+  const me = user?.email?.toLowerCase() ?? '';
+  const mine = s.submitterUid === user?.uid;
   // HR reading someone else's submission came from the inbox; the submitter
-  // (HR or not) came from their forms page.
-  const hrView = isHR && s.submitterUid !== user?.uid;
+  // (HR or not) came from their forms page; the supervisor came from Home.
+  const hrView = isHR && !mine;
+  const awaitingMe = !mine && s.pendingApprover === me;
+  const approverView = !mine && !isHR && s.routing?.approver.email === me;
+  const track = trackFor(s);
+  const approval = s.routing?.approval ?? null;
 
   return (
     <>
       <ScreenHeader
-        crumb={hrView ? 'HR inbox' : 'HR forms'}
-        onBack={() => navigate(hrView ? '/hr' : '/forms')}
+        crumb={hrView ? 'HR inbox' : approverView ? 'Home' : 'HR forms'}
+        onBack={() => navigate(hrView ? '/hr' : approverView ? '/' : '/forms')}
         title={s.formTitle}
         subtitle={denied ? 'This one came back — the note below says why.' : undefined}
-        note={`${displayId(s.id)} · filed ${formatTs(s.createdAt)}`}
-        actions={<StatusBadge state={s.status} size="md" on="dark" />}
+        note={`${displayId(s.id)} · filed ${formatTs(s.createdAt)}${
+          hrView || approverView ? ` by ${s.submitterName}` : ''
+        }`}
+        actions={<StatusBadge {...badgeFor(s)} size="md" on="dark" />}
       />
 
       {!denied && (
         <Card eyebrow="Where it sits" heading="The path this request takes" pad={16}>
-          <StatusTrack stages={STAGES} current={STAGE_FOR_STATUS[s.status] ?? 1} />
+          <StatusTrack stages={track.stages} current={track.current} />
+          {s.routing && (
+            <p
+              style={{
+                font: 'var(--type-body-sm)',
+                color: 'var(--text-muted)',
+                margin: '14px 0 0',
+              }}
+            >
+              {approval?.decision === 'approved'
+                ? `Approved by ${s.routing.approver.name}.`
+                : s.pendingApprover
+                  ? `Waiting on ${s.routing.approver.name} to approve it.`
+                  : `Supervisor: ${s.routing.approver.name}.`}
+            </p>
+          )}
         </Card>
       )}
+
+      {awaitingMe && <ApproverActions submission={s} />}
 
       <Card eyebrow="Details" heading="What you told us" pad={16}>
         <SubmissionFacts submission={s} />

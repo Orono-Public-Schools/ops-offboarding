@@ -2,7 +2,15 @@ import { useNavigate } from 'react-router';
 import { computeProgress } from '../lib/admin';
 import { useAuth, useIsHR, useIsTech } from '../lib/auth';
 import { useOffboarding } from '../lib/offboarding';
-import { displayId, useMySubmissions, type Submission } from '../lib/forms';
+import {
+  badgeFor,
+  displayId,
+  isOpen,
+  trackFor,
+  useApprovalQueue,
+  useMySubmissions,
+  type Submission,
+} from '../lib/forms';
 import { Card } from '../ds/components/core/Card';
 import { QuietLink } from '../ds/components/core/QuietLink';
 import { StatusBadge } from '../ds/components/core/StatusBadge';
@@ -43,9 +51,6 @@ function schoolYearRail(now: Date): { pct: number; left: string; right: string }
   };
 }
 
-const STAGES = ['Filed', 'Received', 'Processing', 'Complete'];
-const STAGE_FOR_STATUS: Record<string, number> = { submitted: 1, processing: 2, completed: 3 };
-
 function filedAgo(s: Submission): string {
   const ms = s.createdAt ? Date.now() - s.createdAt.toMillis() : 0;
   const days = Math.floor(ms / 86_400_000);
@@ -61,27 +66,32 @@ export function HomeScreen() {
   const isAdmin = useIsTech();
   const offb = useOffboarding(user?.uid ?? null);
   const subs = useMySubmissions(user?.uid ?? null);
+  const approvals = useApprovalQueue(user?.email ?? null);
+  const waiting = approvals.submissions ?? [];
 
   const now = new Date();
   const rail = schoolYearRail(now);
 
-  const open = (subs.submissions ?? []).filter(
-    (s) => s.status === 'submitted' || s.status === 'processing',
-  );
+  const open = (subs.submissions ?? []).filter(isOpen);
   const offbStarted = !offb.loading && !('error' in offb) && offb.exists;
   const offbProgress = offbStarted ? computeProgress(offb.data) : null;
   // A record with zero tasks done is likely exploratory — don't let it
   // dominate the portal until the person actually works the checklist.
   const offbUnderway = offbProgress !== null && offbProgress.done > 0;
 
+  const words = ['One', 'Two', 'Three', 'Four', 'Five'];
   const title =
-    open.length === 1
-      ? 'One of your requests is moving'
-      : open.length > 1
-        ? `${['Two', 'Three', 'Four', 'Five'][open.length - 2] ?? open.length} of your requests are moving`
-        : offbUnderway && offbProgress.done < offbProgress.total
-          ? `Your offboarding is ${offbProgress.done} of ${offbProgress.total} done`
-          : 'Your record is quiet today';
+    waiting.length > 0
+      ? `${words[waiting.length - 1] ?? waiting.length} ${
+          waiting.length === 1 ? 'request needs' : 'requests need'
+        } your approval`
+      : open.length === 1
+        ? 'One of your requests is moving'
+        : open.length > 1
+          ? `${['Two', 'Three', 'Four', 'Five'][open.length - 2] ?? open.length} of your requests are moving`
+          : offbUnderway && offbProgress.done < offbProgress.total
+            ? `Your offboarding is ${offbProgress.done} of ${offbProgress.total} done`
+            : 'Your record is quiet today';
 
   return (
     <>
@@ -90,11 +100,41 @@ export function HomeScreen() {
         day={now.getDate()}
         month={MONTHS[now.getMonth()]}
         title={title}
-        subtitle="Nothing here needs you until you start something."
+        subtitle={
+          waiting.length > 0
+            ? 'Someone named you as their supervisor. It reaches HR once you decide.'
+            : 'Nothing here needs you until you start something.'
+        }
         railPct={rail?.pct}
         railLeft={rail?.left}
         railRight={rail?.right}
       />
+
+      {waiting.length > 0 && (
+        <Card
+          eyebrow="Waiting on you"
+          heading={
+            waiting.length === 1 ? `${waiting[0].submitterName}'s request` : 'Requests to approve'
+          }
+          headingRight={
+            <StatusBadge state="submitted" label={`${waiting.length} waiting`} icon={false} />
+          }
+          pad={16}
+        >
+          <RowList>
+            {waiting.map((s) => (
+              <RequestRow
+                key={s.id}
+                title={`${s.formTitle} · ${s.submitterName}`}
+                kind={`${displayId(s.id)} · ${filedAgo(s)}${s.summary ? ` · ${s.summary}` : ''}`}
+                status={<StatusBadge variant="dot" state="submitted" label="Needs you" />}
+                track={<StatusTrack stages={trackFor(s).stages} current={trackFor(s).current} />}
+                onClick={() => navigate(`/forms/submissions/${s.id}`)}
+              />
+            ))}
+          </RowList>
+        </Card>
+      )}
 
       {open.length > 0 && (
         <Card
@@ -111,8 +151,8 @@ export function HomeScreen() {
                 key={s.id}
                 title={s.formTitle}
                 kind={`${displayId(s.id)} · ${filedAgo(s)}`}
-                status={<StatusBadge variant="dot" state={s.status} />}
-                track={<StatusTrack stages={STAGES} current={STAGE_FOR_STATUS[s.status] ?? 1} />}
+                status={<StatusBadge variant="dot" {...badgeFor(s)} />}
+                track={<StatusTrack stages={trackFor(s).stages} current={trackFor(s).current} />}
                 onClick={() => navigate(`/forms/submissions/${s.id}`)}
               />
             ))}

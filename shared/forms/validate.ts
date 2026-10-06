@@ -4,11 +4,13 @@ import type {
   FormDefinition,
   FormField,
   FormSection,
+  Person,
   ShowIf,
   TableRow,
 } from './types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STAFF_EMAIL_RE = /^[^\s@]+@orono\.k12\.mn\.us$/;
 const PHONE_RE = /^[\d\s()+.-]{7,20}$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -195,6 +197,31 @@ export function validateForm(def: FormDefinition, data: FormData): ValidationRes
         continue;
       }
       cleaned[field.id] = rows;
+      continue;
+    }
+
+    if (field.type === 'person') {
+      if (raw === undefined || raw === null || raw === '') {
+        if (field.required) errors[field.id] = 'Pick someone from the directory.';
+        continue;
+      }
+      const p = raw as Person;
+      if (
+        typeof p !== 'object' ||
+        Array.isArray(p) ||
+        typeof p.email !== 'string' ||
+        typeof p.name !== 'string'
+      ) {
+        errors[field.id] = 'Invalid person.';
+        continue;
+      }
+      const email = p.email.trim().toLowerCase();
+      const name = p.name.trim();
+      if (!STAFF_EMAIL_RE.test(email) || !name || name.length > 120) {
+        errors[field.id] = 'Pick someone from the directory.';
+        continue;
+      }
+      cleaned[field.id] = { email, name };
       continue;
     }
 

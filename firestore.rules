@@ -80,10 +80,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // HR form submissions. Submitters read their own; HR reads all.
-    // All writes go through the submitForm/updateSubmissionStatus callables.
+    // HR form submissions. Submitters read their own; HR reads all; the
+    // supervisor frozen onto a routed submission reads it (while it waits
+    // on them and after they decide). All writes go through the
+    // submitForm / decideSubmission / updateSubmissionStatus callables.
+    function isApprover() {
+      return isAuthed()
+        && (('pendingApprover' in resource.data
+              && resource.data.pendingApprover == request.auth.token.email)
+            || ('routing' in resource.data
+              && resource.data.routing != null
+              && resource.data.routing.approver.email == request.auth.token.email));
+    }
     match /submissions/{id} {
-      allow read: if isHR() || (isAuthed() && resource.data.submitterUid == request.auth.uid);
+      allow read: if isHR()
+        || (isAuthed() && resource.data.submitterUid == request.auth.uid)
+        || isApprover();
       allow write: if false;
     }
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router';
 import { useIsHR } from '../../lib/auth';
-import { useAllSubmissions } from '../../lib/forms';
+import { isOpen, useAllSubmissions } from '../../lib/forms';
 import {
   useEmployees,
   useHrRecords,
@@ -142,7 +142,7 @@ function headline(tab: HrTab, ctx: HrOutletCtx): { title: string; subtitle: stri
       };
     default: {
       const all = ctx.submissions.submissions ?? [];
-      const open = all.filter((s) => s.status === 'submitted' || s.status === 'processing').length;
+      const open = all.filter(isOpen).length;
       return {
         title:
           open === 0
@@ -197,9 +197,7 @@ export function HRModule() {
 
   const ctx: HrOutletCtx = { employees, newHires, ceSubs, processes, leaves, changes, submissions };
   const tab = activeTab(location.pathname);
-  const openInbox = (submissions.submissions ?? []).filter(
-    (s) => s.status === 'submitted' || s.status === 'processing',
-  ).length;
+  const openInbox = (submissions.submissions ?? []).filter(isOpen).length;
 
   const tabs: TabEntry[] = [
     { id: 'inbox', label: 'Inbox', icon: 'inbox', count: openInbox || undefined },

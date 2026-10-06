@@ -229,7 +229,34 @@ even as it_admin.
 - [ ] Admin card for audience overrides (folds into the routing/visibility
       config UI below)
 
-- [ ] Routing/approval: statuses `submitted → supervisor_approved → hr_processing → completed` (+ denied/revisions/cancelled), frozen chains, activity log (today: submitted/processing/completed/denied, HR-only status changes)
+- [x] Routing/approval, supervisor step (2026-10-06). A form definition may
+      carry `routing: { approverField }` naming a `person` field (new field
+      type: a staff-directory pick, `{ email, name }`, validated against the
+      domain and never the submitter). At submit the pick is frozen onto the
+      submission as `routing.approver` + `pendingApprover` (email, for the
+      query and the rules). Statuses: `submitted → supervisor_approved →
+      processing → completed`, `denied` at any step; an unrouted submission
+      at `submitted` is already in HR's inbox. `decideSubmission` callable:
+      only `pendingApprover` can act, only while `submitted`; approve →
+      `supervisor_approved` (emails submitter + the HR staff alert, which for
+      routed forms waits until now); deny → `denied` with
+      `routing.approval.note` (submitter email, "Note from your supervisor").
+      HR acting on a request still with its supervisor clears
+      `pendingApprover` — HR's call is final. Rules: the approver reads the
+      submission while it waits on them and after. UI: `PersonField` in the
+      renderer + "Goes to X for approval first" preview + "Send for approval";
+      Home gets a "Waiting on you" card (`useApprovalQueue`) and the
+      DayHeader headline; SubmissionDetail shows a 4-stop rail for routed
+      requests (Filed · Supervisor · With HR · Complete), the approver's
+      note+Approve/Return card, and HR sees a "still with the supervisor"
+      hint; inbox badges read "With supervisor" / "Approved · with HR" /
+      "Returned". LOA and Lane Change route via a required "Your direct
+      supervisor" field (version 2); Change of Address goes straight to HR.
+      Supervisors get no standing role: the chain IS the permission.
+- [ ] **Later:** revisions ("send back for changes" without denying) and
+      submitter cancel; multi-step chains (e.g. principal → director) if a
+      form ever needs more than one approver; supervisor defaults from a
+      roster column once the sync sheet carries one.
 - [ ] LOA submission → `leaves` record: HR affordance to create the leave from the
       submission (today HR reads the inbox and keys the record by hand)
 - [x] Email notifications (2026-08-11): submit + status callables queue `mail/`

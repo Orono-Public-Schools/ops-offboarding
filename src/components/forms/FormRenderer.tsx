@@ -10,9 +10,12 @@ import {
   type FormDefinition,
   type FormField,
   type FormValue,
+  type Person,
   type TableRow,
 } from '../../lib/forms';
 import { MAX_UPLOAD_BYTES, removeFormFile, uploadFormFile } from '../../lib/storage';
+import { PersonPicker } from '../PersonPicker';
+import { PersonPlate } from '../../ds/components/records/PersonPlate';
 import { Button } from '../../ds/components/core/Button';
 import { Icon } from '../../ds/components/core/Icon';
 import { DateField } from './DateField';
@@ -93,6 +96,81 @@ const CELL_INPUT: React.CSSProperties = {
   background: 'var(--surface-card)',
   boxSizing: 'border-box',
 };
+
+/** A staff-directory pick (e.g. your supervisor): the chosen person as a
+ *  plate with a swap button, or an empty slot that opens the picker. */
+function PersonField({
+  field,
+  value,
+  error,
+  onChange,
+}: {
+  field: FormField;
+  value: FormValue | undefined;
+  error?: string;
+  onChange: (v: FormValue) => void;
+}) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const current =
+    value && typeof value === 'object' && !Array.isArray(value) && 'email' in value
+      ? (value as Person)
+      : null;
+
+  return (
+    <div>
+      <p style={GROUP_LABEL}>{field.label}</p>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap',
+          padding: current ? '10px 12px' : '14px 12px',
+          borderRadius: 'var(--radius-input)',
+          border: `1px ${current ? 'solid' : 'dashed'} ${error ? 'var(--accent)' : 'var(--border-input)'}`,
+          background: current ? 'var(--surface-card)' : 'var(--surface-inset)',
+        }}
+      >
+        {current ? (
+          <PersonPlate size="sm" photoSlot={false} name={current.name} role={current.email} />
+        ) : (
+          <span style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)' }}>
+            Nobody picked yet
+          </span>
+        )}
+        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
+          {current ? 'Change' : 'Choose from the directory'}
+        </Button>
+      </div>
+      {field.helper && (
+        <p style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '6px 0 0' }}>
+          {field.helper}
+        </p>
+      )}
+      {error && (
+        <p style={{ font: 'var(--type-caption)', color: 'var(--accent)', margin: '4px 0 0' }}>
+          {error}
+        </p>
+      )}
+      <PersonPicker
+        open={open}
+        title={field.label}
+        description="Search the staff directory by name or email."
+        confirmLabel={(p) => (p ? `Pick ${p.givenName || p.displayName}` : 'Pick')}
+        currentEmail={current?.email ?? null}
+        onClose={() => setOpen(false)}
+        onConfirm={async (p) => {
+          if (user?.email && p.email.toLowerCase() === user.email.toLowerCase()) {
+            throw new Error('You cannot pick yourself.');
+          }
+          onChange({ email: p.email.toLowerCase(), name: p.displayName });
+        }}
+      />
+    </div>
+  );
+}
 
 function FileField({
   field,
@@ -379,6 +457,10 @@ function FieldControl({
     return <FileField field={field} value={value} error={error} onChange={onChange} />;
   }
 
+  if (field.type === 'person') {
+    return <PersonField field={field} value={value} error={error} onChange={onChange} />;
+  }
+
   if (field.type === 'table') {
     return <TableField field={field} value={value} error={error} onChange={onChange} />;
   }
@@ -644,6 +726,11 @@ export function FormRenderer({
     .filter(({ section, fields }) => fields.length > 0 || (section.info?.length ?? 0) > 0);
   const blocked = visibleSections.some(({ section }) => section.blocking === true);
 
+  // Where this goes once sent — the chain is frozen server-side from the
+  // same field, so what's previewed here is what happens.
+  const approver = def.routing ? (data[def.routing.approverField] as Person | undefined) : null;
+  const routed = def.routing !== undefined;
+
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {visibleSections.map(({ section, fields }, i) => (
@@ -695,6 +782,21 @@ export function FormRenderer({
         </p>
       )}
 
+      {routed && !blocked && (
+        <p
+          style={{
+            font: 'var(--type-body-sm)',
+            color: 'var(--on-dark-muted)',
+            textAlign: 'right',
+            margin: '-8px 0 0',
+          }}
+        >
+          {approver && typeof approver === 'object' && 'name' in approver
+            ? `Goes to ${approver.name} for approval first, then to HR.`
+            : 'Goes to your supervisor for approval first, then to HR.'}
+        </p>
+      )}
+
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {hasDraft && (
           <Button type="button" variant="inverse" onClick={clearDraft} disabled={submitting}>
@@ -706,7 +808,9 @@ export function FormRenderer({
             ? 'Come back once your supervisor knows'
             : submitting
               ? 'Sending…'
-              : 'Send to HR'}
+              : routed
+                ? 'Send for approval'
+                : 'Send to HR'}
         </Button>
       </div>
     </form>

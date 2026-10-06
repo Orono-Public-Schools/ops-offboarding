@@ -2,10 +2,10 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
 import { REGION, hrLevel, requireAuthedDomainUser } from './shared';
-import { notifyStatusChanged, notifySubmitted } from './notifications';
+import { notifyApproved, notifyStatusChanged, notifySubmitted } from './notifications';
 import { getFormDefinition } from './shared-gen/forms/definitions';
 import { buildSummary, validateForm } from './shared-gen/forms/validate';
-import type { FormData, SubmissionStatus } from './shared-gen/forms/types';
+import type { FormData, Person, SubmissionStatus } from './shared-gen/forms/types';
 
 type SubmitFormPayload = {
   formId?: string;
@@ -64,6 +64,24 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
     }
   }
 
+  // Routing: the approver named in the form is frozen onto the submission.
+  // Nobody approves their own request.
+  let approver: Person | null = null;
+  if (def.routing) {
+    const picked = result.cleaned[def.routing.approverField] as Person | undefined;
+    if (!picked || typeof picked !== 'object' || !('email' in picked)) {
+      throw new HttpsError('invalid-argument', 'Please fix the highlighted fields.', {
+        fieldErrors: { [def.routing.approverField]: 'Pick your supervisor.' },
+      });
+    }
+    if (picked.email === email.toLowerCase()) {
+      throw new HttpsError('invalid-argument', 'Please fix the highlighted fields.', {
+        fieldErrors: { [def.routing.approverField]: 'You cannot approve your own request.' },
+      });
+    }
+    approver = picked;
+  }
+
   const db = getFirestore();
   const submitterName =
     typeof request.auth?.token?.name === 'string' ? request.auth.token.name : email;
@@ -84,6 +102,8 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
         submitterName,
         data: result.cleaned,
         summary: buildSummary(def, result.cleaned),
+        routing: approver ? { approver, approval: null } : null,
+        pendingApprover: approver ? approver.email : null,
         activityLog: [
           {
             ts: Timestamp.now(),
@@ -99,14 +119,17 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
       });
       // Email is best-effort — notifySubmitted logs its own failures and
       // never breaks the submission.
-      await notifySubmitted({
-        id,
-        formId: def.id,
-        formTitle: def.title,
-        submitterName,
-        submitterEmail: email,
-        summary: buildSummary(def, result.cleaned),
-      });
+      await notifySubmitted(
+        {
+          id,
+          formId: def.id,
+          formTitle: def.title,
+          submitterName,
+          submitterEmail: email,
+          summary: buildSummary(def, result.cleaned),
+        },
+        approver,
+      );
       return { id };
     } catch (err) {
       const code = (err as { code?: number | string })?.code;
@@ -151,6 +174,84 @@ export const deleteSubmission = onCall<{ id?: string }>({ region: REGION }, asyn
   return { success: true };
 });
 
+type DecideSubmissionPayload = {
+  id?: string;
+  decision?: 'approve' | 'deny';
+  note?: string | null;
+};
+
+/** The named approver's one move: approve (on to HR) or return it. Only the
+ *  person frozen onto the submission as `pendingApprover` can act, and only
+ *  while it is still waiting on them. */
+export const decideSubmission = onCall<DecideSubmissionPayload>(
+  { region: REGION },
+  async (request) => {
+    const { uid, email } = requireAuthedDomainUser(request);
+    const id = request.data?.id;
+    const decision = request.data?.decision;
+    const note = request.data?.note?.trim() || null;
+    if (!id || typeof id !== 'string') {
+      throw new HttpsError('invalid-argument', 'Missing submission id.');
+    }
+    if (decision !== 'approve' && decision !== 'deny') {
+      throw new HttpsError('invalid-argument', 'Invalid decision.');
+    }
+    if (note && note.length > 2000) {
+      throw new HttpsError('invalid-argument', 'Note is too long.');
+    }
+
+    const db = getFirestore();
+    const ref = db.collection('submissions').doc(id);
+    const me = email.toLowerCase();
+
+    const facts = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new HttpsError('not-found', 'Submission not found.');
+      const pending = (snap.get('pendingApprover') as string | null) ?? null;
+      if (pending !== me) {
+        throw new HttpsError('permission-denied', 'This request is not waiting on you.');
+      }
+      if (snap.get('status') !== 'submitted') {
+        throw new HttpsError('failed-precondition', 'This request has already moved on.');
+      }
+      const routing = snap.get('routing') as { approver: Person } | null;
+      const approved = decision === 'approve';
+      tx.update(ref, {
+        status: approved ? 'supervisor_approved' : 'denied',
+        pendingApprover: null,
+        routing: {
+          approver: routing?.approver ?? { email: me, name: me },
+          approval: { decision: approved ? 'approved' : 'denied', byEmail: me, note },
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+        activityLog: FieldValue.arrayUnion({
+          ts: Timestamp.now(),
+          actor: uid,
+          actorEmail: email,
+          action: approved ? 'supervisor_approved' : 'supervisor_denied',
+          note,
+        }),
+      });
+      return {
+        formId: (snap.get('formId') as string) ?? '',
+        formTitle: (snap.get('formTitle') as string) ?? 'Form',
+        submitterName: (snap.get('submitterName') as string) ?? '',
+        submitterEmail: (snap.get('submitterEmail') as string) ?? '',
+        summary: (snap.get('summary') as string) ?? '',
+        approverName: routing?.approver?.name ?? email,
+      };
+    });
+
+    const { approverName, ...sub } = facts;
+    if (decision === 'approve') {
+      await notifyApproved({ id, ...sub }, approverName);
+    } else {
+      await notifyStatusChanged({ id, ...sub }, 'denied', note, email, 'Note from your supervisor');
+    }
+    return { success: true };
+  },
+);
+
 const HR_SETTABLE_STATUSES = new Set<SubmissionStatus>(['processing', 'completed', 'denied']);
 
 export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(
@@ -188,6 +289,9 @@ export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(
       }
       tx.update(ref, {
         status,
+        // HR acting on a request still with its supervisor takes it off
+        // the supervisor's list — HR's decision is the final one.
+        pendingApprover: null,
         updatedAt: FieldValue.serverTimestamp(),
         completedAt: status === 'completed' ? FieldValue.serverTimestamp() : null,
         activityLog: FieldValue.arrayUnion({

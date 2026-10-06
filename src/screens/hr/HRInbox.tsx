@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { type SubmissionStatus } from '../../lib/forms';
+import { badgeFor, isNewForHr, isOpen, type SubmissionStatus } from '../../lib/forms';
 import { useHrCtx } from './HRModule';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
@@ -29,6 +29,7 @@ function ago(ms: number | undefined): string {
 /* The Rail treatment: status lives on the row's left edge. */
 const RAIL_COLORS: Record<SubmissionStatus, string> = {
   submitted: 'var(--status-submitted)',
+  supervisor_approved: 'var(--status-submitted)',
   processing: 'var(--status-processing)',
   completed: 'var(--status-completed)',
   denied: 'var(--status-denied)',
@@ -40,8 +41,6 @@ export function HRInbox() {
   const [filter, setFilter] = useState<FilterKey>('open');
 
   const all = state.submissions ?? [];
-  const isOpen = (s: { status: SubmissionStatus }) =>
-    s.status === 'submitted' || s.status === 'processing';
   const filtered = all.filter((s) => {
     if (filter === 'all') return true;
     if (filter === 'open') return isOpen(s);
@@ -100,9 +99,9 @@ export function HRInbox() {
               }
               request={s.formTitle}
               kind={s.summary}
-              status={<StatusBadge variant="dot" state={s.status} />}
+              status={<StatusBadge variant="dot" {...badgeFor(s)} />}
               time={ago(s.createdAt?.toMillis())}
-              unread={s.status === 'submitted'}
+              unread={isNewForHr(s)}
               rail={RAIL_COLORS[s.status] ?? 'var(--status-draft)'}
               chevron={false}
               onClick={() => navigate(`/forms/submissions/${s.id}`)}

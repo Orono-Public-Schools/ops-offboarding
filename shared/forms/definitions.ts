@@ -156,8 +156,9 @@ export const leaveOfAbsence: FormDefinition = {
   title: 'Leave of Absence',
   description:
     'Tell Human Resources about an upcoming leave of absence. Details route directly to HR; other district officials only see what their specific role requires.',
-  version: 1,
+  version: 2,
   summaryFields: ['leaveType', 'anticipatedStart'],
+  routing: { approverField: 'supervisor' },
   sections: [
     {
       title: 'Before you start',
@@ -202,6 +203,13 @@ export const leaveOfAbsence: FormDefinition = {
           maxLength: 6,
         },
         { id: 'jobTitle', type: 'text', label: 'Job title', required: true },
+        {
+          id: 'supervisor',
+          type: 'person',
+          label: 'Your direct supervisor',
+          helper: 'They approve this request before it reaches HR.',
+          required: true,
+        },
         {
           id: 'sites',
           type: 'checkboxes',
@@ -384,8 +392,9 @@ export const laneChange: FormDefinition = {
   title: 'Lane Change Application',
   description:
     'Licensed teachers only — apply to move lanes on the salary schedule once qualifying coursework is complete.',
-  version: 1,
+  version: 2,
   summaryFields: ['fromLane', 'toLane'],
+  routing: { approverField: 'supervisor' },
   sections: [
     {
       title: 'About you',
@@ -404,6 +413,13 @@ export const laneChange: FormDefinition = {
           id: 'currentAssignment',
           type: 'text',
           label: 'Current teaching assignment',
+          required: true,
+        },
+        {
+          id: 'supervisor',
+          type: 'person',
+          label: 'Your direct supervisor',
+          helper: 'They approve this request before it reaches HR.',
           required: true,
         },
         {

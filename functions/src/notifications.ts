@@ -70,6 +70,7 @@ function emailHtml({
   heading,
   body,
   note,
+  noteLabel = 'Note from HR',
   facts = [],
   link,
   linkLabel = 'Open in OronoHR',
@@ -77,8 +78,9 @@ function emailHtml({
   heading: string;
   /** One paragraph of trusted HTML — escape anything user-typed first. */
   body: string;
-  /** Plain text from HR; escaped here. */
+  /** Plain text from the decider; escaped here. */
   note?: string | null;
+  noteLabel?: string;
   /** Label/value rows, plain text; escaped here. */
   facts?: Array<[string, string]>;
   link: string;
@@ -90,7 +92,7 @@ function emailHtml({
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 16px;">
           <tr>
             <td style="border-left: 3px solid #4356a9; padding: 2px 0 2px 14px; font-size: 15px; line-height: 1.6; color: #334155;">
-              <strong style="display: block; font-size: 13px; color: #4356a9;">Note from HR</strong>
+              <strong style="display: block; font-size: 13px; color: #4356a9;">${escapeHtml(noteLabel)}</strong>
               ${escapeHtml(note)}
             </td>
           </tr>
@@ -168,7 +170,7 @@ async function queueMail(db: Firestore, to: string[], subject: string, html: str
 // ---------------------------------------------------------------------------
 // Events — called from the forms callables, never allowed to fail them.
 
-type SubmissionFacts = {
+export type SubmissionFacts = {
   id: string;
   formId: string;
   formTitle: string;
@@ -176,6 +178,8 @@ type SubmissionFacts = {
   submitterEmail: string;
   summary: string;
 };
+
+type Person = { email: string; name: string };
 
 /** The label/value rows under a submission email. */
 function factRows(sub: SubmissionFacts, withSubmitter = false): Array<[string, string]> {
@@ -186,8 +190,63 @@ function factRows(sub: SubmissionFacts, withSubmitter = false): Array<[string, s
   return rows;
 }
 
-/** Queues the submitter's filing receipt and the staff alert. */
-export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
+/** The HR-side alert for a submission that has reached the inbox: per-form
+ *  recipients or the default address, minus the submitter, adjusted by
+ *  personal always/never choices. */
+async function notifyStaff(
+  db: Firestore,
+  settings: NotificationSettings,
+  sub: SubmissionFacts,
+  lede: string,
+): Promise<void> {
+  const pf = settings.perForm[sub.formId] ?? {};
+  if (!(pf.notifySubmit ?? settings.notifySubmit)) return;
+
+  const base =
+    pf.recipients && pf.recipients.length > 0
+      ? pf.recipients
+      : settings.defaultRecipient
+        ? [settings.defaultRecipient]
+        : [];
+  const recipients = new Set(base.map((e) => e.toLowerCase()));
+  // Nobody is alerted about their own filing — unless they explicitly say
+  // "always" below. Personal choices beat this heuristic in BOTH
+  // directions, matching "never wins even if you're on the list".
+  recipients.delete(sub.submitterEmail.toLowerCase());
+
+  // Personal overrides — the prefs collection only ever holds role holders,
+  // so reading it whole stays cheap.
+  const prefs = await db.collection('notificationPrefs').get();
+  for (const doc of prefs.docs) {
+    const email = (doc.get('email') as string | undefined)?.toLowerCase();
+    if (!email) continue;
+    const choice = (doc.get('forms') as Record<string, string> | undefined)?.[sub.formId];
+    if (choice === 'always') recipients.add(email);
+    if (choice === 'never') recipients.delete(email);
+  }
+  if (recipients.size === 0) return;
+
+  await queueMail(
+    db,
+    [...recipients],
+    `[OronoHR] ${sub.formTitle} from ${sub.submitterName} — ${displayId(sub.id)}`,
+    emailHtml({
+      heading: `New ${escapeHtml(sub.formTitle)} submission`,
+      body: lede,
+      facts: factRows(sub, true),
+      link: `${APP_URL}/forms/submissions/${sub.id}`,
+      linkLabel: 'Open the request',
+    }),
+  );
+}
+
+/** Queues the submitter's filing receipt, then either the approver's
+ *  "needs your approval" or — for forms that go straight to HR — the staff
+ *  alert. */
+export async function notifySubmitted(
+  sub: SubmissionFacts,
+  approver: Person | null,
+): Promise<void> {
   try {
     const db = getFirestore();
     const settings = await loadSettings(db);
@@ -195,13 +254,16 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
     // Receipt to the submitter — rides the same switch as status emails,
     // since both are the submitter's side of the conversation.
     if (settings.notifyStatus) {
+      const path = approver
+        ? `It goes first to ${escapeHtml(approver.name)} for approval, then to Human Resources.`
+        : 'It has been filed with Human Resources.';
       await queueMail(
         db,
         [sub.submitterEmail],
         `[OronoHR] Filed — ${sub.formTitle} ${displayId(sub.id)}`,
         emailHtml({
           heading: 'Your request is in',
-          body: `Your ${escapeHtml(sub.formTitle)} request has been filed with Human Resources. You&rsquo;ll get an email when it moves.`,
+          body: `Your ${escapeHtml(sub.formTitle)} request is filed. ${path} You&rsquo;ll get an email when it moves.`,
           facts: factRows(sub),
           link: `${APP_URL}/forms/submissions/${sub.id}`,
           linkLabel: 'Follow your request',
@@ -209,47 +271,62 @@ export async function notifySubmitted(sub: SubmissionFacts): Promise<void> {
       );
     }
 
-    const pf = settings.perForm[sub.formId] ?? {};
-    if (!(pf.notifySubmit ?? settings.notifySubmit)) return;
-
-    const base =
-      pf.recipients && pf.recipients.length > 0
-        ? pf.recipients
-        : settings.defaultRecipient
-          ? [settings.defaultRecipient]
-          : [];
-    const recipients = new Set(base.map((e) => e.toLowerCase()));
-    // Nobody is alerted about their own filing — unless they explicitly say
-    // "always" below. Personal choices beat this heuristic in BOTH
-    // directions, matching "never wins even if you're on the list".
-    recipients.delete(sub.submitterEmail.toLowerCase());
-
-    // Personal overrides — the prefs collection only ever holds role holders,
-    // so reading it whole stays cheap.
-    const prefs = await db.collection('notificationPrefs').get();
-    for (const doc of prefs.docs) {
-      const email = (doc.get('email') as string | undefined)?.toLowerCase();
-      if (!email) continue;
-      const choice = (doc.get('forms') as Record<string, string> | undefined)?.[sub.formId];
-      if (choice === 'always') recipients.add(email);
-      if (choice === 'never') recipients.delete(email);
+    if (approver) {
+      await queueMail(
+        db,
+        [approver.email],
+        `[OronoHR] Needs your approval — ${sub.formTitle} from ${sub.submitterName} ${displayId(sub.id)}`,
+        emailHtml({
+          heading: 'A request needs your approval',
+          body: `<strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request and named you as their supervisor. It reaches Human Resources once you approve it.`,
+          facts: factRows(sub, true),
+          link: `${APP_URL}/forms/submissions/${sub.id}`,
+          linkLabel: 'Review the request',
+        }),
+      );
+      return;
     }
-    if (recipients.size === 0) return;
 
-    await queueMail(
+    await notifyStaff(
       db,
-      [...recipients],
-      `[OronoHR] ${sub.formTitle} from ${sub.submitterName} — ${displayId(sub.id)}`,
-      emailHtml({
-        heading: `New ${escapeHtml(sub.formTitle)} submission`,
-        body: `<strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request. It is waiting in the HR inbox.`,
-        facts: factRows(sub, true),
-        link: `${APP_URL}/forms/submissions/${sub.id}`,
-        linkLabel: 'Open the request',
-      }),
+      settings,
+      sub,
+      `<strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request. It is waiting in the HR inbox.`,
     );
   } catch (err) {
     logger.error('notifySubmitted failed', { submission: sub.id, err });
+  }
+}
+
+/** The supervisor approved: tell the submitter, and now alert HR. */
+export async function notifyApproved(sub: SubmissionFacts, approverName: string): Promise<void> {
+  try {
+    const db = getFirestore();
+    const settings = await loadSettings(db);
+
+    if (settings.notifyStatus) {
+      await queueMail(
+        db,
+        [sub.submitterEmail],
+        `[OronoHR] Approved by your supervisor — ${sub.formTitle} ${displayId(sub.id)}`,
+        emailHtml({
+          heading: 'Your supervisor approved your request',
+          body: `${escapeHtml(approverName)} approved your ${escapeHtml(sub.formTitle)} request. It is now with Human Resources.`,
+          facts: factRows(sub),
+          link: `${APP_URL}/forms/submissions/${sub.id}`,
+          linkLabel: 'View your request',
+        }),
+      );
+    }
+
+    await notifyStaff(
+      db,
+      settings,
+      sub,
+      `<strong>${escapeHtml(sub.submitterName)}</strong> filed a ${escapeHtml(sub.formTitle)} request, and ${escapeHtml(approverName)} has approved it. It is waiting in the HR inbox.`,
+    );
+  } catch (err) {
+    logger.error('notifyApproved failed', { submission: sub.id, err });
   }
 }
 
@@ -277,6 +354,7 @@ export async function notifyStatusChanged(
   status: string,
   note: string | null,
   actorEmail: string,
+  noteLabel = 'Note from HR',
 ): Promise<void> {
   try {
     const copy = STATUS_COPY[status];
@@ -296,6 +374,7 @@ export async function notifyStatusChanged(
         heading: copy.heading,
         body: `Your ${escapeHtml(sub.formTitle)} request ${copy.body}.`,
         note,
+        noteLabel,
         facts: factRows(sub),
         link: `${APP_URL}/forms/submissions/${sub.id}`,
         linkLabel: 'View your request',

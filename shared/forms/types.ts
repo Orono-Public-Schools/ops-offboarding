@@ -33,10 +33,15 @@ export type FormFieldType =
   /** Repeating rows of typed cells: value is a TableRow[]. */
   | 'table'
   /** Typed-name eSignature: value is the signer's typed name. */
-  | 'signature';
+  | 'signature'
+  /** Someone from the staff directory: value is a Person. */
+  | 'person';
 
 /** A Storage upload attached to a submission. */
 export type FileRef = { path: string; name: string };
+
+/** A staff member picked from the directory. */
+export type Person = { email: string; name: string };
 
 /** One row of a table field, keyed by column key. */
 export type TableRow = Record<string, string>;
@@ -105,18 +110,44 @@ export type FormDefinition = {
   version: number;
   /** Field ids whose values build the denormalized list-view summary. */
   summaryFields?: string[];
+  /** Approval routing. `approverField` names a `person` field whose pick must
+   *  approve the submission before it reaches HR; the chain is frozen onto
+   *  the submission at submit time. Omit for forms that go straight to HR. */
+  routing?: { approverField: string };
   sections: FormSection[];
 };
 
 /** A submission's raw field values, keyed by field id. */
-export type FormValue = string | boolean | string[] | FileRef | TableRow[];
+export type FormValue = string | boolean | string[] | FileRef | TableRow[] | Person;
 export type FormData = Record<string, FormValue>;
 
-export type SubmissionStatus = 'submitted' | 'processing' | 'completed' | 'denied';
+/**
+ * submitted → (supervisor_approved) → processing → completed, or denied at
+ * any step. A routed submission sits at `submitted` while its approver
+ * decides (`pendingApprover` set); an unrouted one at `submitted` is already
+ * in HR's inbox.
+ */
+export type SubmissionStatus =
+  | 'submitted'
+  | 'supervisor_approved'
+  | 'processing'
+  | 'completed'
+  | 'denied';
 
 export const SUBMISSION_STATUSES: SubmissionStatus[] = [
   'submitted',
+  'supervisor_approved',
   'processing',
   'completed',
   'denied',
 ];
+
+/** The approval step frozen onto a submission at submit time. */
+export type SubmissionRouting = {
+  approver: Person;
+  approval: {
+    decision: 'approved' | 'denied';
+    byEmail: string;
+    note: string | null;
+  } | null;
+};
