@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '../core/Icon.jsx';
+import { Mark, Wordmark } from '../core/Brand.jsx';
 
 /* Thin on-dark bar above the title: wordmark left, signed-in person right.
 
@@ -15,11 +16,9 @@ export function AppBar({ person, onSignOut, onPersonClick, style, ...rest }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, ...style }} {...rest}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src="/OronoIcon.png" alt="" style={{ height: 26, width: 26 }} />
+        <Mark size={26} />
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ font: '700 17px/1 var(--font-sans)', letterSpacing: '-0.01em', color: '#fff' }}>
-            Orono<span style={{ color: '#e98b8b' }}>HR</span>
-          </span>
+          <Wordmark size={17} />
           <span style={{ font: 'var(--type-caption)', color: 'var(--on-dark-faint)' }}>Independent District 278</span>
         </span>
       </span>

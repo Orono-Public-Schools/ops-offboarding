@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AccessCard } from '../../components/AccessCard';
 import { StaffDirectoryCard } from '../../components/StaffDirectoryCard';
 import { NotificationSettingsCard } from '../hr/NotificationCards';
+import { usePageTitle } from '../../lib/title';
 import { useIsAdmin } from '../../lib/auth';
 import {
   computeProgress,
@@ -151,6 +152,7 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const isItAdmin = useIsAdmin();
   const [searchParams] = useSearchParams();
+  usePageTitle('Admin');
   const tabParam = searchParams.get('tab');
   // IT support works the offboarding + staff tabs; the rest is IT-admin turf.
   const visibleTabs = isItAdmin

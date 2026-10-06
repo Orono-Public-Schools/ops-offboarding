@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { signInWithGoogle } from '../lib/auth';
+import { Mark, Wordmark } from '../ds/components/core/Brand';
 
 export function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
@@ -28,16 +29,9 @@ export function SignInScreen() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 sm:px-6">
       <div style={{ textAlign: 'center', maxWidth: 360 }}>
-        <img src="/OronoIcon.png" alt="" style={{ width: 72, height: 72, margin: '0 auto 18px' }} />
-        <h1
-          style={{
-            margin: 0,
-            font: 'var(--type-page-display)',
-            letterSpacing: 'var(--tracking-tight)',
-            color: 'var(--on-dark)',
-          }}
-        >
-          Orono<span style={{ color: '#e98b8b' }}>HR</span>
+        <Mark size={72} style={{ margin: '0 auto 14px' }} />
+        <h1 style={{ margin: 0 }}>
+          <Wordmark size={34} />
         </h1>
         <p
           style={{

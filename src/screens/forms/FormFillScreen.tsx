@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router';
 import { FormRenderer } from '../../components/forms/FormRenderer';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { getFormDefinition } from '../../lib/forms';
+import { usePageTitle } from '../../lib/title';
 import { Button } from '../../ds/components/core/Button';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 
@@ -9,6 +10,7 @@ export function FormFillScreen() {
   const { formId } = useParams();
   const navigate = useNavigate();
   const def = formId ? getFormDefinition(formId) : null;
+  usePageTitle(def?.title ?? 'Forms');
 
   if (!def) {
     return (

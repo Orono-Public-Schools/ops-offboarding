@@ -4,6 +4,7 @@ import { displayId, FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { usePageTitle } from '../../lib/title';
 import { ModuleCard } from '../../ds/components/records/ModuleCard';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { RowList } from '../../ds/components/forms/RowList';
@@ -44,6 +45,7 @@ export function FormsHome() {
   const { user } = useAuth();
   const subs = useMySubmissions(user?.uid ?? null);
   const forms = Object.values(FORM_DEFINITIONS);
+  usePageTitle('Forms');
   const mine = subs.submissions ?? [];
 
   const open = mine.filter((s) => s.status === 'submitted' || s.status === 'processing');

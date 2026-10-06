@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { usePageTitle } from '../lib/title';
 import { useAuth, useIsHR } from '../lib/auth';
 import { MyNotificationPrefsCard } from './hr/NotificationCards';
 import { Card } from '../ds/components/core/Card';
@@ -19,6 +20,7 @@ export function AccountScreen() {
   const navigate = useNavigate();
   const { user, claims } = useAuth();
   const isHR = useIsHR();
+  usePageTitle('Your account');
 
   return (
     <>

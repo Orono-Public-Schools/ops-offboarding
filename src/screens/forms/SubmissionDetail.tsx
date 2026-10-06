@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { usePageTitle } from '../../lib/title';
 import { useAuth, useIsHR, useIsHrAdmin } from '../../lib/auth';
 import {
   createLeaveFromSubmission,
@@ -282,6 +283,9 @@ export function SubmissionDetail() {
   const isHR = useIsHR();
   const { user } = useAuth();
   const state = useSubmission(id ?? null);
+  usePageTitle(
+    state.submission ? `${state.submission.formTitle} ${displayId(state.submission.id)}` : 'Forms',
+  );
 
   if (state.loading) {
     return (

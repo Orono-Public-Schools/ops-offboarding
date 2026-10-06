@@ -174,8 +174,8 @@ export function DashboardScreen() {
                 target="_blank"
                 rel="noreferrer"
               >
-                What happens to your insurance, pension, and access — the district&#39;s
-                termination details
+                What happens to your insurance, pension, and access — the district&#39;s termination
+                details
               </QuietLink>
             ) : undefined
           }

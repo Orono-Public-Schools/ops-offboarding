@@ -10,6 +10,7 @@ import {
   type ListState,
 } from '../../lib/hr';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { usePageTitle } from '../../lib/title';
 import { TabBar, type TabEntry } from '../../ds/components/navigation/TabBar';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -161,6 +162,7 @@ export function HRModule() {
   const navigate = useNavigate();
 
   const employees = useEmployees(isHR);
+  usePageTitle('HR Portal');
   const processes = useHrRecords('processes', isHR);
   const leaves = useHrRecords('leaves', isHR);
   const changes = useHrRecords('changes', isHR);
