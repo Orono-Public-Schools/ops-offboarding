@@ -32,11 +32,45 @@ const BUTTON_VARIANTS = {
     border: '1px solid transparent', shadow: 'var(--shadow-accent)',
     wipe: 'var(--accent)', hover: {},
   },
-  secondary: { ...outline('var(--secondary-rgb)', 'var(--secondary)'), shadow: 'none' },
+  /* Solid tint, not the washed outline (retired 2026-08-11 — it read as a
+     disabled pill everywhere it appeared). Navy text on the brand's light
+     blue: quiet but unmistakably a button. */
+  secondary: {
+    color: 'var(--dark)', background: 'var(--tint)', border: '1px solid transparent',
+    shadow: 'none', hover: { background: '#dde1f0' },
+  },
   destructive: { ...outline('var(--accent-rgb)', 'var(--accent)'), shadow: 'none' },
   ghost: {
     color: 'var(--text-muted)', background: 'transparent', border: '1px solid transparent',
     shadow: 'none', hover: { background: 'rgba(100, 116, 139, 0.08)', color: 'var(--text-body)' },
+  },
+  /* Quiet button for the navy shell — ghost reads invisible there. White
+     hairline so it still has a button's silhouette (PaperPal's btn-cancel). */
+  inverse: {
+    color: 'rgba(255, 255, 255, 0.75)', background: 'transparent',
+    border: '1px solid rgba(255, 255, 255, 0.28)', shadow: 'none',
+    hover: {
+      background: 'rgba(255, 255, 255, 0.1)', color: '#fff',
+      borderColor: 'rgba(255, 255, 255, 0.45)',
+    },
+  },
+  /* Zero red at rest (the Access-card principle): reads as a ghost until
+     approached, then names its danger. For destructive actions that share a
+     row with the primary path — Deny beside Complete. */
+  destructiveGhost: {
+    color: 'var(--text-muted)', background: 'transparent', border: '1px solid transparent',
+    shadow: 'none',
+    hover: { color: 'var(--accent)', background: 'rgba(var(--accent-rgb), 0.08)' },
+  },
+  /* Red control on the navy shell — the app bar sign-out formula: deep red
+     fill at rest so it reads red without glowing, full accent on hover. */
+  destructiveInverse: {
+    color: '#f6cdcd', background: 'rgba(var(--accent-rgb), 0.55)',
+    border: '1px solid rgba(var(--accent-rgb), 0.75)', shadow: 'none',
+    hover: {
+      color: '#fff', background: 'var(--gradient-accent)',
+      borderColor: 'transparent', boxShadow: 'var(--shadow-accent)',
+    },
   },
 };
 

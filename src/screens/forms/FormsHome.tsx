@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../lib/auth';
-import { FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
+import { displayId, FORM_DEFINITIONS, useMySubmissions } from '../../lib/forms';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
 import { DayHeader } from '../../ds/components/navigation/DayHeader';
+import { usePageTitle } from '../../lib/title';
 import { ModuleCard } from '../../ds/components/records/ModuleCard';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { RowList } from '../../ds/components/forms/RowList';
@@ -25,6 +26,12 @@ const MONTHS = [
   'December',
 ];
 
+const FORM_CARD_LOOK: Record<string, { icon: 'home' | 'calendar' | 'fileText'; meta: string }> = {
+  changeOfAddress: { icon: 'home', meta: '4 min' },
+  leaveOfAbsence: { icon: 'calendar', meta: '5 min' },
+  laneChange: { icon: 'fileText', meta: '8 min' },
+};
+
 function ago(ms: number | undefined): string {
   if (!ms) return '';
   const days = Math.floor((Date.now() - ms) / 86_400_000);
@@ -38,6 +45,7 @@ export function FormsHome() {
   const { user } = useAuth();
   const subs = useMySubmissions(user?.uid ?? null);
   const forms = Object.values(FORM_DEFINITIONS);
+  usePageTitle('Forms');
   const mine = subs.submissions ?? [];
 
   const open = mine.filter((s) => s.status === 'submitted' || s.status === 'processing');
@@ -69,30 +77,19 @@ export function FormsHome() {
             gap: 16,
           }}
         >
-          {forms.map((f) => (
-            <ModuleCard
-              key={f.id}
-              icon="home"
-              title={f.title}
-              description={f.description}
-              meta="4 min"
-              onClick={() => navigate(`/forms/${f.id}`)}
-            />
-          ))}
-          <ModuleCard
-            icon="calendar"
-            title="Leave of absence"
-            description="Medical, parental, family, or personal. Coming soon."
-            meta="Soon"
-            disabled
-          />
-          <ModuleCard
-            icon="fileText"
-            title="Lane change"
-            description="Move a lane once your transcript is on file. Coming soon."
-            meta="Soon"
-            disabled
-          />
+          {forms.map((f) => {
+            const look = FORM_CARD_LOOK[f.id] ?? { icon: 'home' as const, meta: '4 min' };
+            return (
+              <ModuleCard
+                key={f.id}
+                icon={look.icon}
+                title={f.title}
+                description={f.description}
+                meta={look.meta}
+                onClick={() => navigate(`/forms/${f.id}`)}
+              />
+            );
+          })}
         </div>
       </Card>
 
@@ -114,8 +111,8 @@ export function FormsHome() {
               <InboxRow
                 key={s.id}
                 request={s.formTitle}
-                kind={`${s.id} · ${ago(s.createdAt?.toMillis())}`}
-                status={<StatusBadge state={s.status} />}
+                kind={`${displayId(s.id)} · ${ago(s.createdAt?.toMillis())}`}
+                status={<StatusBadge variant="dot" state={s.status} />}
                 onClick={() => navigate(`/forms/submissions/${s.id}`)}
               />
             ))}

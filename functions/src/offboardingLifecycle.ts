@@ -7,6 +7,7 @@ import {
   TASK_KEY_SET,
   deleteSubcollection,
   initialTasks,
+  isTechRole,
   requireAuthedDomainUser,
 } from './shared';
 
@@ -349,12 +350,12 @@ export const resolveHelp = onCall<ResolveHelpPayload>({ region: REGION }, async 
     throw new HttpsError('invalid-argument', 'targetUid is required.');
   }
 
-  const isAdmin = request.auth?.token.it_admin === true;
+  const isAdmin = isTechRole((request.auth?.token ?? {}) as Record<string, unknown>);
   const isSelf = callerUid === targetUid;
   if (!isAdmin && !isSelf) {
     throw new HttpsError(
       'permission-denied',
-      'You can only resolve your own help requests unless you are an IT admin.',
+      'You can only resolve your own help requests unless you are on the IT side.',
     );
   }
 

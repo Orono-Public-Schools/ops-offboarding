@@ -12,5 +12,8 @@ export interface QuietLinkProps extends React.HTMLAttributes<HTMLElement> {
   icon?: IconName;
   /** Renders an <a>; omit for a <button>. */
   href?: string;
+  /** Anchor-only extras, passed through when href renders an <a>. */
+  target?: string;
+  rel?: string;
 }
 export declare function QuietLink(props: QuietLinkProps): JSX.Element;

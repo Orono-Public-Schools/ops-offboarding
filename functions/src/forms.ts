@@ -1,7 +1,8 @@
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
-import { REGION, requireAuthedDomainUser } from './shared';
+import { REGION, hrLevel, requireAuthedDomainUser } from './shared';
+import { notifyStatusChanged, notifySubmitted } from './notifications';
 import { getFormDefinition } from './shared-gen/forms/definitions';
 import { buildSummary, validateForm } from './shared-gen/forms/validate';
 import type { FormData, SubmissionStatus } from './shared-gen/forms/types';
@@ -18,12 +19,14 @@ type UpdateSubmissionStatusPayload = {
 };
 
 function isHrRequest(request: { auth?: { token: Record<string, unknown> } }): boolean {
-  const token = request.auth?.token ?? {};
-  return token.hr === true || token.it_admin === true;
+  return hrLevel(request.auth?.token ?? {}) !== null;
 }
 
-function newReqId(): string {
-  return `REQ-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
+/* Bare five digits — displayed as "#35091". The REQ- prefix was a
+   PaperPal-ism, retired 2026-08-11; legacy REQ- doc ids still exist and
+   every display path strips them. */
+function newSubmissionId(): string {
+  return String(Math.floor(Math.random() * 100000)).padStart(5, '0');
 }
 
 export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (request) => {
@@ -46,13 +49,28 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
     });
   }
 
+  // Attachments must live in the submitter's own Storage folder — the shape
+  // is validated above, the ownership only the server can check.
+  for (const section of def.sections) {
+    for (const field of section.fields) {
+      if (field.type !== 'file') continue;
+      const v = result.cleaned[field.id];
+      if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+      if (!(v as { path: string }).path.startsWith(`uploads/${uid}/`)) {
+        throw new HttpsError('invalid-argument', 'Please fix the highlighted fields.', {
+          fieldErrors: { [field.id]: 'Invalid file.' },
+        });
+      }
+    }
+  }
+
   const db = getFirestore();
   const submitterName =
     typeof request.auth?.token?.name === 'string' ? request.auth.token.name : email;
 
   // Random 5-digit ids; create() fails if taken, so retry a few times.
   for (let attempt = 0; attempt < 5; attempt++) {
-    const id = newReqId();
+    const id = newSubmissionId();
     const ref = db.collection('submissions').doc(id);
     try {
       await ref.create({
@@ -79,6 +97,16 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
         updatedAt: FieldValue.serverTimestamp(),
         completedAt: null,
       });
+      // Email is best-effort — notifySubmitted logs its own failures and
+      // never breaks the submission.
+      await notifySubmitted({
+        id,
+        formId: def.id,
+        formTitle: def.title,
+        submitterName,
+        submitterEmail: email,
+        summary: buildSummary(def, result.cleaned),
+      });
       return { id };
     } catch (err) {
       const code = (err as { code?: number | string })?.code;
@@ -88,6 +116,39 @@ export const submitForm = onCall<SubmitFormPayload>({ region: REGION }, async (r
     }
   }
   throw new HttpsError('internal', 'Could not allocate a submission id. Please try again.');
+});
+
+/** HR admins only, like every other deletion. Clears the back-link on a
+ *  linked leave record so nothing points at a missing document. */
+export const deleteSubmission = onCall<{ id?: string }>({ region: REGION }, async (request) => {
+  const { email } = requireAuthedDomainUser(request);
+  if (hrLevel(request.auth?.token ?? {}) !== 'admin') {
+    throw new HttpsError('permission-denied', 'HR admin access required.');
+  }
+  const id = request.data?.id;
+  if (!id || typeof id !== 'string') {
+    throw new HttpsError('invalid-argument', 'Missing submission id.');
+  }
+
+  const db = getFirestore();
+  const ref = db.collection('submissions').doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Submission not found.');
+
+  const leaveId = snap.get('leaveId') as unknown;
+  if (typeof leaveId === 'string' && leaveId) {
+    const leaveRef = db.collection('leaves').doc(leaveId);
+    if ((await leaveRef.get()).exists) {
+      await leaveRef.update({
+        submissionId: null,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: email,
+      });
+    }
+  }
+
+  await ref.delete();
+  return { success: true };
 });
 
 const HR_SETTABLE_STATUSES = new Set<SubmissionStatus>(['processing', 'completed', 'denied']);
@@ -116,7 +177,7 @@ export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(
     const db = getFirestore();
     const ref = db.collection('submissions').doc(id);
 
-    await db.runTransaction(async (tx) => {
+    const facts = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists) {
         throw new HttpsError('not-found', 'Submission not found.');
@@ -137,7 +198,19 @@ export const updateSubmissionStatus = onCall<UpdateSubmissionStatusPayload>(
           note,
         }),
       });
+      return {
+        formId: (snap.get('formId') as string) ?? '',
+        formTitle: (snap.get('formTitle') as string) ?? 'Form',
+        submitterName: (snap.get('submitterName') as string) ?? '',
+        submitterEmail: (snap.get('submitterEmail') as string) ?? '',
+        summary: (snap.get('summary') as string) ?? '',
+      };
     });
+
+    if (facts.submitterEmail) {
+      // Best-effort — logs its own failures, never breaks the status change.
+      await notifyStatusChanged({ id, ...facts }, status, note, email);
+    }
 
     return { success: true };
   },

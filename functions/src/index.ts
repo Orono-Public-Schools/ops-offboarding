@@ -3,7 +3,7 @@
 // firebase-admin's initializeApp() runs in ./shared, which every module
 // imports first.
 
-export { healthcheck, enforceDomain, listAdmins, setAdminClaim } from './adminRoles';
+export { healthcheck, enforceDomain, listRoleHolders, setUserRole } from './adminRoles';
 export { syncStaffRoster, scheduledStaffRosterSync } from './staffRoster';
 export {
   startOffboarding,
@@ -28,4 +28,18 @@ export {
   createHandoffDoc,
 } from './drive';
 export { promoteGroupOwner } from './groups';
-export { submitForm, updateSubmissionStatus } from './forms';
+export { submitForm, updateSubmissionStatus, deleteSubmission } from './forms';
+export { setNotificationSettings, setNotificationPrefs, sendTestEmail } from './notifications';
+export { sendQueuedMail } from './mailer';
+export {
+  createEmployee,
+  updateEmployee,
+  assignEmployeeId,
+  deleteEmployee,
+  createHrRecord,
+  createLeaveFromSubmission,
+  updateHrRecord,
+  setHrTask,
+  deleteHrRecord,
+} from './hr';
+export { importHrMasterSheet } from './hrImport';

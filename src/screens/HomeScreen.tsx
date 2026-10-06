@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router';
 import { computeProgress } from '../lib/admin';
-import { useAuth, useIsAdmin, useIsHR } from '../lib/auth';
+import { useAuth, useIsHR, useIsTech } from '../lib/auth';
 import { useOffboarding } from '../lib/offboarding';
-import { useMySubmissions, type Submission } from '../lib/forms';
+import { displayId, useMySubmissions, type Submission } from '../lib/forms';
 import { Card } from '../ds/components/core/Card';
 import { QuietLink } from '../ds/components/core/QuietLink';
 import { StatusBadge } from '../ds/components/core/StatusBadge';
@@ -58,7 +58,7 @@ export function HomeScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isHR = useIsHR();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsTech();
   const offb = useOffboarding(user?.uid ?? null);
   const subs = useMySubmissions(user?.uid ?? null);
 
@@ -110,8 +110,8 @@ export function HomeScreen() {
               <RequestRow
                 key={s.id}
                 title={s.formTitle}
-                kind={`${s.id} · ${filedAgo(s)}`}
-                status={<StatusBadge state={s.status} />}
+                kind={`${displayId(s.id)} · ${filedAgo(s)}`}
+                status={<StatusBadge variant="dot" state={s.status} />}
                 track={<StatusTrack stages={STAGES} current={STAGE_FOR_STATUS[s.status] ?? 1} />}
                 onClick={() => navigate(`/forms/submissions/${s.id}`)}
               />
@@ -130,6 +130,14 @@ export function HomeScreen() {
             <QuietLink icon="mail" href="mailto:hr@orono.k12.mn.us">
               Ask HR a question
             </QuietLink>
+            <QuietLink
+              icon="fileText"
+              href="/docs/onboarding-details.pdf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              New to Orono? What you need to know
+            </QuietLink>
           </div>
         }
       >
@@ -143,8 +151,7 @@ export function HomeScreen() {
           <ModuleCard
             icon="fileText"
             title="HR forms"
-            description="Change of address today; leave, lane changes, and more on the way."
-            meta="4 min"
+            description="Leave of absence, lane change, change of address — filed online, tracked here."
             onClick={() => navigate('/forms')}
           />
           <ModuleCard
@@ -174,16 +181,16 @@ export function HomeScreen() {
           {isHR && (
             <ModuleCard
               icon="inbox"
-              title="HR inbox"
-              description="Submissions from staff, waiting on a decision."
+              title="HR Portal"
+              description="The inbox, employee records, onboarding and leave checklists."
               onClick={() => navigate('/hr')}
             />
           )}
           {isAdmin && (
             <ModuleCard
               icon="key"
-              title="IT admin"
-              description="Offboarding dashboard, roster sync, and settings."
+              title="Admin"
+              description="Offboarding dashboard, staff sync, roles, and settings."
               onClick={() => navigate('/admin')}
             />
           )}

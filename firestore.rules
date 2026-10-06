@@ -17,9 +17,19 @@ service cloud.firestore {
       return isAuthed() && request.auth.token.it_admin == true;
     }
 
+    // Tech branch: IT support sees offboarding checklists (to work help
+    // requests and device/account tasks) but never HR personnel data.
+    function isTech() {
+      return isItAdmin() || (isAuthed() && request.auth.token.it_support == true);
+    }
+
+    // hr claim is 'admin' | 'staff' (legacy grants used `true` = admin level).
     function isHR() {
       return isAuthed()
-        && (request.auth.token.hr == true || request.auth.token.it_admin == true);
+        && (request.auth.token.hr == true
+            || request.auth.token.hr == 'admin'
+            || request.auth.token.hr == 'staff'
+            || request.auth.token.it_admin == true);
     }
 
     // Offboarding records. Document ID == user's Firebase UID, so rules
@@ -27,16 +37,16 @@ service cloud.firestore {
     // "doesn't exist yet" from "denied" for first-time users.
     // All writes go through Cloud Functions for validation + audit.
     match /offboardings/{offboardingId} {
-      allow read: if isSelf(offboardingId) || isItAdmin();
+      allow read: if isSelf(offboardingId) || isTech();
       allow write: if false;
 
       match /fileScan/{fileId} {
-        allow read: if isSelf(offboardingId) || isItAdmin();
+        allow read: if isSelf(offboardingId) || isTech();
         allow write: if false;
       }
 
       match /auditLog/{logId} {
-        allow read: if isSelf(offboardingId) || isItAdmin();
+        allow read: if isSelf(offboardingId) || isTech();
         allow write: if false;
       }
     }
@@ -74,6 +84,45 @@ service cloud.firestore {
     // All writes go through the submitForm/updateSubmissionStatus callables.
     match /submissions/{id} {
       allow read: if isHR() || (isAuthed() && resource.data.submitterUid == request.auth.uid);
+      allow write: if false;
+    }
+
+    // HR employee database (Phase 2). HR/IT read only; every write goes
+    // through the hr.ts / hrImport.ts callables.
+    match /employees/{id} {
+      allow read: if isHR();
+      allow write: if false;
+
+      match /history/{entryId} {
+        allow read: if isHR();
+        allow write: if false;
+      }
+    }
+
+    // Onboarding / termination checklist records.
+    match /processes/{id} {
+      allow read: if isHR();
+      allow write: if false;
+    }
+
+    // Leaves of absence — own collection (not folded into processes) so a
+    // narrower claim can gate it later without a data migration. Reason
+    // categories only; medical detail never lands here.
+    match /leaves/{id} {
+      allow read: if isHR();
+      allow write: if false;
+    }
+
+    // Building / position / name / address change events.
+    match /changes/{id} {
+      allow read: if isHR();
+      allow write: if false;
+    }
+
+    // A role holder's personal email-notification overrides. Each person
+    // reads their own; writes go through the setNotificationPrefs callable.
+    match /notificationPrefs/{uid} {
+      allow read: if isAuthed() && request.auth.uid == uid;
       allow write: if false;
     }
 

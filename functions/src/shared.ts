@@ -39,6 +39,21 @@ export function initialTasks() {
   return Object.fromEntries(TASK_KEYS.map((k) => [k, { status: 'not_started', help: null }]));
 }
 
+/** Tech-branch access: IT support or IT admin. Covers the offboarding
+ *  dashboard, help requests, and the staff sync — never HR records. */
+export function isTechRole(token: Record<string, unknown>): boolean {
+  return token.it_admin === true || token.it_support === true;
+}
+
+/** HR access level from custom claims. `it_admin` and legacy `hr: true`
+ *  count as admin level; `hr: 'staff'` is day-to-day access only. */
+export function hrLevel(token: Record<string, unknown>): 'admin' | 'staff' | null {
+  if (token.it_admin === true) return 'admin';
+  if (token.hr === true || token.hr === 'admin') return 'admin';
+  if (token.hr === 'staff') return 'staff';
+  return null;
+}
+
 export function requireAuthedDomainUser(request: {
   auth?: { uid: string; token: { email?: string } };
 }) {

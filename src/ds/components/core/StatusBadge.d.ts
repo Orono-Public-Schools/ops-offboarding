@@ -15,5 +15,10 @@ export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> 
   /** Show the leading glyph (default true). */
   icon?: boolean;
   size?: 'sm' | 'md';
+  /** "pill" (default) or "dot": colored dot + word, no fill — for list rows. */
+  variant?: 'pill' | 'dot';
+  /** "card" (default) for white surfaces; "dark" lightens the text toward
+   *  white for the navy shell (page headers). */
+  on?: 'card' | 'dark';
 }
 export declare function StatusBadge(props: StatusBadgeProps): JSX.Element;

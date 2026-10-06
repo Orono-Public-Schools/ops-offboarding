@@ -11,18 +11,31 @@ import {
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app, db } from './firebase';
-import type { FormData, SubmissionStatus } from '../../shared/forms/types';
+import type {
+  FileRef,
+  FormData,
+  SubmissionStatus,
+  TableColumn,
+  TableRow,
+} from '../../shared/forms/types';
 import { getFormDefinition } from '../../shared/forms/definitions';
-import { allFields, isFieldVisible } from '../../shared/forms/validate';
+import { visibleFields } from '../../shared/forms/validate';
 
-export type { FormData, SubmissionStatus } from '../../shared/forms/types';
-export type { FormDefinition, FormField, FormSection } from '../../shared/forms/types';
+export type { FormData, FormValue, SubmissionStatus } from '../../shared/forms/types';
+export type {
+  FileRef,
+  FormDefinition,
+  FormField,
+  FormSection,
+  TableColumn,
+  TableRow,
+} from '../../shared/forms/types';
 export {
   FORM_DEFINITIONS,
   getFormDefinition,
   changeOfAddress,
 } from '../../shared/forms/definitions';
-export { isFieldVisible, validateForm } from '../../shared/forms/validate';
+export { isFieldVisible, isSectionVisible, validateForm } from '../../shared/forms/validate';
 
 const functions = getFunctions(app, 'us-central1');
 
@@ -35,6 +48,18 @@ export const updateSubmissionStatus = httpsCallable<
   { id: string; status: SubmissionStatus; note?: string | null },
   { success: boolean }
 >(functions, 'updateSubmissionStatus');
+
+/** HR admins: remove a submission (clears any leave record's back-link). */
+export const deleteSubmission = httpsCallable<{ id: string }, { success: boolean }>(
+  functions,
+  'deleteSubmission',
+);
+
+/** HR: turn an LOA submission into a `leaves` record (links back via leaveId). */
+export const createLeaveFromSubmission = httpsCallable<
+  { submissionId: string; employeeRef: string },
+  { id: string }
+>(functions, 'createLeaveFromSubmission');
 
 export type ActivityEntry = {
   ts: Timestamp | null;
@@ -55,6 +80,8 @@ export type Submission = {
   submitterName: string;
   data: FormData;
   summary: string;
+  /** Set once HR creates the linked leave record (LOA submissions only). */
+  leaveId?: string | null;
   activityLog: ActivityEntry[];
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
@@ -163,17 +190,60 @@ export function useSubmission(id: string | null): DetailState {
  * definition for labels/order; falls back to raw keys if the definition
  * has since been removed.
  */
-export function allFieldsForSubmission(s: Submission): { label: string; value: string }[] {
+export type SubmissionEntry = {
+  label: string;
+  value: string;
+  /** Set for file fields — the attachment to link to. */
+  file?: FileRef;
+  /** Set for table fields — rows plus their column spec for rendering. */
+  rows?: TableRow[];
+  columns?: TableColumn[];
+};
+
+/** "REQ-35091" (legacy PaperPal-style ids) and "35091" both display "#35091". */
+export function displayId(id: string): string {
+  return `#${id.replace(/^REQ-/, '')}`;
+}
+
+export function allFieldsForSubmission(s: Submission): SubmissionEntry[] {
   const def = getFormDefinition(s.formId);
   if (!def) {
-    return Object.entries(s.data).map(([k, v]) => ({ label: k, value: String(v) }));
+    return Object.entries(s.data).map(([k, v]) => ({
+      label: k,
+      value: Array.isArray(v) ? JSON.stringify(v) : String(v),
+    }));
   }
-  const entries: { label: string; value: string }[] = [];
-  for (const field of allFields(def)) {
-    if (!isFieldVisible(field, s.data)) continue;
+  const entries: SubmissionEntry[] = [];
+  for (const field of visibleFields(def, s.data)) {
     const raw = s.data[field.id];
     if (raw === undefined || raw === '') continue;
-    const value = field.type === 'checkbox' ? (raw === true ? 'Yes' : 'No') : String(raw);
+    const labelOf = (v: string) => field.options?.find((o) => o.value === v)?.label ?? v;
+    if (field.type === 'file') {
+      if (typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const ref = raw as FileRef;
+      entries.push({ label: field.label, value: ref.name, file: ref });
+      continue;
+    }
+    if (field.type === 'table') {
+      if (!Array.isArray(raw) || raw.length === 0) continue;
+      const rows = raw as TableRow[];
+      entries.push({
+        label: field.label,
+        value: `${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`,
+        rows,
+        columns: field.columns,
+      });
+      continue;
+    }
+    let value: string;
+    if (field.type === 'checkbox') {
+      value = raw === true ? 'Yes' : 'No';
+    } else if (Array.isArray(raw)) {
+      if (raw.length === 0) continue;
+      value = (raw as string[]).map(labelOf).join(', ');
+    } else {
+      value = labelOf(String(raw));
+    }
     entries.push({ label: field.label, value });
   }
   return entries;

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { AdminListCard } from '../../components/AdminListCard';
+import { AccessCard } from '../../components/AccessCard';
+import { StaffDirectoryCard } from '../../components/StaffDirectoryCard';
+import { NotificationSettingsCard } from '../hr/NotificationCards';
+import { usePageTitle } from '../../lib/title';
+import { useIsAdmin } from '../../lib/auth';
 import {
   computeProgress,
   daysUntilLastDay,
@@ -146,9 +150,16 @@ function Row({ offboarding }: { offboarding: OffboardingSummary }) {
 export function AdminDashboard() {
   const state = useAllOffboardings();
   const navigate = useNavigate();
+  const isItAdmin = useIsAdmin();
   const [searchParams] = useSearchParams();
+  usePageTitle('Admin');
   const tabParam = searchParams.get('tab');
-  const tab: AdminTab = isAdminTab(tabParam) ? tabParam : 'staff';
+  // IT support works the offboarding + staff tabs; the rest is IT-admin turf.
+  const visibleTabs = isItAdmin
+    ? ADMIN_TABS
+    : ADMIN_TABS.filter((t) => t.id === 'staff' || t.id === 'offboarding');
+  const requested: AdminTab = isAdminTab(tabParam) ? tabParam : 'staff';
+  const tab: AdminTab = visibleTabs.some((t) => t.id === requested) ? requested : 'staff';
   const [filter, setFilter] = useState<FilterType>('all');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{
@@ -269,12 +280,12 @@ export function AdminDashboard() {
   const headline =
     tab === 'staff'
       ? staffCount
-        ? `${staffCount} people on the roster`
+        ? `${staffCount} staff synced`
         : 'Staff & access'
       : tab === 'onboarding'
         ? 'Onboarding has no settings yet'
         : tab === 'forms'
-          ? 'Forms run themselves for now'
+          ? 'The HR inbox, tuned here'
           : inMotion === 0
             ? 'Nothing in motion'
             : inMotion === 1
@@ -282,11 +293,11 @@ export function AdminDashboard() {
               : `${inMotion} offboardings in motion`;
   const subtitle =
     tab === 'staff'
-      ? 'The roster sync and who can work this dashboard.'
+      ? 'The nightly staff sync, the directory, and who holds which role.'
       : tab === 'onboarding'
         ? 'When onboarding opens, new-hire settings and checklists will live here.'
         : tab === 'forms'
-          ? 'Submissions land in the HR inbox; routing settings arrive with the next batch of forms.'
+          ? 'Who hears about submissions by email. Personal always/never overrides live on each account page; routing and visibility settings arrive with the next batch of forms.'
           : 'Everyone with an active checklist shows here. Open a row for per-task status and the audit trail.';
 
   const messageStyle = (kind: 'ok' | 'error'): React.CSSProperties => ({
@@ -313,7 +324,7 @@ export function AdminDashboard() {
 
       <TabBar
         tone="inverse"
-        tabs={ADMIN_TABS}
+        tabs={visibleTabs}
         active={tab}
         aria-label="Admin sections"
         onSelect={(id) => navigate(`/admin?tab=${id}`, { replace: true })}
@@ -438,7 +449,7 @@ export function AdminDashboard() {
         </Card>
       )}
 
-      {tab === 'offboarding' && (
+      {tab === 'offboarding' && isItAdmin && (
         <Card collapsible eyebrow="Settings" heading="What the summer responder promises" pad={16}>
           <p
             style={{
@@ -485,23 +496,16 @@ export function AdminDashboard() {
         />
       )}
 
-      {tab === 'forms' && (
-        <EmptyState
-          icon="fileText"
-          line="No form settings yet"
-          note="Staff submissions land in the HR inbox. Per-form routing and visibility settings arrive with the next batch of forms."
-          action={
-            <Button variant="secondary" onClick={() => navigate('/hr')}>
-              Open the HR inbox
-            </Button>
-          }
-        />
-      )}
+      {tab === 'forms' && <NotificationSettingsCard />}
+
+      {tab === 'staff' && <StaffDirectoryCard />}
+
+      {tab === 'staff' && isItAdmin && <AccessCard />}
 
       {tab === 'staff' && (
         <Card
           collapsible
-          eyebrow="Roster"
+          eyebrow="Staff sync"
           heading="Synced nightly at 3:00 AM Central"
           headingRight={
             <Button
@@ -542,14 +546,12 @@ export function AdminDashboard() {
           <p
             style={{ font: 'var(--type-caption)', color: 'var(--text-muted)', margin: '12px 0 0' }}
           >
-            Use Sync now if you’ve just edited the roster sheet and need staff to show up
+            Use Sync now if you’ve just edited the staff sheet and need someone to show up
             immediately.
           </p>
           {syncMessage && <p style={messageStyle(syncMessage.kind)}>{syncMessage.text}</p>}
         </Card>
       )}
-
-      {tab === 'staff' && <AdminListCard />}
     </>
   );
 }

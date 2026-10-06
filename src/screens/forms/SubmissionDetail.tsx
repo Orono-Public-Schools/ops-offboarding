@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { useIsHR } from '../../lib/auth';
+import { usePageTitle } from '../../lib/title';
+import { useAuth, useIsHR, useIsHrAdmin } from '../../lib/auth';
 import {
-  allFieldsForSubmission,
+  createLeaveFromSubmission,
+  deleteSubmission,
+  displayId,
   updateSubmissionStatus,
   useSubmission,
   type Submission,
   type SubmissionStatus,
 } from '../../lib/forms';
+import { useEmployees, type EmployeeDoc } from '../../lib/hr';
+import { SubmissionFacts } from './SubmissionFacts';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { Button } from '../../ds/components/core/Button';
 import { Card } from '../../ds/components/core/Card';
 import { StatusBadge } from '../../ds/components/core/StatusBadge';
-import { PageTitle } from '../../ds/components/navigation/PageTitle';
 import { StatusTrack } from '../../ds/components/records/StatusTrack';
 import { EmptyState } from '../../ds/components/records/EmptyState';
 import { Field } from '../../ds/components/forms/Field';
@@ -35,14 +40,145 @@ function actionLabel(action: string): string {
       return 'Completed';
     case 'status_denied':
       return 'Denied';
+    case 'leave_created':
+      return 'Leave record created';
     default:
       return action;
   }
 }
 
-function HrActions({ submission }: { submission: Submission }) {
+/** Best guess at which employee record an LOA submission belongs to: their
+ *  sign-in email, then the EE# they typed, then an exact name match. HR
+ *  confirms or overrides the pick — the guess never creates anything. */
+function matchEmployee(s: Submission, employees: EmployeeDoc[]): string {
+  const email = s.submitterEmail.toLowerCase();
+  const byEmail = employees.find((e) => (e.email ?? '').toLowerCase() === email);
+  if (byEmail) return byEmail.id;
+  const ee = Number(s.data.employeeId);
+  if (Number.isFinite(ee) && ee > 0) {
+    const byId = employees.find((e) => e.employeeId === ee);
+    if (byId) return byId.id;
+  }
+  const name = s.submitterName.trim().toLowerCase();
+  const byName = employees.find(
+    (e) => `${e.firstName} ${e.lastName}`.trim().toLowerCase() === name,
+  );
+  return byName?.id ?? '';
+}
+
+function employeeOptionLabel(e: EmployeeDoc): string {
+  const name =
+    e.lastName && e.firstName ? `${e.lastName}, ${e.firstName}` : e.nameRaw || e.lastName;
+  const extra = [e.employeeId ? `EE# ${e.employeeId}` : null, e.building]
+    .filter(Boolean)
+    .join(' · ');
+  return extra ? `${name} — ${extra}` : name;
+}
+
+/** HR-only, LOA submissions: hands the notification off to the Leaves tab. */
+function LeaveRecordCard({ submission }: { submission: Submission }) {
+  const navigate = useNavigate();
+  const employees = useEmployees(!submission.leaveId);
+  const [choice, setChoice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (submission.leaveId) {
+    return (
+      <Card eyebrow="Leave record" heading="On the Leaves tab" pad={16}>
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+          This notification already has a leave record — dates and status live there now.
+        </p>
+        <Button
+          variant="secondary"
+          onClick={() => navigate(`/hr/records/leaves/${submission.leaveId}`)}
+        >
+          Open the leave record
+        </Button>
+      </Card>
+    );
+  }
+
+  const list = employees.items ?? [];
+  const selected = choice ?? matchEmployee(submission, list);
+
+  const create = async () => {
+    if (!selected) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await createLeaveFromSubmission({ submissionId: submission.id, employeeRef: selected });
+      // The live snapshot picks up leaveId and flips this card to the link.
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not create the leave record.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card eyebrow="Leave record" heading="Start the leave record" pad={16}>
+      <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+        Copies the dates and reason category onto a new record under Leaves, linked back to this
+        notification. Everything else lands in the record's notes.
+      </p>
+      {employees.loading ? (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--text-muted)', margin: 0 }}>
+          Loading employees…
+        </p>
+      ) : employees.error ? (
+        <p style={{ font: 'var(--type-body-sm)', color: 'var(--accent)', margin: 0 }}>
+          {employees.error}
+        </p>
+      ) : (
+        <>
+          <Field
+            label="Employee"
+            as="select"
+            value={selected}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChoice(e.target.value)}
+            options={[
+              { value: '', label: 'Pick the employee…' },
+              ...list.map((e) => ({ value: e.id, label: employeeOptionLabel(e) })),
+            ]}
+            help={
+              selected
+                ? undefined
+                : 'No employee record matched this submitter — pick them by hand, or add them under New employees first.'
+            }
+          />
+          <div className="mt-4 flex justify-end">
+            <Button variant="primary" icon="plus" disabled={!selected || busy} onClick={create}>
+              {busy ? 'Working…' : 'Create leave record'}
+            </Button>
+          </div>
+        </>
+      )}
+      {error && (
+        <p
+          style={{
+            font: 'var(--type-body-sm)',
+            color: 'var(--accent)',
+            background: 'rgba(var(--accent-rgb), 0.08)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            textAlign: 'center',
+            margin: '12px 0 0',
+          }}
+        >
+          {error}
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function HrActions({ submission, hrView }: { submission: Submission; hrView: boolean }) {
+  const navigate = useNavigate();
+  const isHrAdmin = useIsHrAdmin();
   const [note, setNote] = useState('');
   const [pending, setPending] = useState<SubmissionStatus | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const act = async (status: SubmissionStatus) => {
@@ -59,6 +195,20 @@ function HrActions({ submission }: { submission: Submission }) {
     }
   };
 
+  const remove = async () => {
+    if (!window.confirm('Delete this submission? This cannot be undone.')) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteSubmission({ id: submission.id });
+      navigate(hrView ? '/hr' : '/forms', { replace: true });
+    } catch (err) {
+      console.error(err);
+      setError('Could not delete the submission.');
+      setDeleting(false);
+    }
+  };
+
   return (
     <Card eyebrow="Decision" heading="Move this request" pad={16}>
       <Field
@@ -71,8 +221,24 @@ function HrActions({ submission }: { submission: Submission }) {
         optional
       />
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {/* Housekeeping sits far left, away from the decision verbs; red only
+            on approach, like everything destructive at rest. */}
+        {isHrAdmin && (
+          <Button
+            variant="destructiveGhost"
+            disabled={pending !== null || deleting}
+            onClick={remove}
+            style={{ marginRight: 'auto' }}
+          >
+            {deleting ? 'Deleting…' : 'Delete submission'}
+          </Button>
+        )}
         {submission.status !== 'denied' && (
-          <Button variant="destructive" disabled={pending !== null} onClick={() => act('denied')}>
+          <Button
+            variant="destructiveGhost"
+            disabled={pending !== null}
+            onClick={() => act('denied')}
+          >
             {pending === 'denied' ? 'Working…' : 'Deny'}
           </Button>
         )}
@@ -115,7 +281,11 @@ export function SubmissionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isHR = useIsHR();
+  const { user } = useAuth();
   const state = useSubmission(id ?? null);
+  usePageTitle(
+    state.submission ? `${state.submission.formTitle} ${displayId(state.submission.id)}` : 'Forms',
+  );
 
   if (state.loading) {
     return (
@@ -148,14 +318,19 @@ export function SubmissionDetail() {
 
   const s = state.submission;
   const denied = s.status === 'denied';
+  // HR reading someone else's submission came from the inbox; the submitter
+  // (HR or not) came from their forms page.
+  const hrView = isHR && s.submitterUid !== user?.uid;
 
   return (
     <>
-      <PageTitle
-        eyebrow={`${s.id} · filed ${formatTs(s.createdAt)}`}
+      <ScreenHeader
+        crumb={hrView ? 'HR inbox' : 'HR forms'}
+        onBack={() => navigate(hrView ? '/hr' : '/forms')}
         title={s.formTitle}
         subtitle={denied ? 'This one came back — the note below says why.' : undefined}
-        actions={<StatusBadge state={s.status} size="md" />}
+        note={`${displayId(s.id)} · filed ${formatTs(s.createdAt)}`}
+        actions={<StatusBadge state={s.status} size="md" on="dark" />}
       />
 
       {!denied && (
@@ -165,15 +340,14 @@ export function SubmissionDetail() {
       )}
 
       <Card eyebrow="Details" heading="What you told us" pad={16}>
-        <RowList>
-          <DetailRow label="Filed by" value={`${s.submitterName} · ${s.submitterEmail}`} />
-          {allFieldsForSubmission(s).map(({ label, value }) => (
-            <DetailRow key={label} label={label} value={value} />
-          ))}
-        </RowList>
+        <SubmissionFacts submission={s} />
       </Card>
 
-      {isHR && <HrActions submission={s} />}
+      {isHR && s.formId === 'leaveOfAbsence' && (s.leaveId || !denied) && (
+        <LeaveRecordCard submission={s} />
+      )}
+
+      {isHR && <HrActions submission={s} hrView={hrView} />}
 
       <Card eyebrow="Activity" heading="Everything that's happened" pad={16}>
         <RowList>

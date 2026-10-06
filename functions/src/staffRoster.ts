@@ -4,7 +4,8 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import { google } from 'googleapis';
 
-import { ALLOWED_DOMAIN, REGION, requireAuthedDomainUser } from './shared';
+import { ALLOWED_DOMAIN, REGION, isTechRole, requireAuthedDomainUser } from './shared';
+import { reconcileGoogleAccounts } from './hr';
 
 // Spreadsheet that drives the staff picker. Sync via syncStaffRoster.
 const STAFF_SHEET_ID = '1uvr4MN3DhNyHKxxZuVeT_Tag3U6EpkRxr3s82plIqbU';
@@ -121,6 +122,14 @@ async function performStaffRosterSync(
     { merge: true },
   );
 
+  // New hires whose Google account now exists get their Gmail task checked.
+  try {
+    const rec = await reconcileGoogleAccounts();
+    logger.info('Google account reconcile', rec);
+  } catch (err) {
+    logger.error('Google account reconcile failed (roster sync itself succeeded)', err);
+  }
+
   return { synced: staff.length, removed };
 }
 
@@ -128,8 +137,8 @@ export const syncStaffRoster = onCall(
   { region: REGION, timeoutSeconds: 240, memory: '512MiB' },
   async (request) => {
     const { uid } = requireAuthedDomainUser(request);
-    if (request.auth?.token.it_admin !== true) {
-      throw new HttpsError('permission-denied', 'IT admin only.');
+    if (!isTechRole((request.auth?.token ?? {}) as Record<string, unknown>)) {
+      throw new HttpsError('permission-denied', 'IT access required.');
     }
     return performStaffRosterSync('manual', uid);
   },

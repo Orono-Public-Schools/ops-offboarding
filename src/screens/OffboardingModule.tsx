@@ -6,6 +6,7 @@ import { BUILDING_CHECKLISTS, useOffboarding, type OffboardingDoc } from '../lib
 import { WelcomeScreen } from './WelcomeScreen';
 import { Card } from '../ds/components/core/Card';
 import { DayHeader } from '../ds/components/navigation/DayHeader';
+import { usePageTitle } from '../lib/title';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -114,6 +115,7 @@ export function OffboardingModule() {
   // Only the index route opens with the module DayHeader — task pages carry
   // their own titles.
   const onIndex = useMatch('/offboarding') !== null;
+  usePageTitle('Offboarding');
 
   if (state.loading) {
     return (
